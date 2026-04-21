@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- Base typography / reset --- */
+@layer base {
+  html {
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  body {
+    @apply bg-surface-50 text-surface-900 antialiased dark:bg-surface-950 dark:text-surface-100;
+  }
+
+  * {
+    @apply box-border;
+  }
+}
+
+/* --- App-level utilities --- */
+@layer components {
+  .app-shell {
+    @apply min-h-screen flex;
+  }
+
+  .app-sidebar {
+    @apply w-64 shrink-0 border-r border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900;
+  }
+
+  .app-main {
+    @apply flex-1 flex flex-col;
+  }
+
+  .app-topbar {
+    @apply h-14 shrink-0 border-b border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 flex items-center px-4 gap-4;
+  }
+
+  .app-content {
+    @apply flex-1 overflow-auto p-6;
+  }
+}
