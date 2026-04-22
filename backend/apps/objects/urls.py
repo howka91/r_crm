@@ -1,2 +1,29 @@
-"""URL routes for the 'objects' app. Populated in the corresponding phase."""
-urlpatterns: list = []
+"""URL routes for the objects app.
+
+Mounted under `/api/v1/` by `conf.urls`:
+  /api/v1/projects/
+  /api/v1/buildings/
+  /api/v1/sections/
+  /api/v1/floors/
+"""
+from __future__ import annotations
+
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
+
+from apps.objects.views import (
+    BuildingViewSet,
+    FloorViewSet,
+    ProjectViewSet,
+    SectionViewSet,
+)
+
+router = DefaultRouter()
+router.register("projects", ProjectViewSet, basename="project")
+router.register("buildings", BuildingViewSet, basename="building")
+router.register("sections", SectionViewSet, basename="section")
+router.register("floors", FloorViewSet, basename="floor")
+
+urlpatterns = [
+    path("", include(router.urls)),
+]

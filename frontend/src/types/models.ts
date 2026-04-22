@@ -135,6 +135,82 @@ export interface PaymentInPercentItem extends LookupItem {
   percent: string
 }
 
+// --- Objects ---------------------------------------------------------------
+// Mirrors backend models in apps.objects.models.
+// Hierarchy: Project → Building → Section → Floor (→ Apartment in phase 3.2).
+
+export interface Project extends TimeStamped {
+  id: number
+  developer: number
+  /** Read-only — `developer.name` joined in by the serializer. */
+  developer_name: I18nText | null
+  title: I18nText
+  address: string
+  description: I18nText
+  banks: Array<Record<string, unknown>>
+  contract_number_index: number
+  sort: number
+  is_active: boolean
+  /** Read-only — count of child buildings. */
+  buildings_count: number
+}
+
+export type ProjectWrite = Omit<
+  Project,
+  | "id"
+  | "created_at"
+  | "modified_at"
+  | "developer_name"
+  | "buildings_count"
+  | "contract_number_index"
+>
+
+export interface Building extends TimeStamped {
+  id: number
+  project: number
+  title: I18nText
+  number: string
+  cadastral_number: string
+  date_of_issue: string | null
+  planning_file: string | null
+  sort: number
+  is_active: boolean
+  sections_count: number
+}
+
+export type BuildingWrite = Omit<
+  Building,
+  "id" | "created_at" | "modified_at" | "sections_count" | "planning_file"
+>
+
+export interface Section extends TimeStamped {
+  id: number
+  building: number
+  title: I18nText
+  number: number
+  planning_file: string | null
+  sort: number
+  is_active: boolean
+  floors_count: number
+}
+
+export type SectionWrite = Omit<
+  Section,
+  "id" | "created_at" | "modified_at" | "floors_count" | "planning_file"
+>
+
+export interface Floor extends TimeStamped {
+  id: number
+  section: number
+  number: number
+  /** Decimal string. */
+  price_per_sqm: string
+  sort: number
+  is_active: boolean
+}
+
+export type FloorWrite = Omit<Floor, "id" | "created_at" | "modified_at">
+
 /** URL slug for each lookup type — matches backend kebab-cased class names. */
 export type LookupTypeSlug =
   | "apartment-type"

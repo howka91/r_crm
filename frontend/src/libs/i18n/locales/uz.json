@@ -107,6 +107,67 @@
     "forbidden": "Huquq yetarli emas",
     "not_found": "Sahifa topilmadi"
   },
+  "objects": {
+    "title": "Obyektlar",
+    "subtitle": "Turar-joy majmualari, binolar, podyezdlar va qavatlar",
+    "projects": {
+      "title": "Turar-joy majmualari",
+      "subtitle": "JK ro'yxati — binolar va qavatlarni ko'rish uchun tanlang",
+      "new": "Yangi JK",
+      "edit": "JKni tahrirlash",
+      "empty": "Hali JK yo'q. Birinchisini yarating.",
+      "open": "Ochish",
+      "fields": {
+        "developer": "Quruvchi",
+        "title": "Nomi",
+        "address": "Manzil",
+        "description": "Tavsif"
+      },
+      "confirm_delete": "JKni o'chirish"
+    },
+    "buildings": {
+      "title": "Binolar",
+      "empty": "Bu JKda hali binolar yo'q.",
+      "new": "Yangi bino",
+      "edit": "Binoni tahrirlash",
+      "fields": {
+        "title": "Nomi",
+        "number": "Bino raqami",
+        "cadastral_number": "Kadastr raqami",
+        "date_of_issue": "Foydalanishga topshirish sanasi"
+      },
+      "confirm_delete": "Binoni o'chirish"
+    },
+    "sections": {
+      "title": "Podyezdlar",
+      "empty": "Bu binoda hali podyezdlar yo'q.",
+      "new": "Yangi podyezd",
+      "edit": "Podyezdni tahrirlash",
+      "fields": {
+        "title": "Nomi",
+        "number": "Podyezd raqami"
+      },
+      "confirm_delete": "Podyezdni o'chirish"
+    },
+    "floors": {
+      "title": "Qavatlar",
+      "empty": "Bu podyezdda hali qavatlar yo'q.",
+      "new": "Yangi qavat",
+      "edit": "Qavatni tahrirlash",
+      "fields": {
+        "number": "Qavat raqami",
+        "price_per_sqm": "m² narxi (UZS)"
+      },
+      "confirm_delete": "Qavatni o'chirish"
+    },
+    "columns": {
+      "buildings_count": "Binolar",
+      "sections_count": "Podyezdlar",
+      "floors_count": "Qavatlar",
+      "number": "Raqam",
+      "price_per_sqm": "m² narxi"
+    }
+  },
   "references": {
     "hub_title": "Ma'lumotnomalar",
     "hub_subtitle": "Loyiha asosiy ma'lumotlari: quruvchilar, ofislar, valyutalar, tasniflagichlar",

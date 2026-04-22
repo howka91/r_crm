@@ -124,6 +124,11 @@ PERMISSION_TREE: list[PermissionNode] = [
                 "children": _crud("objects.buildings", "корпус", "Bino", "Бино"),
             },
             {
+                "key": "objects.sections",
+                "label": _label("Подъезды", "Podyezdlar", "Подъездлар"),
+                "children": _crud("objects.sections", "подъезд", "Podyezd", "Подъезд"),
+            },
+            {
                 "key": "objects.floors",
                 "label": _label("Этажи", "Qavatlar", "Қаватлар"),
                 "children": [

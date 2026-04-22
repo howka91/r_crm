@@ -11,6 +11,7 @@ import { useAuthStore } from "@/store/auth"
 import { usePermissionStore } from "@/store/permissions"
 
 import administrationRoutes from "./administration"
+import objectsRoutes from "./objects"
 import referencesRoutes from "./references"
 
 const routes: RouteRecordRaw[] = [
@@ -45,6 +46,7 @@ const routes: RouteRecordRaw[] = [
         name: "dashboard",
         component: () => import("@/views/Home.vue"),
       },
+      ...objectsRoutes,
       ...referencesRoutes,
       ...administrationRoutes,
     ],
