@@ -11,6 +11,7 @@ import { useAuthStore } from "@/store/auth"
 import { usePermissionStore } from "@/store/permissions"
 
 import administrationRoutes from "./administration"
+import referencesRoutes from "./references"
 
 const routes: RouteRecordRaw[] = [
   // --- Standalone / full-layout routes -------------------------------------
@@ -44,6 +45,7 @@ const routes: RouteRecordRaw[] = [
         name: "dashboard",
         component: () => import("@/views/Home.vue"),
       },
+      ...referencesRoutes,
       ...administrationRoutes,
     ],
   },

@@ -21,8 +21,11 @@
     "finance": "Тўловлар",
     "finance_charts": "Графиклар",
     "references": "Маълумотномалар",
+    "references_hub": "Маълумотномалар обзори",
     "references_sales_offices": "Савдо офислари",
     "references_developers": "Қурувчи фирмалар",
+    "references_currencies": "Валюталар",
+    "references_lookups": "Таснифлагичлар",
     "references_contract_templates": "Шартнома шаблонлари",
     "sms": "СМС юбориш",
     "sms_templates": "СМС шаблонлар",
@@ -103,5 +106,103 @@
     "unknown": "Нимадир нотўғри бажарилди.",
     "forbidden": "Ҳуқуқ етарли эмас",
     "not_found": "Саҳифа топилмади"
+  },
+  "references": {
+    "hub_title": "Маълумотномалар",
+    "hub_subtitle": "Лойиҳа асосий маълумотлари: қурувчилар, офислар, валюталар, таснифлагичлар",
+    "card_developers_desc": "Банк реквизитлари билан қурувчи юридик шахслар",
+    "card_sales_offices_desc": "Мижозлар билан учрашув нуқталари, харитада координаталар",
+    "card_currencies_desc": "ISO 4217 кодлари ва UZS га курслари",
+    "card_lookups_desc": "Квартира турлари, таъмирлаш, қурилиш босқичлари ва бошқа таснифлагичлар",
+    "columns": {
+      "name": "Номи",
+      "director": "Директор",
+      "phone": "Телефон",
+      "inn": "СТИР",
+      "address": "Манзил",
+      "coords": "Координаталар",
+      "work_hours": "Иш вақти",
+      "code": "Код",
+      "symbol": "Белгиси",
+      "rate": "UZS га курс",
+      "sort": "Тартиб",
+      "status": "Ҳолати",
+      "color": "Ранг",
+      "percent": "Фоиз",
+      "region": "Регион"
+    },
+    "developers": {
+      "title": "Қурувчи фирмалар",
+      "subtitle": "Қурувчи юридик шахслар ва уларнинг реквизитлари",
+      "new": "Янги қурувчи",
+      "edit": "Қурувчини таҳрирлаш",
+      "section_contacts": "Контактлар",
+      "section_bank": "Банк ва реквизитлар",
+      "fields": {
+        "director": "Директор",
+        "address": "Юридик манзил",
+        "email": "Email",
+        "phone": "Телефон",
+        "bank_name": "Банк номи",
+        "bank_account": "Ҳисоб рақами",
+        "inn": "СТИР",
+        "nds": "ҚҚС рўйхати",
+        "oked": "ОКЭД"
+      },
+      "confirm_delete": "Қурувчини ўчириш"
+    },
+    "sales_offices": {
+      "title": "Савдо офислари",
+      "subtitle": "Координаталар ва иш вақтига эга жисмоний нуқталар",
+      "new": "Янги офис",
+      "edit": "Офисни таҳрирлаш",
+      "section_location": "Жойлашув",
+      "section_work": "Контактлар ва иш вақти",
+      "fields": {
+        "address": "Манзил",
+        "latitude": "Кенглик",
+        "longitude": "Узунлик",
+        "work_start": "Иш боши",
+        "work_end": "Иш охири",
+        "phone": "Телефон"
+      },
+      "confirm_delete": "Савдо офисини ўчириш"
+    },
+    "currencies": {
+      "title": "Валюталар",
+      "subtitle": "ISO 4217 кодлари ва Ўзбек сўмига курслар",
+      "new": "Янги валюта",
+      "edit": "Валютани таҳрирлаш",
+      "fields": {
+        "code": "Код (ISO 4217)",
+        "symbol": "Белгиси",
+        "rate": "UZS га курс (1 бирлик = N UZS)"
+      },
+      "confirm_delete": "Валютани ўчириш"
+    },
+    "lookups": {
+      "title": "Таснифлагичлар",
+      "subtitle": "Санаб ўтувчи маълумотномалар: турлар, босқичлар, материаллар ва ҳоказо",
+      "select_type": "Таснифлагични танланг",
+      "new_item": "Янги ёзув",
+      "edit_item": "Ёзувни таҳрирлаш",
+      "empty": "Ҳали ёзувлар йўқ. «Янги ёзув»-га босинг.",
+      "confirm_delete": "Ёзувни ўчириш",
+      "types": {
+        "apartment_type": "Хоналар турлари",
+        "room_type": "Планировка турлари",
+        "construction_stage": "Қурилиш босқичлари",
+        "decoration": "Таъмирлаш турлари",
+        "premises_decoration": "Хоналар таъмирлаши",
+        "home_material": "Уй материаллари",
+        "output_windows": "Ойнадан кўриниш",
+        "occupied_by": "Бандлик тоифалари",
+        "badge": "Квартира теглари",
+        "payment_method": "Тўлов усуллари",
+        "payment_in_percent": "Тўлов фоиз шкаласи",
+        "region": "Регионлар",
+        "location": "Аҳоли пунктлари"
+      }
+    }
   }
 }

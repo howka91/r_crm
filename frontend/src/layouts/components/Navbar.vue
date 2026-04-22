@@ -14,20 +14,28 @@ import { LOCALES, setLocale, type Locale } from "@/libs/i18n"
 const { t, locale } = useI18n()
 const route = useRoute()
 
-/** route-name → i18n key for breadcrumb labels. Falls back to route name. */
-const ROUTE_LABELS: Record<string, string> = {
-  dashboard: "nav.dashboard",
-  "admin-users": "nav.admin_users",
-  "admin-roles": "nav.admin_permissions",
-  "admin-role-edit": "nav.admin_permissions",
+/** route-name → trail of i18n keys for breadcrumbs (excluding the Home root,
+ * which is prepended automatically). Falls back to the route name itself.
+ */
+const ROUTE_TRAIL: Record<string, string[]> = {
+  dashboard: [],
+  "admin-users": ["nav.admin_users"],
+  "admin-roles": ["nav.admin_permissions"],
+  "admin-role-edit": ["nav.admin_permissions"],
+  "references-hub": ["nav.references"],
+  "references-developers": ["nav.references", "nav.references_developers"],
+  "references-sales-offices": ["nav.references", "nav.references_sales_offices"],
+  "references-currencies": ["nav.references", "nav.references_currencies"],
+  "references-lookups": ["nav.references", "nav.references_lookups"],
 }
 
 const crumbs = computed<string[]>(() => {
   const name = route.name?.toString()
   const home = t("nav.dashboard")
   if (!name || name === "dashboard") return [home]
-  const key = ROUTE_LABELS[name]
-  return [home, key ? t(key) : name]
+  const trail = ROUTE_TRAIL[name]
+  if (!trail) return [home, name]
+  return [home, ...trail.map((k) => t(k))]
 })
 
 const locales = computed(() =>

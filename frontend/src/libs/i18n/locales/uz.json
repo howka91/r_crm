@@ -21,8 +21,11 @@
     "finance": "To'lovlar",
     "finance_charts": "Grafiklar",
     "references": "Ma'lumotnomalar",
+    "references_hub": "Ma'lumotnomalar obzori",
     "references_sales_offices": "Savdo ofislari",
     "references_developers": "Quruvchi firmalar",
+    "references_currencies": "Valyutalar",
+    "references_lookups": "Tasniflagichlar",
     "references_contract_templates": "Shartnoma shablonlari",
     "sms": "SMS yuborish",
     "sms_templates": "SMS shablonlar",
@@ -103,5 +106,103 @@
     "unknown": "Nimadir noto'g'ri bajarildi.",
     "forbidden": "Huquq yetarli emas",
     "not_found": "Sahifa topilmadi"
+  },
+  "references": {
+    "hub_title": "Ma'lumotnomalar",
+    "hub_subtitle": "Loyiha asosiy ma'lumotlari: quruvchilar, ofislar, valyutalar, tasniflagichlar",
+    "card_developers_desc": "Bank rekvizitlari bilan quruvchi yuridik shaxslar",
+    "card_sales_offices_desc": "Mijozlar bilan uchrashuv nuqtalari, xaritada koordinatalar",
+    "card_currencies_desc": "ISO 4217 kodlari va UZS ga kurslari",
+    "card_lookups_desc": "Kvartira turlari, tamirlash, qurilish bosqichlari va boshqa tasniflagichlar",
+    "columns": {
+      "name": "Nomi",
+      "director": "Direktor",
+      "phone": "Telefon",
+      "inn": "STIR",
+      "address": "Manzil",
+      "coords": "Koordinatalar",
+      "work_hours": "Ish vaqti",
+      "code": "Kod",
+      "symbol": "Belgisi",
+      "rate": "UZS ga kurs",
+      "sort": "Tartib",
+      "status": "Holati",
+      "color": "Rang",
+      "percent": "Foiz",
+      "region": "Region"
+    },
+    "developers": {
+      "title": "Quruvchi firmalar",
+      "subtitle": "Quruvchi yuridik shaxslar va ularning rekvizitlari",
+      "new": "Yangi quruvchi",
+      "edit": "Quruvchini tahrirlash",
+      "section_contacts": "Kontaktlar",
+      "section_bank": "Bank va rekvizitlar",
+      "fields": {
+        "director": "Direktor",
+        "address": "Yuridik manzil",
+        "email": "Email",
+        "phone": "Telefon",
+        "bank_name": "Bank nomi",
+        "bank_account": "Hisob raqami",
+        "inn": "STIR",
+        "nds": "QQS ro'yxati",
+        "oked": "ОКЭД"
+      },
+      "confirm_delete": "Quruvchini o'chirish"
+    },
+    "sales_offices": {
+      "title": "Savdo ofislari",
+      "subtitle": "Koordinatalar va ish vaqtiga ega jismoniy nuqtalar",
+      "new": "Yangi ofis",
+      "edit": "Ofisni tahrirlash",
+      "section_location": "Joylashuv",
+      "section_work": "Kontaktlar va ish vaqti",
+      "fields": {
+        "address": "Manzil",
+        "latitude": "Kenglik",
+        "longitude": "Uzunlik",
+        "work_start": "Ish boshi",
+        "work_end": "Ish oxiri",
+        "phone": "Telefon"
+      },
+      "confirm_delete": "Savdo ofisini o'chirish"
+    },
+    "currencies": {
+      "title": "Valyutalar",
+      "subtitle": "ISO 4217 kodlari va O'zbek so'miga kurslar",
+      "new": "Yangi valyuta",
+      "edit": "Valyutani tahrirlash",
+      "fields": {
+        "code": "Kod (ISO 4217)",
+        "symbol": "Belgisi",
+        "rate": "UZS ga kurs (1 birlik = N UZS)"
+      },
+      "confirm_delete": "Valyutani o'chirish"
+    },
+    "lookups": {
+      "title": "Tasniflagichlar",
+      "subtitle": "Sanab o'tuvchi ma'lumotnomalar: turlar, bosqichlar, materiallar va hokazo",
+      "select_type": "Tasniflagichni tanlang",
+      "new_item": "Yangi yozuv",
+      "edit_item": "Yozuvni tahrirlash",
+      "empty": "Hali yozuvlar yo'q. «Yangi yozuv»-ga bosing.",
+      "confirm_delete": "Yozuvni o'chirish",
+      "types": {
+        "apartment_type": "Xonalar turlari",
+        "room_type": "Planirovka turlari",
+        "construction_stage": "Qurilish bosqichlari",
+        "decoration": "Tamirlash turlari",
+        "premises_decoration": "Xonalar tamirlashi",
+        "home_material": "Uy materiallari",
+        "output_windows": "Oynadan ko'rinish",
+        "occupied_by": "Bandlik toifalari",
+        "badge": "Kvartira teglari",
+        "payment_method": "To'lov usullari",
+        "payment_in_percent": "To'lov foiz shkalasi",
+        "region": "Regionlar",
+        "location": "Aholi punktlari"
+      }
+    }
   }
 }

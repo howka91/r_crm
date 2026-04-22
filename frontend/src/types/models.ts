@@ -58,3 +58,95 @@ export interface Staff {
   date_joined: string
   last_login: string | null
 }
+
+// --- References ------------------------------------------------------------
+// Mirrors backend models in apps.references.models.
+
+export interface TimeStamped {
+  created_at: string
+  modified_at: string
+}
+
+export interface Developer extends TimeStamped {
+  id: number
+  name: I18nText
+  director: string
+  address: string
+  email: string
+  phone: string
+  bank_name: string
+  bank_account: string
+  inn: string
+  nds: string
+  oked: string
+  extra: Record<string, unknown>
+  is_active: boolean
+}
+
+export type DeveloperWrite = Omit<Developer, "id" | "created_at" | "modified_at">
+
+export interface SalesOffice extends TimeStamped {
+  id: number
+  name: I18nText
+  address: string
+  /** Decimal, serialized as string by DRF. */
+  latitude: string | null
+  longitude: string | null
+  /** "HH:MM:SS" or null. */
+  work_start: string | null
+  work_end: string | null
+  phone: string
+  photo: string | null
+  is_active: boolean
+}
+
+export type SalesOfficeWrite = Omit<SalesOffice, "id" | "created_at" | "modified_at" | "photo">
+
+export interface Currency extends TimeStamped {
+  id: number
+  /** ISO 4217, 3 letters, uppercase. */
+  code: string
+  symbol: string
+  name: I18nText
+  /** Decimal string — 1 unit of currency = N UZS. */
+  rate: string
+  is_active: boolean
+}
+
+export type CurrencyWrite = Omit<Currency, "id" | "created_at" | "modified_at">
+
+/** Shared shape for every LookupModel subclass (13 backend tables). */
+export interface LookupItem extends TimeStamped {
+  id: number
+  name: I18nText
+  sort: number
+  is_active: boolean
+}
+
+export interface BadgeItem extends LookupItem {
+  color: string
+}
+
+export interface LocationItem extends LookupItem {
+  region: number | null
+}
+
+export interface PaymentInPercentItem extends LookupItem {
+  percent: string
+}
+
+/** URL slug for each lookup type — matches backend kebab-cased class names. */
+export type LookupTypeSlug =
+  | "apartment-type"
+  | "room-type"
+  | "construction-stage"
+  | "decoration"
+  | "premises-decoration"
+  | "home-material"
+  | "output-windows"
+  | "occupied-by"
+  | "badge"
+  | "payment-method"
+  | "payment-in-percent"
+  | "region"
+  | "location"

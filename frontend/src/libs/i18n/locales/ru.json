@@ -21,8 +21,11 @@
     "finance": "Платежи",
     "finance_charts": "Графики",
     "references": "Справочники",
+    "references_hub": "Обзор справочников",
     "references_sales_offices": "Отделы продаж",
     "references_developers": "Застройщики",
+    "references_currencies": "Валюты",
+    "references_lookups": "Классификаторы",
     "references_contract_templates": "Шаблоны договоров",
     "sms": "SMS рассылка",
     "sms_templates": "SMS шаблоны",
@@ -103,5 +106,103 @@
     "unknown": "Что-то пошло не так.",
     "forbidden": "Недостаточно прав",
     "not_found": "Страница не найдена"
+  },
+  "references": {
+    "hub_title": "Справочники",
+    "hub_subtitle": "Базовые данные проекта: застройщики, офисы, валюты, классификаторы",
+    "card_developers_desc": "Юрлица-строители с банковскими реквизитами",
+    "card_sales_offices_desc": "Физические точки встречи с клиентами, координаты на карте",
+    "card_currencies_desc": "ISO 4217 коды и курсы к UZS",
+    "card_lookups_desc": "Типы квартир, отделка, этапы строительства и другие классификаторы",
+    "columns": {
+      "name": "Название",
+      "director": "Директор",
+      "phone": "Телефон",
+      "inn": "ИНН",
+      "address": "Адрес",
+      "coords": "Координаты",
+      "work_hours": "Часы работы",
+      "code": "Код",
+      "symbol": "Символ",
+      "rate": "Курс к UZS",
+      "sort": "Порядок",
+      "status": "Статус",
+      "color": "Цвет",
+      "percent": "Процент",
+      "region": "Регион"
+    },
+    "developers": {
+      "title": "Застройщики",
+      "subtitle": "Юрлица-строители и их реквизиты",
+      "new": "Новый застройщик",
+      "edit": "Редактировать застройщика",
+      "section_contacts": "Контакты",
+      "section_bank": "Банк и реквизиты",
+      "fields": {
+        "director": "Директор",
+        "address": "Юридический адрес",
+        "email": "Email",
+        "phone": "Телефон",
+        "bank_name": "Название банка",
+        "bank_account": "Расчётный счёт",
+        "inn": "ИНН",
+        "nds": "Регистрация НДС",
+        "oked": "ОКЭД"
+      },
+      "confirm_delete": "Удалить застройщика"
+    },
+    "sales_offices": {
+      "title": "Отделы продаж",
+      "subtitle": "Физические точки с координатами и графиком работы",
+      "new": "Новый отдел",
+      "edit": "Редактировать отдел",
+      "section_location": "Расположение",
+      "section_work": "Контакты и график",
+      "fields": {
+        "address": "Адрес",
+        "latitude": "Широта",
+        "longitude": "Долгота",
+        "work_start": "Начало работы",
+        "work_end": "Конец работы",
+        "phone": "Телефон"
+      },
+      "confirm_delete": "Удалить отдел продаж"
+    },
+    "currencies": {
+      "title": "Валюты",
+      "subtitle": "ISO 4217 коды и курсы к узбекскому суму",
+      "new": "Новая валюта",
+      "edit": "Редактировать валюту",
+      "fields": {
+        "code": "Код (ISO 4217)",
+        "symbol": "Символ",
+        "rate": "Курс к UZS (1 ед. = N UZS)"
+      },
+      "confirm_delete": "Удалить валюту"
+    },
+    "lookups": {
+      "title": "Классификаторы",
+      "subtitle": "Справочники-перечисления: типы, этапы, материалы и т.д.",
+      "select_type": "Выберите классификатор",
+      "new_item": "Новая запись",
+      "edit_item": "Редактировать запись",
+      "empty": "Пока нет записей. Нажмите «Новая запись», чтобы добавить.",
+      "confirm_delete": "Удалить запись",
+      "types": {
+        "apartment_type": "Типы помещений",
+        "room_type": "Типы планировок",
+        "construction_stage": "Этапы строительства",
+        "decoration": "Типы отделки",
+        "premises_decoration": "Отделка помещений",
+        "home_material": "Материалы дома",
+        "output_windows": "Виды из окон",
+        "occupied_by": "Категории занятости",
+        "badge": "Теги квартир",
+        "payment_method": "Способы оплаты",
+        "payment_in_percent": "Шкала процентов оплаты",
+        "region": "Регионы",
+        "location": "Населённые пункты"
+      }
+    }
   }
 }
