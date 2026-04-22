@@ -62,6 +62,8 @@
 - **Permissions** — DRF permission class `HasPermission("module.key")` проверяет `Staff.role.permissions` dict.
 - **Тесты** — pytest-django, фабрики через factory-boy, file per model `tests/test_<entity>.py`.
 - **Импорты** — абсолютные от корня (`from apps.users.models import Staff`), не `from .models`.
+- **Layout моделей** — по умолчанию `{app}/models.py` один файл. Когда моделей в app ≥ 4 — переходим на **пакет** `{app}/models/` c одним файлом на модель (`developer.py`, `sales_office.py`, ...) + `__init__.py`, который re-export'ит всё для обратной совместимости (`from apps.X.models import Y` должно работать). Родственные мелкие таблицы (LookupModel-потомки) кладём в один общий `models/lookups.py`, а не плодим по файлу на каждую. **Эталон**: `apps/references/models/` — `developer.py`, `sales_office.py`, `currency.py`, `lookups.py`.
+- **Factories для одинаковых ViewSet'ов**. Если регистрируем 5+ почти идентичных CRUD-эндпоинтов (13 lookup'ов, серия отчётов и т.п.) — не копипастим ViewSet, а делаем фабрику `make_X_viewset(model)` и регистрируем циклом в `urls.py`. Эталон: `apps/references/{serializers,views}.py#make_lookup_*`.
 
 ### Frontend (Vue 3)
 

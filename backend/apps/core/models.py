@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.fields import I18nField
 from apps.core.managers import SoftDeleteManager
 
 
@@ -40,6 +41,31 @@ class BaseModel(TimeStampedModel):
     def restore(self) -> None:
         self.is_active = True
         self.save(update_fields=["is_active", "modified_at"])
+
+
+class LookupModel(BaseModel):
+    """Abstract base for simple reference tables: multilingual name + sort order.
+
+    Thirteen `references.*` lookups share this shape (ApartmentType, RoomType,
+    ConstructionStage, Decoration, PremisesDecoration, HomeMaterial, OutputWindows,
+    OccupiedBy, Badge, PaymentMethod, PaymentInPercent, Region, Location). Each
+    subclass only needs its own `Meta.verbose_name` / `Meta.verbose_name_plural`.
+    """
+
+    name = I18nField(verbose_name=_("Название"))
+    sort = models.PositiveSmallIntegerField(
+        _("Порядок"), default=0, db_index=True,
+        help_text=_("Чем меньше — тем выше в списке"),
+    )
+
+    class Meta:
+        abstract = True
+        ordering = ["sort", "id"]
+
+    def __str__(self) -> str:
+        if isinstance(self.name, dict):
+            return self.name.get("ru") or self.name.get("uz") or f"#{self.pk}"
+        return str(self.name)
 
 
 class AuditLog(models.Model):

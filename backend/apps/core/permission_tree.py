@@ -159,7 +159,13 @@ PERMISSION_TREE: list[PermissionNode] = [
         "children": [
             {"key": "references.offices", "label": _label("Отделы продаж", "Savdo ofislari", "Савдо офислари"), "children": _crud("references.offices", "офис", "Ofis", "Офис")},
             {"key": "references.developers", "label": _label("Застройщики", "Quruvchilar", "Қурувчилар"), "children": _crud("references.developers", "застройщик", "Quruvchi", "Қурувчи")},
+            {"key": "references.currencies", "label": _label("Валюты", "Valyutalar", "Валюталар"), "children": _crud("references.currencies", "валюту", "Valyuta", "Валюта")},
             {"key": "references.templates", "label": _label("Шаблоны договоров", "Shartnoma shablonlari", "Шартнома шаблонлари"), "children": _crud("references.templates", "шаблон", "Shablon", "Шаблон")},
+            # NB: 13 simple lookups (ApartmentType, RoomType, ConstructionStage,
+            # Decoration, PremisesDecoration, HomeMaterial, OutputWindows,
+            # OccupiedBy, Badge, PaymentMethod, PaymentInPercent, Region,
+            # Location) share a single permission bundle for sanity.
+            {"key": "references.lookups", "label": _label("Классификаторы", "Tasniflagichlar", "Таснифлагичлар"), "children": _crud("references.lookups", "классификатор", "Tasniflagich", "Таснифлагич")},
         ],
     },
     # --- SMS ---
