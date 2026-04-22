@@ -5,9 +5,9 @@ import ToastService from "primevue/toastservice"
 import { createApp } from "vue"
 
 import App from "@/App.vue"
-import { i18n } from "@/i18n"
-import { abilitiesPlugin, ability } from "@/plugins/casl"
-import { primevuePreset } from "@/plugins/primevue"
+import { abilitiesPlugin, ability } from "@/libs/acl"
+import { i18n } from "@/libs/i18n"
+import { primevuePreset } from "@/libs/primevue"
 import { router } from "@/router"
 
 import "primeicons/primeicons.css"

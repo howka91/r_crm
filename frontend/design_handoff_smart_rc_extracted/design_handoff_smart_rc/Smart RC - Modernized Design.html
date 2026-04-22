@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Smart RC · Yangi Mahalla — Modernized Design</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primeicons@7.0.0/primeicons.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:        oklch(0.985 0.005 285);
+    --surface:   #ffffff;
+    --sunken:    oklch(0.97 0.007 285);
+    --line:      oklch(0.92 0.008 285);
+    --line-soft: oklch(0.955 0.007 285);
+    --text:      oklch(0.24 0.02 285);
+    --muted:     oklch(0.52 0.018 285);
+    --subtle:    oklch(0.70 0.015 285);
+
+    --primary:   oklch(0.38 0.10 155);   /* Yangi Mahalla deep green */
+    --primary-h: oklch(0.32 0.10 155);
+    --primary-soft: oklch(0.96 0.035 155);
+    --primary-accent: oklch(0.72 0.18 130); /* lime-yellow accent from logo */
+
+    --success: oklch(0.64 0.14 155);
+    --success-soft: oklch(0.96 0.04 155);
+    --warning: oklch(0.74 0.15 75);
+    --warning-soft: oklch(0.97 0.05 75);
+    --danger:  oklch(0.58 0.19 22);
+    --danger-soft: oklch(0.97 0.04 22);
+    --info:    oklch(0.68 0.13 225);
+    --info-soft: oklch(0.96 0.04 225);
+  }
+
+  body, html { font-family: 'Inter Tight', system-ui, sans-serif; color: var(--text); background: var(--bg); font-feature-settings: "cv11","ss01"; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .art-scroll::-webkit-scrollbar{ width:6px; height:6px; }
+  .art-scroll::-webkit-scrollbar-thumb{ background: rgba(0,0,0,.15); border-radius:3px; }
+
+  /* ——— Buttons ——— */
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:9px 14px; border-radius:10px; font-weight:500; font-size:13px; line-height:1; transition: all .15s; white-space: nowrap; }
+  .btn-primary { background: var(--primary); color:#fff; box-shadow: 0 1px 0 rgba(255,255,255,.12) inset, 0 2px 10px -2px oklch(0.38 0.10 155 / .45); }
+  .btn-primary:hover { background: var(--primary-h); }
+  .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  .btn-ghost:hover { background: var(--sunken); }
+  .btn-soft { background: var(--primary-soft); color: var(--primary); }
+  .btn-soft:hover { background: oklch(0.93 0.045 155); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--line); }
+  .btn-danger:hover { background: var(--danger-soft); border-color: oklch(0.88 0.08 22); }
+  .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 8px; }
+  .btn-xs { padding: 4px 8px; font-size: 11px; border-radius: 7px; }
+  .btn-icon { padding: 8px; border-radius: 10px; }
+
+  /* ——— Inputs ——— */
+  .inp { width:100%; padding: 9px 12px; border:1px solid var(--line); border-radius:10px; font-size:13px; background: var(--surface); color: var(--text); transition: border-color .15s, box-shadow .15s; }
+  .inp:focus { outline:none; border-color: var(--primary); box-shadow: 0 0 0 3px oklch(0.38 0.10 155 / .15); }
+  .inp-sm { padding: 6px 10px; font-size: 12px; border-radius: 8px; }
+
+  /* ——— Card ——— */
+  .card { background: var(--surface); border:1px solid var(--line); border-radius: 14px; }
+  .card-flat { background: var(--surface); border:1px solid var(--line); border-radius: 14px; }
+  .card-hover:hover { border-color: oklch(0.86 0.01 285); box-shadow: 0 6px 20px -6px rgba(20,20,50,.08); }
+
+  /* ——— Chips ——— */
+  .chip { display:inline-flex; align-items:center; gap:6px; padding: 3px 9px; border-radius: 7px; font-size:11px; font-weight:500; background: var(--sunken); color: var(--muted); border: 1px solid var(--line-soft); white-space: nowrap; }
+  .chip-success { background: var(--success-soft); color: oklch(0.38 0.12 155); border-color: oklch(0.88 0.06 155); }
+  .chip-warn    { background: var(--warning-soft); color: oklch(0.44 0.13 75); border-color: oklch(0.88 0.08 75); }
+  .chip-danger  { background: var(--danger-soft); color: oklch(0.44 0.15 22); border-color: oklch(0.88 0.08 22); }
+  .chip-info    { background: var(--info-soft); color: oklch(0.42 0.12 225); border-color: oklch(0.86 0.06 225); }
+  .chip-primary { background: var(--primary-soft); color: var(--primary-h); border-color: oklch(0.90 0.045 155); }
+  .chip-ghost   { background: transparent; color: var(--subtle); border-color: var(--line); }
+
+  /* ——— Table ——— */
+  .tbl { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
+  .tbl th { text-align:left; padding: 11px 16px; font-weight:500; font-size:11px; color: var(--subtle); text-transform:uppercase; letter-spacing: 0.06em; background: var(--sunken); border-bottom:1px solid var(--line); }
+  .tbl th:first-child { border-top-left-radius: 10px; }
+  .tbl th:last-child { border-top-right-radius: 10px; }
+  .tbl td { padding: 13px 16px; border-bottom:1px solid var(--line-soft); }
+  .tbl tbody tr:hover td { background: oklch(0.98 0.005 285); }
+  .tbl tbody tr:last-child td { border-bottom: none; }
+
+  /* ——— Sidebar nav ——— */
+  .nav-item { display:flex; align-items:center; gap:12px; padding: 9px 14px; border-radius: 10px; font-size:13px; color: var(--muted); transition: background .15s; cursor:pointer; }
+  .nav-item:hover { background: var(--sunken); color: var(--text); }
+  .nav-item.active { background: linear-gradient(100deg, var(--primary) 0%, oklch(0.44 0.11 150) 100%); color:#fff; font-weight:500; box-shadow: 0 8px 20px -8px oklch(0.38 0.10 155 / .5); border-left: 3px solid var(--primary-accent); padding-left: 11px; }
+  .nav-header { font-size:10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--subtle); padding: 10px 14px 6px; font-weight: 500; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ds-tokens.jsx"></script>
+<script type="text/babel" src="ds-shell.jsx"></script>
+<script type="text/babel" src="ds-screens.jsx"></script>
+<script type="text/babel">
+const { DesignCanvas, DCSection, DCArtboard } = window;
+
+function App() {
+  return (
+    <DesignCanvas
+      title="Smart RC · Yangi Mahalla — современный дизайн-код"
+      subtitle="Сохранена структура Vuexy-шаблона (vertical sidebar + floating navbar + карточные модули), обновлены токены, типографика, плотность и ключевые экраны"
+    >
+      <DCSection id="1-system" title="1 · Дизайн-система">
+        <DCArtboard id="tokens" label="Tokens — цвет, типографика, радиусы, тени" width={1320} height={920}>
+          <window.Tokens />
+        </DCArtboard>
+        <DCArtboard id="components" label="Components — кнопки, формы, chips, таблица" width={1320} height={980}>
+          <window.Components />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="2-app" title="2 · Приложение (sidebar + navbar + content)">
+        <DCArtboard id="home" label="Главная · Dashboard (объекты и продажи)" width={1440} height={940}>
+          <window.Dashboard />
+        </DCArtboard>
+        <DCArtboard id="shax" label="Шахматка — my-objects / apartments" width={1440} height={940}>
+          <window.Shaxmatka />
+        </DCArtboard>
+        <DCArtboard id="kanban" label="Канбан — лиды" width={1440} height={900}>
+          <window.Kanban />
+        </DCArtboard>
+        <DCArtboard id="clients" label="Клиенты — таблица + фильтры" width={1440} height={900}>
+          <window.Clients />
+        </DCArtboard>
+        <DCArtboard id="contract" label="Контракт — новый договор" width={1440} height={960}>
+          <window.Contract />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="3-auth" title="3 · Вход">
+        <DCArtboard id="login" label="Login — split, brand + form" width={1440} height={880}>
+          <window.Login />
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

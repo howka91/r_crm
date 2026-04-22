@@ -2,14 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
-/* --- Base typography / reset --- */
+/* =======================================================================
+   Yangi Mahalla · Smart RC — Design Tokens
+   Source of truth: design_handoff_smart_rc/README.md
+   ======================================================================= */
 @layer base {
+  :root {
+    /* Surfaces & text */
+    --bg: oklch(0.985 0.005 285);
+    --surface: #ffffff;
+    --sunken: oklch(0.97 0.007 285);
+    --line: oklch(0.92 0.008 285);
+    --line-soft: oklch(0.955 0.007 285);
+    --text: oklch(0.24 0.02 285);
+    --muted: oklch(0.52 0.018 285);
+    --subtle: oklch(0.70 0.015 285);
+
+    /* Brand */
+    --primary: oklch(0.38 0.10 155);
+    --primary-h: oklch(0.32 0.10 155);
+    --primary-soft: oklch(0.96 0.035 155);
+    --primary-accent: oklch(0.72 0.18 130);
+
+    /* Semantic */
+    --success: oklch(0.64 0.14 155);
+    --success-soft: oklch(0.96 0.04 155);
+    --warning: oklch(0.74 0.15 75);
+    --warning-soft: oklch(0.97 0.05 75);
+    --danger: oklch(0.58 0.19 22);
+    --danger-soft: oklch(0.97 0.04 22);
+    --info: oklch(0.68 0.13 225);
+    --info-soft: oklch(0.96 0.04 225);
+  }
+
   html {
-    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: "Inter Tight", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "cv11", "ss01";
   }
 
   body {
-    @apply bg-surface-50 text-surface-900 antialiased dark:bg-surface-950 dark:text-surface-100;
+    @apply bg-ym-bg text-ym-text antialiased;
   }
 
   * {
@@ -17,25 +49,170 @@
   }
 }
 
-/* --- App-level utilities --- */
+/* =======================================================================
+   Component classes — Tailwind-idiomatic via @apply.
+   Tokens stay in CSS variables; utility mappings live in tailwind.config.ts
+   (theme.extend.colors.ym.*, boxShadow.ym-*, ...).
+   ======================================================================= */
 @layer components {
-  .app-shell {
-    @apply min-h-screen flex;
+  /* --- Typography helpers --- */
+  .mono {
+    @apply font-mono;
   }
 
-  .app-sidebar {
-    @apply w-64 shrink-0 border-r border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900;
+  /* Scrollbar styling is Webkit pseudo-element; no Tailwind utility for it. */
+  .art-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .art-scroll::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
   }
 
-  .app-main {
-    @apply flex-1 flex flex-col;
+  /* --- Buttons --- */
+  .btn {
+    @apply inline-flex items-center gap-2 px-3.5 py-[9px] rounded-md text-[13px] font-medium leading-none transition-all whitespace-nowrap;
+  }
+  .btn-primary {
+    @apply bg-ym-primary text-white shadow-ym-primary;
+  }
+  .btn-primary:hover {
+    @apply bg-ym-primary-h;
+  }
+  .btn-primary:disabled,
+  .btn-primary[disabled] {
+    @apply opacity-50 cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-ym-text border border-ym-line;
+  }
+  .btn-ghost:hover {
+    @apply bg-ym-sunken;
+  }
+  .btn-soft {
+    @apply bg-ym-primary-soft text-ym-primary;
+  }
+  .btn-soft:hover {
+    background: oklch(0.93 0.045 155);
+  }
+  .btn-danger {
+    @apply bg-transparent text-ym-danger border border-ym-line;
+  }
+  .btn-danger:hover {
+    @apply bg-ym-danger-soft;
+    border-color: oklch(0.88 0.08 22);
+  }
+  .btn-sm {
+    @apply px-2.5 py-1.5 text-xs rounded-sm;
+  }
+  .btn-xs {
+    @apply px-2 py-1 text-[11px] rounded-xs;
+  }
+  .btn-icon {
+    @apply p-2 rounded-md;
   }
 
-  .app-topbar {
-    @apply h-14 shrink-0 border-b border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 flex items-center px-4 gap-4;
+  /* --- Inputs --- */
+  .inp {
+    @apply w-full px-3 py-[9px] border border-ym-line rounded-md text-[13px] bg-ym-surface text-ym-text transition-[border-color,box-shadow];
+  }
+  .inp::placeholder {
+    @apply text-ym-subtle;
+  }
+  .inp:focus {
+    @apply outline-none border-ym-primary;
+    box-shadow: 0 0 0 3px oklch(0.38 0.10 155 / 0.15);
+  }
+  .inp-sm {
+    @apply px-2.5 py-1.5 text-xs rounded-sm;
   }
 
-  .app-content {
-    @apply flex-1 overflow-auto p-6;
+  /* --- Cards --- */
+  .card {
+    @apply bg-ym-surface border border-ym-line rounded-lg;
+  }
+  .card-hover {
+    @apply transition-[border-color,box-shadow];
+  }
+  .card-hover:hover {
+    border-color: oklch(0.86 0.01 285);
+    @apply shadow-ym-float;
+  }
+
+  /* --- Chips --- */
+  .chip {
+    @apply inline-flex items-center gap-1.5 px-2 py-[3px] rounded-xs text-[11px] font-medium bg-ym-sunken text-ym-muted border border-ym-line-soft whitespace-nowrap;
+  }
+  .chip-success {
+    @apply bg-ym-success-soft;
+    color: oklch(0.38 0.12 155);
+    border-color: oklch(0.88 0.06 155);
+  }
+  .chip-warn {
+    @apply bg-ym-warning-soft;
+    color: oklch(0.44 0.13 75);
+    border-color: oklch(0.88 0.08 75);
+  }
+  .chip-danger {
+    @apply bg-ym-danger-soft;
+    color: oklch(0.44 0.15 22);
+    border-color: oklch(0.88 0.08 22);
+  }
+  .chip-info {
+    @apply bg-ym-info-soft;
+    color: oklch(0.42 0.12 225);
+    border-color: oklch(0.86 0.06 225);
+  }
+  .chip-primary {
+    @apply bg-ym-primary-soft text-ym-primary-h;
+    border-color: oklch(0.90 0.045 155);
+  }
+  .chip-ghost {
+    @apply bg-transparent text-ym-subtle border-ym-line;
+  }
+
+  /* --- Data table --- */
+  .tbl {
+    @apply w-full text-[13px];
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .tbl th {
+    @apply text-left px-4 py-[11px] font-medium text-[11px] text-ym-subtle uppercase bg-ym-sunken border-b border-ym-line;
+    letter-spacing: 0.06em;
+  }
+  .tbl th:first-child {
+    @apply rounded-tl-md;
+  }
+  .tbl th:last-child {
+    @apply rounded-tr-md;
+  }
+  .tbl td {
+    @apply px-4 py-[13px] border-b border-ym-line-soft;
+  }
+  .tbl tbody tr:hover td {
+    background: oklch(0.98 0.005 285);
+  }
+  .tbl tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  /* --- Sidebar nav --- */
+  .nav-item {
+    @apply flex items-center gap-3 px-3.5 py-[9px] rounded-md text-[13px] text-ym-muted cursor-pointer no-underline transition-[background,color];
+  }
+  .nav-item:hover {
+    @apply bg-ym-sunken text-ym-text;
+  }
+  .nav-item.is-active {
+    @apply bg-ym-nav-active text-white font-medium shadow-ym-nav-active;
+    border-left: 3px solid var(--primary-accent);
+    padding-left: 11px;
+  }
+  .nav-header {
+    @apply text-[10px] uppercase text-ym-subtle font-medium;
+    letter-spacing: 0.12em;
+    padding: 10px 14px 6px;
   }
 }

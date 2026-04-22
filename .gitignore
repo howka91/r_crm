@@ -54,6 +54,8 @@ Thumbs.db
 
 # Legacy (kept locally, not committed to new repo)
 _old/
+/frontend/yangi-mahalla-main/
+/frontend/YangiMahalla.zip
 
 # Build artifacts / reports
 *.pdf

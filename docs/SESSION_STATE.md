@@ -2,7 +2,74 @@
 
 > Обновляется в конце каждой рабочей сессии. Следующий Claude (или я сам после паузы) должен прочитать этот файл **первым**, чтобы продолжить работу без повторного проектирования.
 
-## Последняя сессия — 21 апреля 2026
+## Последняя сессия — 22 апреля 2026
+
+### Что сделано
+
+**Визуальный рестайл фронта + структурная миграция под Vuexy-layout.** Бэк не трогали — все Этапы 0/1 остались в том виде, в каком были после 21 апреля.
+
+#### Дизайн-система «Smart RC · Yangi Mahalla»
+
+Source of truth: `frontend/design_handoff_smart_rc_extracted/design_handoff_smart_rc/README.md` (распакован из `frontend/YangiMahalla.zip`). Hi-fidelity: токены в oklch, Inter Tight + JetBrains Mono, 8-px grid. Тёмно-зелёный `oklch(0.38 0.10 155)` + лаймовый акцент `oklch(0.72 0.18 130)` из логотипа.
+
+**Реализовано:**
+
+- `src/assets/styles/main.css` — все токены в CSS-переменных (`--primary`, `--primary-soft`, `--primary-accent`, `--success/warning/danger/info` + soft-варианты, `--surface/sunken/line/line-soft/text/muted/subtle`, тени). Компонентные классы: `.btn/.btn-primary/.btn-ghost/.btn-soft/.btn-danger/.btn-sm/.btn-xs/.btn-icon`, `.inp/.inp-sm`, `.card/.card-hover`, `.chip/.chip-success/.chip-warn/.chip-danger/.chip-info/.chip-primary/.chip-ghost`, `.tbl`, `.nav-item/.nav-item.is-active/.nav-header`, `.mono`, `.art-scroll`. Все через `@apply` поверх Tailwind.
+- `tailwind.config.ts` — `ym.*` палитра (мапится на CSS-переменные), `shadow-ym-{primary,primary-lg,nav-active,card,float,modal}`, `bg-ym-nav-active` (градиент активного пункта меню), `bg-ym-login-brand` + `bg-ym-login-glow` (градиенты брендовой панели Login), `tracking-tightest`, `ringColor.ym-primary`.
+- `index.html` — подключены Google Fonts Inter Tight + JetBrains Mono с preconnect.
+
+#### Рестайл экранов
+
+- **Sidebar** (`src/layouts/components/Sidebar.vue`): 252 px, белый, лого «YM» на `--primary` с лаймовым акцентом, группы из `@/navigation/vertical`, активный пункт через `.is-active` (градиент + 3 px лаймовая полоска слева + shadow), user-card снизу с инициалами.
+- **Navbar** (`src/layouts/components/Navbar.vue`): floating (margin 24, radius 14, shadow-float), крошки по имени роута, поиск с `⌘K`, колокольчик, циклический переключатель локали RU/UZ/OZ.
+- **Login** (`src/views/Login.vue`): split-экран 2/3 + 1/3. Левая панель (скрыта <lg): brand-градиент, два радиальных glow'а, ghost-шахматка 12×8 под −10° opacity-30, лого на лаймовой плашке, eyebrow + двустрочный H1 + описание, копирайт + версия. Правая форма: eyebrow, H1 «С возвращением», email + password с eye-toggle, remember-me, CTA «Войти →», chip-кнопки смены языка.
+- **Dashboard** (`src/views/Home.vue`): eyebrow + H1 проекта + подпись, 4 stat-карточки (Свободно/Бронь/Продано/Выручка) с soft-tinted icon-плашками, 2/3 bar-chart «Динамика договоров» за 6 месяцев (primary-градиент + primary-soft), 1/3 список «Недавние договоры» с аватарами, mono-ID и chip-статусами.
+- Админ-экраны `views/modules/Administration/userManagement/{index,roles,roleView}.vue` и `components/PermissionTreeEditor.vue` — переведены на `.btn/.card/.tbl/.chip/.inp`. Модалки пока простые div-оверлеи (тех-долг — PrimeVue Dialog в Этапе 2 при первом реальном справочнике).
+
+#### Структурная миграция `src/` под Vuexy-layout
+
+Причина: разработчики команды знают старую структуру `yangi-mahalla-main/src/` (Vue 2 + Vuexy + Vuex); нужно минимизировать onboarding cost при переходе на Vue 3 + Pinia + TS.
+
+**Изменения:**
+
+| Было (до рестайла) | Стало |
+|---|---|
+| `src/api/client.ts` + `src/api/endpoints/*.ts` | `src/libs/axios.ts` + `src/api/{auth,administration,permissions}.ts` (flat) |
+| `src/plugins/casl.ts`, `src/plugins/primevue.ts` | `src/libs/acl/index.ts`, `src/libs/primevue/index.ts` |
+| `src/i18n/*` | `src/libs/i18n/{index.ts, locales/*.json}` |
+| `src/components/layout/AppShell.vue/AppSidebar.vue/AppTopbar.vue` | `src/layouts/vertical/LayoutVertical.vue`, `src/layouts/full/LayoutFull.vue`, `src/layouts/components/{Sidebar,Navbar}.vue` |
+| меню захардкожено в Sidebar.vue | `src/navigation/vertical/{main,sales,contracts,finance,references,sms_reports_admin,index}.ts` — один файл на домен, агрегатор |
+| `src/router/index.ts` (монолит) | `src/router/index.ts` + `src/router/administration.ts` (per-domain) |
+| `src/stores/{auth,permissions}.ts` | `src/store/{auth,permissions}.ts` — переименование папки `stores/` → `store/` |
+| `src/views/LoginView.vue`, `DashboardView.vue`, `NotFoundView.vue`, `ForbiddenView.vue` | `src/views/Login.vue`, `Home.vue`, `error/Error404.vue`, `error/Forbidden.vue` |
+| `src/views/admin/UsersView.vue`, `RolesView.vue`, `RoleEditView.vue` + `src/components/admin/PermissionTreeEditor.vue` | `src/views/modules/Administration/userManagement/{index,roles,roleView}.vue` + `components/PermissionTreeEditor.vue` |
+
+Pinia остаётся **один файл на стор** (не Vuex-паттерн `{state,mutations,actions,getters}` × 4 файла). Это идиома Pinia; объяснено в `frontend/ARCHITECTURE.md`.
+
+**Созданы:**
+- `frontend/ARCHITECTURE.md` — карта новой структуры для команды + mapping Vuexy → новое + примеры «Vuex → Pinia» и «Options API → `<script setup>`». Это онбординг-док.
+
+#### Sidebar cleanup (22 апреля, конец сессии)
+
+Убраны disabled-пункты **Канбан лидов** и **Презентация** из `src/navigation/vertical/sales.ts` и i18n-ключи — они в архитектурном списке «дропаем» (пункт 10).
+
+### Что НЕ сделано в эту сессию
+
+Я начал идти по **дизайн-плану** `design_handoff/README.md` (Login → Dashboard → Clients → Shaxmatka → Kanban → Contract), но остановились после Dashboard. **Дальше идём по продуктовому плану — Этап 2 (References)**, а не по дизайн-плану, потому что:
+
+- Clients/Shaxmatka/Kanban/Contract без бэкенда = mock, который будет переписан.
+- Kanban вообще дропнут.
+- Shaxmatka реализуется естественно в Этапе 3 (Objects), Clients — в Этапе 4, Contract — в Этапе 5.
+
+Дизайн-система уже поверх шелла и компонентных классов — любой новый экран Этапа 2+ сразу получит стили. Нет нужды делать mock-прототипы.
+
+### Технический долг из рестайла
+
+- Ghost-шахматка в Login рендерит 96 div'ов inline. ОК для auth-экрана (редко загружается), но если понадобится — вынести в компонент.
+- CSS-переменные в Tailwind config работают через `var(--*)` — это означает, что `ym-*` утилиты **не поддерживают opacity-модификатор** (`bg-ym-primary/50` не сработает). Если понадобится — перевести токены на CSS Color 5 relative syntax (`oklch(from var(--primary) l c h / <alpha-value>)`).
+- В `main.css` есть несколько hover-состояний с `oklch(0.93 0.045 155)` хардкодом — это значение hover'а у `.btn-soft`, которое не в токенах. Если понадобится больше — добавить `--primary-softer` в токены.
+
+## Предыдущая сессия — 21 апреля 2026
 
 ### Что сделано
 

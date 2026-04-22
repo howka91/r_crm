@@ -1,56 +1,51 @@
+/**
+ * Router aggregator.
+ *
+ * Mirrors `yangi-mahalla-main/src/router/index.js`: public routes + a
+ * LayoutVertical shell whose children come from per-domain modules
+ * (`./administration.ts`, future `./clients.ts`, `./contracts.ts`, ...).
+ */
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router"
 
-import { useAuthStore } from "@/stores/auth"
-import { usePermissionStore } from "@/stores/permissions"
+import { useAuthStore } from "@/store/auth"
+import { usePermissionStore } from "@/store/permissions"
+
+import administrationRoutes from "./administration"
 
 const routes: RouteRecordRaw[] = [
+  // --- Standalone / full-layout routes -------------------------------------
   {
     path: "/login",
     name: "login",
-    component: () => import("@/views/LoginView.vue"),
-    meta: { public: true },
+    component: () => import("@/views/Login.vue"),
+    meta: { public: true, layout: "full" },
   },
   {
+    path: "/403",
+    name: "forbidden",
+    component: () => import("@/views/error/Forbidden.vue"),
+    meta: { public: true, layout: "full" },
+  },
+  {
+    path: "/:pathMatch(.*)*",
+    name: "not-found",
+    component: () => import("@/views/error/Error404.vue"),
+    meta: { public: true, layout: "full" },
+  },
+
+  // --- Authenticated shell (LayoutVertical) --------------------------------
+  {
     path: "/",
-    component: () => import("@/components/layout/AppShell.vue"),
+    component: () => import("@/layouts/vertical/LayoutVertical.vue"),
     meta: { requiresAuth: true },
     children: [
       {
         path: "",
         name: "dashboard",
-        component: () => import("@/views/DashboardView.vue"),
+        component: () => import("@/views/Home.vue"),
       },
-      {
-        path: "admin/users",
-        name: "admin-users",
-        component: () => import("@/views/admin/UsersView.vue"),
-        meta: { permission: "administration.users.view" },
-      },
-      {
-        path: "admin/roles",
-        name: "admin-roles",
-        component: () => import("@/views/admin/RolesView.vue"),
-        meta: { permission: "administration.roles.view" },
-      },
-      {
-        path: "admin/roles/:id",
-        name: "admin-role-edit",
-        component: () => import("@/views/admin/RoleEditView.vue"),
-        meta: { permission: "administration.roles.permissions" },
-      },
+      ...administrationRoutes,
     ],
-  },
-  {
-    path: "/403",
-    name: "forbidden",
-    component: () => import("@/views/ForbiddenView.vue"),
-    meta: { public: true },
-  },
-  {
-    path: "/:pathMatch(.*)*",
-    name: "not-found",
-    component: () => import("@/views/NotFoundView.vue"),
-    meta: { public: true },
   },
 ]
 
