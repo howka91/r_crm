@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import ConfirmDialog from "primevue/confirmdialog"
-
+import ConfirmDialog from "@/components/ConfirmDialog.vue"
 import ToastContainer from "@/components/ToastContainer.vue"
 </script>
 

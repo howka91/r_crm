@@ -16,6 +16,7 @@ import { RouterLink } from "vue-router"
 
 import { projectsApi } from "@/api/objects"
 import { developersApi } from "@/api/references"
+import { useConfirmStore } from "@/store/confirm"
 import { usePermissionStore } from "@/store/permissions"
 import { useToastStore } from "@/store/toast"
 import type { Developer, I18nText, Project, ProjectWrite } from "@/types/models"
@@ -23,6 +24,7 @@ import type { Developer, I18nText, Project, ProjectWrite } from "@/types/models"
 const { t, locale } = useI18n()
 const permissions = usePermissionStore()
 const toast = useToastStore()
+const confirmStore = useConfirmStore()
 
 const items = ref<Project[]>([])
 const developers = ref<Developer[]>([])
@@ -112,7 +114,13 @@ async function save() {
 
 async function remove(item: Project) {
   const nameLoc = localizedTitle(item)
-  if (!confirm(`${t("objects.projects.confirm_delete")}: ${nameLoc}?`)) return
+  const ok = await confirmStore.ask({
+    title: t("objects.projects.confirm_delete"),
+    message: nameLoc,
+    severity: "danger",
+    okLabel: t("common.delete"),
+  })
+  if (!ok) return
   try {
     await projectsApi.destroy(item.id)
     toast.success(t("objects.projects.confirm_delete"))

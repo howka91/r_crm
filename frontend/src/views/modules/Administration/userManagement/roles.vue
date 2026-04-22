@@ -9,6 +9,7 @@ import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { roleApi, type RoleWritePayload } from "@/api/administration"
+import { useConfirmStore } from "@/store/confirm"
 import { usePermissionStore } from "@/store/permissions"
 import { useToastStore } from "@/store/toast"
 import type { Role } from "@/types/models"
@@ -17,6 +18,7 @@ const { t, locale } = useI18n()
 const router = useRouter()
 const permissions = usePermissionStore()
 const toast = useToastStore()
+const confirmStore = useConfirmStore()
 
 const roles = ref<Role[]>([])
 const loading = ref(false)
@@ -72,7 +74,13 @@ async function create() {
 }
 
 async function remove(role: Role) {
-  if (!confirm(`Удалить роль ${role.code}?`)) return
+  const ok = await confirmStore.ask({
+    title: t("common.delete"),
+    message: role.code,
+    severity: "danger",
+    okLabel: t("common.delete"),
+  })
+  if (!ok) return
   try {
     await roleApi.destroy(role.id)
     await load()

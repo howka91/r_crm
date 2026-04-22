@@ -12,11 +12,13 @@ import { computed, onMounted, reactive, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 import { salesOfficesApi } from "@/api/references"
+import { useConfirmStore } from "@/store/confirm"
 import { usePermissionStore } from "@/store/permissions"
 import type { I18nText, SalesOffice, SalesOfficeWrite } from "@/types/models"
 
 const { t, locale } = useI18n()
 const permissions = usePermissionStore()
+const confirmStore = useConfirmStore()
 
 const items = ref<SalesOffice[]>([])
 const loading = ref(false)
@@ -108,7 +110,13 @@ async function save() {
 
 async function remove(item: SalesOffice) {
   const nameLoc = item.name[locale.value as "ru" | "uz" | "oz"] || `#${item.id}`
-  if (!confirm(`${t("references.sales_offices.confirm_delete")}: ${nameLoc}?`)) return
+  const ok = await confirmStore.ask({
+    title: t("references.sales_offices.confirm_delete"),
+    message: nameLoc,
+    severity: "danger",
+    okLabel: t("common.delete"),
+  })
+  if (!ok) return
   await salesOfficesApi.destroy(item.id)
   await load()
 }

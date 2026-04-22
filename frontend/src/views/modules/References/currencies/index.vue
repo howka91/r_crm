@@ -10,11 +10,13 @@ import { computed, onMounted, reactive, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 import { currenciesApi } from "@/api/references"
+import { useConfirmStore } from "@/store/confirm"
 import { usePermissionStore } from "@/store/permissions"
 import type { Currency, CurrencyWrite, I18nText } from "@/types/models"
 
 const { t, locale } = useI18n()
 const permissions = usePermissionStore()
+const confirmStore = useConfirmStore()
 
 const items = ref<Currency[]>([])
 const loading = ref(false)
@@ -91,7 +93,13 @@ async function save() {
 }
 
 async function remove(item: Currency) {
-  if (!confirm(`${t("references.currencies.confirm_delete")}: ${item.code}?`)) return
+  const ok = await confirmStore.ask({
+    title: t("references.currencies.confirm_delete"),
+    message: item.code,
+    severity: "danger",
+    okLabel: t("common.delete"),
+  })
+  if (!ok) return
   await currenciesApi.destroy(item.id)
   await load()
 }

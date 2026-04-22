@@ -10,9 +10,11 @@ import { onMounted, reactive, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 import { roleApi, staffApi, type StaffWritePayload } from "@/api/administration"
+import { useConfirmStore } from "@/store/confirm"
 import type { Role, Staff } from "@/types/models"
 
 const { t } = useI18n()
+const confirmStore = useConfirmStore()
 
 const users = ref<Staff[]>([])
 const roles = ref<Role[]>([])
@@ -100,7 +102,13 @@ async function save() {
 }
 
 async function remove(user: Staff) {
-  if (!confirm(`Удалить ${user.full_name || user.email}?`)) return
+  const ok = await confirmStore.ask({
+    title: t("common.delete"),
+    message: user.full_name || user.email,
+    severity: "danger",
+    okLabel: t("common.delete"),
+  })
+  if (!ok) return
   await staffApi.destroy(user.id)
   await load()
 }

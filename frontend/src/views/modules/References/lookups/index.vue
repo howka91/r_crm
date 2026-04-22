@@ -15,6 +15,7 @@ import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
 import { lookupsApi, lookupTypes } from "@/api/references"
+import { useConfirmStore } from "@/store/confirm"
 import { usePermissionStore } from "@/store/permissions"
 import type {
   BadgeItem,
@@ -29,6 +30,7 @@ const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const permissions = usePermissionStore()
+const confirmStore = useConfirmStore()
 
 const items = ref<LookupItem[]>([])
 const regions = ref<LookupItem[]>([])
@@ -157,7 +159,13 @@ async function save() {
 
 async function remove(item: LookupItem) {
   const nameLoc = item.name[locale.value as "ru" | "uz" | "oz"] || `#${item.id}`
-  if (!confirm(`${t("references.lookups.confirm_delete")}: ${nameLoc}?`)) return
+  const ok = await confirmStore.ask({
+    title: t("references.lookups.confirm_delete"),
+    message: nameLoc,
+    severity: "danger",
+    okLabel: t("common.delete"),
+  })
+  if (!ok) return
   await lookupsApi[selectedType.value].destroy(item.id)
   await load()
 }

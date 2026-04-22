@@ -12,11 +12,13 @@ import { computed, onMounted, reactive, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 import { developersApi } from "@/api/references"
+import { useConfirmStore } from "@/store/confirm"
 import { usePermissionStore } from "@/store/permissions"
 import type { Developer, DeveloperWrite, I18nText } from "@/types/models"
 
 const { t, locale } = useI18n()
 const permissions = usePermissionStore()
+const confirmStore = useConfirmStore()
 
 const items = ref<Developer[]>([])
 const loading = ref(false)
@@ -108,7 +110,13 @@ async function save() {
 
 async function remove(item: Developer) {
   const nameLoc = item.name[locale.value as "ru" | "uz" | "oz"] || `#${item.id}`
-  if (!confirm(`${t("references.developers.confirm_delete")}: ${nameLoc}?`)) return
+  const ok = await confirmStore.ask({
+    title: t("references.developers.confirm_delete"),
+    message: nameLoc,
+    severity: "danger",
+    okLabel: t("common.delete"),
+  })
+  if (!ok) return
   await developersApi.destroy(item.id)
   await load()
 }

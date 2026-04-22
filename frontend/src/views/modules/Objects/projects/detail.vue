@@ -24,6 +24,7 @@ import {
   projectsApi,
   sectionsApi,
 } from "@/api/objects"
+import { useConfirmStore } from "@/store/confirm"
 import { usePermissionStore } from "@/store/permissions"
 import { useToastStore } from "@/store/toast"
 import type {
@@ -46,6 +47,7 @@ const props = defineProps<{ id: string | number }>()
 const { t, locale } = useI18n()
 const permissions = usePermissionStore()
 const toast = useToastStore()
+const confirmStore = useConfirmStore()
 const router = useRouter()
 
 /** Formats an Axios/network error into a compact toast body. */
@@ -595,7 +597,13 @@ async function save() {
 }
 
 async function removeBuilding(b: Building) {
-  if (!confirm(`${t("objects.buildings.confirm_delete")}?`)) return
+  const ok = await confirmStore.ask({
+    title: t("objects.buildings.confirm_delete"),
+    message: localized(b) || `#${b.id}`,
+    severity: "danger",
+    okLabel: t("common.delete"),
+  })
+  if (!ok) return
   try {
     await buildingsApi.destroy(b.id)
     toast.success(t("objects.buildings.confirm_delete"))
@@ -615,7 +623,13 @@ function describeBlockedBy(err: AxiosError): string {
 }
 
 async function removeSection(s: Section) {
-  if (!confirm(`${t("objects.sections.confirm_delete")}?`)) return
+  const ok = await confirmStore.ask({
+    title: t("objects.sections.confirm_delete"),
+    message: localized(s) || `№${s.number}`,
+    severity: "danger",
+    okLabel: t("common.delete"),
+  })
+  if (!ok) return
   try {
     await sectionsApi.destroy(s.id)
     toast.success(t("objects.sections.confirm_delete"))
@@ -628,8 +642,13 @@ async function removeSection(s: Section) {
     }
     // Blocked by children — offer cascade delete.
     const summary = describeBlockedBy(e)
-    const prompt = t("objects.sections.confirm_cascade_delete", { summary })
-    if (!confirm(prompt)) return
+    const cascadeOk = await confirmStore.ask({
+      title: t("objects.sections.confirm_delete"),
+      message: t("objects.sections.confirm_cascade_delete", { summary }),
+      severity: "danger",
+      okLabel: t("common.delete"),
+    })
+    if (!cascadeOk) return
     try {
       await sectionsApi.destroyForce(s.id)
       toast.success(t("objects.sections.confirm_delete"))
@@ -640,7 +659,13 @@ async function removeSection(s: Section) {
   }
 }
 async function removeFloor(f: Floor) {
-  if (!confirm(`${t("objects.floors.confirm_delete")}?`)) return
+  const ok = await confirmStore.ask({
+    title: t("objects.floors.confirm_delete"),
+    message: `${t("objects.columns.number")}: ${f.number}`,
+    severity: "danger",
+    okLabel: t("common.delete"),
+  })
+  if (!ok) return
   try {
     await floorsApi.destroy(f.id)
     toast.success(t("objects.floors.confirm_delete"))
@@ -652,8 +677,13 @@ async function removeFloor(f: Floor) {
       return
     }
     const summary = describeBlockedBy(e)
-    const prompt = t("objects.floors.confirm_cascade_delete", { summary })
-    if (!confirm(prompt)) return
+    const cascadeOk = await confirmStore.ask({
+      title: t("objects.floors.confirm_delete"),
+      message: t("objects.floors.confirm_cascade_delete", { summary }),
+      severity: "danger",
+      okLabel: t("common.delete"),
+    })
+    if (!cascadeOk) return
     try {
       await floorsApi.destroyForce(f.id)
       toast.success(t("objects.floors.confirm_delete"))
@@ -664,7 +694,13 @@ async function removeFloor(f: Floor) {
   }
 }
 async function removeApartment(a: Apartment) {
-  if (!confirm(`${t("objects.apartments.confirm_delete")}?`)) return
+  const ok = await confirmStore.ask({
+    title: t("objects.apartments.confirm_delete"),
+    message: `#${a.number} · ${a.rooms_count}к · ${a.area}м²`,
+    severity: "danger",
+    okLabel: t("common.delete"),
+  })
+  if (!ok) return
   try {
     await apartmentsApi.destroy(a.id)
     toast.success(t("objects.apartments.confirm_delete"))

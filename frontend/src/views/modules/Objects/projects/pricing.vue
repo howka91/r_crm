@@ -24,6 +24,7 @@ import {
   projectsApi,
 } from "@/api/objects"
 import { lookupsApi } from "@/api/references"
+import { useConfirmStore } from "@/store/confirm"
 import { usePermissionStore } from "@/store/permissions"
 import { useToastStore } from "@/store/toast"
 import type {
@@ -42,6 +43,7 @@ const props = defineProps<{ id: string | number }>()
 const { t, locale } = useI18n()
 const permissions = usePermissionStore()
 const toast = useToastStore()
+const confirmStore = useConfirmStore()
 const router = useRouter()
 
 function toastApiError(e: unknown) {
@@ -212,7 +214,13 @@ async function save() {
 }
 
 async function removePlan(p: PaymentPlan) {
-  if (!confirm(`${t("objects.payment_plans.confirm_delete")}?`)) return
+  const ok = await confirmStore.ask({
+    title: t("objects.payment_plans.confirm_delete"),
+    message: localizedPlan(p),
+    severity: "danger",
+    okLabel: t("common.delete"),
+  })
+  if (!ok) return
   try {
     await paymentPlansApi.destroy(p.id)
     toast.success(t("objects.payment_plans.confirm_delete"))
@@ -222,7 +230,13 @@ async function removePlan(p: PaymentPlan) {
   }
 }
 async function removeRule(r: DiscountRule) {
-  if (!confirm(`${t("objects.discount_rules.confirm_delete")}?`)) return
+  const ok = await confirmStore.ask({
+    title: t("objects.discount_rules.confirm_delete"),
+    message: `${r.area_start}–${r.area_end} м² @ ${r.discount_percent}%`,
+    severity: "danger",
+    okLabel: t("common.delete"),
+  })
+  if (!ok) return
   try {
     await discountRulesApi.destroy(r.id)
     toast.success(t("objects.discount_rules.confirm_delete"))
