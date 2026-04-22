@@ -143,6 +143,13 @@
       "empty": "Bu binoda hali podyezdlar yo'q.",
       "new": "Yangi podyezd",
       "edit": "Podyezdni tahrirlash",
+      "duplicate": "Podyezdni nusxalash",
+      "duplicate_title": "Boshqa JKdan podyezd nusxalash",
+      "duplicate_desc": "Tanlangan podyezd tuzilmasini (qavatlar + kvartiralar) ushbu binoga nusxalash. Holatlar va bronlar qayta tiklanadi.",
+      "source_project": "Manba: JK",
+      "source_building": "Manba: bino",
+      "source_section": "Manba: podyezd",
+      "duplicate_result": "Yaratildi: qavatlar {floors}, kvartiralar {apts}",
       "fields": {
         "title": "Nomi",
         "number": "Podyezd raqami"

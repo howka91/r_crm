@@ -330,3 +330,9 @@ class ReleaseApartmentInputSerializer(serializers.Serializer):
     """Payload for `POST /apartments/:id/release/`."""
 
     comment = serializers.CharField(max_length=512, required=False, allow_blank=True)
+
+
+class DuplicateSectionInputSerializer(serializers.Serializer):
+    """Payload for `POST /sections/:id/duplicate/`."""
+
+    target_building_id = serializers.IntegerField(min_value=1)

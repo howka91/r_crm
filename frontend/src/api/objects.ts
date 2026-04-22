@@ -57,6 +57,12 @@ export const buildingsApi = {
   destroy: (id: number) => http.delete(`/buildings/${id}/`).then((r) => r.data),
 }
 
+export interface DuplicateSectionResponse {
+  section: Section
+  floors_created: number
+  apartments_created: number
+}
+
 export const sectionsApi = {
   list: (params?: Record<string, unknown>) =>
     http.get<Paginated<Section>>("/sections/", { params }).then((r) => r.data),
@@ -67,6 +73,13 @@ export const sectionsApi = {
   update: (id: number, payload: Partial<SectionWrite>) =>
     http.patch<Section>(`/sections/${id}/`, payload).then((r) => r.data),
   destroy: (id: number) => http.delete(`/sections/${id}/`).then((r) => r.data),
+  duplicate: (source_section_id: number, target_building_id: number) =>
+    http
+      .post<DuplicateSectionResponse>(
+        `/sections/${source_section_id}/duplicate/`,
+        { target_building_id },
+      )
+      .then((r) => r.data),
 }
 
 export interface ChangePriceResponse {

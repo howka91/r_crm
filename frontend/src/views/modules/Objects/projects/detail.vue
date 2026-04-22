@@ -154,6 +154,7 @@ type ModalKind =
   | "status"
   | "book"
   | "price"
+  | "duplicate_section"
 interface ModalState {
   kind: ModalKind
   parentId: number
@@ -162,6 +163,8 @@ interface ModalState {
   targetApt?: Apartment
   /** For `price` modal: the floor whose price we're changing. */
   targetFloor?: Floor
+  /** For `duplicate_section`: the building we're cloning INTO. */
+  targetBuildingId?: number
 }
 
 const showModal = ref(false)
@@ -232,6 +235,22 @@ const priceForm = reactive<{ new_price: string; comment: string }>({
 
 const priceHistory = ref<PriceHistory[]>([])
 const cascadeResult = ref<string | null>(null)
+
+// Duplicate-section modal state: holds catalog data (loaded lazily on first
+// open) plus the currently picked source in the cascading dropdowns.
+const allProjects = ref<Project[]>([])
+const allBuildings = ref<Building[]>([])
+const allSections = ref<Section[]>([])
+const duplicateForm = reactive<{
+  source_project_id: number | null
+  source_building_id: number | null
+  source_section_id: number | null
+}>({
+  source_project_id: null,
+  source_building_id: null,
+  source_section_id: null,
+})
+const duplicateResult = ref<string | null>(null)
 
 function openBuildingCreate() {
   modalState.value = { kind: "building", parentId: projectId.value, editingId: null }
@@ -411,6 +430,32 @@ async function doRelease(a: Apartment) {
   }
 }
 
+async function openDuplicateSectionModal(targetBuildingId: number) {
+  modalState.value = {
+    kind: "duplicate_section",
+    parentId: targetBuildingId,
+    editingId: null,
+    targetBuildingId,
+  }
+  duplicateForm.source_project_id = null
+  duplicateForm.source_building_id = null
+  duplicateForm.source_section_id = null
+  duplicateResult.value = null
+  saveError.value = null
+  // Load catalog once per session — projects / all buildings / all sections.
+  if (!allProjects.value.length) {
+    const [ps, bs, ss] = await Promise.all([
+      projectsApi.list({ limit: 500 }),
+      buildingsApi.list({ limit: 2000 }),
+      sectionsApi.list({ limit: 5000 }),
+    ])
+    allProjects.value = ps.results
+    allBuildings.value = bs.results
+    allSections.value = ss.results
+  }
+  showModal.value = true
+}
+
 async function openPriceModal(f: Floor) {
   modalState.value = {
     kind: "price",
@@ -431,6 +476,26 @@ async function openPriceModal(f: Floor) {
     priceHistory.value = []
   }
   showModal.value = true
+}
+
+// --- Duplicate-section cascade helpers ----------------------------------
+
+const availableSourceBuildings = computed<Building[]>(() => {
+  const pid = duplicateForm.source_project_id
+  if (!pid) return []
+  return allBuildings.value.filter((b) => b.project === pid)
+})
+const availableSourceSections = computed<Section[]>(() => {
+  const bid = duplicateForm.source_building_id
+  if (!bid) return []
+  return allSections.value.filter((s) => s.building === bid)
+})
+function onSourceProjectChange() {
+  duplicateForm.source_building_id = null
+  duplicateForm.source_section_id = null
+}
+function onSourceBuildingChange() {
+  duplicateForm.source_section_id = null
 }
 
 // Keep in sync with services/apartments.py#_ALLOWED_TRANSITIONS.
@@ -491,6 +556,20 @@ async function save() {
       const h = await priceHistoryApi.list({ floor: editingId, limit: 20 })
       priceHistory.value = h.results
       return  // keep the modal open so user sees the cascade result
+    } else if (kind === "duplicate_section") {
+      if (!duplicateForm.source_section_id || !modalState.value.targetBuildingId) {
+        return
+      }
+      const res = await sectionsApi.duplicate(
+        duplicateForm.source_section_id,
+        modalState.value.targetBuildingId,
+      )
+      duplicateResult.value = t("objects.sections.duplicate_result", {
+        floors: res.floors_created,
+        apts: res.apartments_created,
+      })
+      await load()
+      return  // keep modal open to show the result banner
     }
     showModal.value = false
     await load()
@@ -668,6 +747,14 @@ onMounted(load)
             >
               <i class="pi pi-plus text-[10px]" />
               {{ t("objects.sections.new") }}
+            </button>
+            <button
+              v-if="canCreateSection"
+              class="btn btn-soft btn-xs"
+              @click="openDuplicateSectionModal(b.id)"
+            >
+              <i class="pi pi-clone text-[10px]" />
+              {{ t("objects.sections.duplicate") }}
             </button>
             <button
               v-if="canEditBuilding"
@@ -888,6 +975,9 @@ onMounted(load)
           </template>
           <template v-else-if="modalState.kind === 'price'">
             {{ t("objects.floors.price_change_title") }}
+          </template>
+          <template v-else-if="modalState.kind === 'duplicate_section'">
+            {{ t("objects.sections.duplicate_title") }}
           </template>
           <template v-else>
             {{ t("objects.apartments.change_status") }}
@@ -1151,8 +1241,73 @@ onMounted(load)
           </table>
         </template>
 
+        <!-- Duplicate section form -->
+        <template v-else-if="modalState.kind === 'duplicate_section'">
+          <div class="mb-3 text-[12.5px] text-ym-muted">
+            {{ t("objects.sections.duplicate_desc") }}
+          </div>
+          <div class="mb-4">
+            <label class="block text-[12px] font-medium mb-1.5">
+              {{ t("objects.sections.source_project") }}
+            </label>
+            <select
+              v-model.number="duplicateForm.source_project_id"
+              class="inp"
+              @change="onSourceProjectChange"
+            >
+              <option :value="null">—</option>
+              <option v-for="p in allProjects" :key="p.id" :value="p.id">
+                {{ p.title[locale as keyof I18nText] || `#${p.id}` }}
+              </option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-[12px] font-medium mb-1.5">
+              {{ t("objects.sections.source_building") }}
+            </label>
+            <select
+              v-model.number="duplicateForm.source_building_id"
+              class="inp"
+              :disabled="!duplicateForm.source_project_id"
+              @change="onSourceBuildingChange"
+            >
+              <option :value="null">—</option>
+              <option v-for="b in availableSourceBuildings" :key="b.id" :value="b.id">
+                {{ b.title[locale as keyof I18nText] || `#${b.id}` }}
+                <span v-if="b.number"> ({{ b.number }})</span>
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium mb-1.5">
+              {{ t("objects.sections.source_section") }}
+            </label>
+            <select
+              v-model.number="duplicateForm.source_section_id"
+              class="inp"
+              :disabled="!duplicateForm.source_building_id"
+            >
+              <option :value="null">—</option>
+              <option v-for="s in availableSourceSections" :key="s.id" :value="s.id">
+                №{{ s.number }}
+                <span v-if="s.title[locale as keyof I18nText]">
+                  — {{ s.title[locale as keyof I18nText] }}
+                </span>
+                · {{ t("objects.columns.floors_count") }}: {{ s.floors_count }}
+              </option>
+            </select>
+          </div>
+          <div
+            v-if="duplicateResult"
+            class="mt-4 text-[12.5px] text-ym-success bg-ym-success-soft px-3 py-2 rounded"
+          >
+            <i class="pi pi-check text-[10px] mr-1" />
+            {{ duplicateResult }}
+          </div>
+        </template>
+
         <label
-          v-if="!['status', 'book', 'price'].includes(modalState.kind)"
+          v-if="!['status', 'book', 'price', 'duplicate_section'].includes(modalState.kind)"
           class="flex items-center gap-2 text-sm mt-5"
         >
           <input

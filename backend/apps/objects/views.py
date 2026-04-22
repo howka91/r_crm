@@ -40,6 +40,7 @@ from apps.objects.serializers import (
     ChangeFloorPriceInputSerializer,
     ChangeStatusInputSerializer,
     DiscountRuleSerializer,
+    DuplicateSectionInputSerializer,
     FloorSerializer,
     PaymentPlanSerializer,
     PriceHistorySerializer,
@@ -58,6 +59,7 @@ from apps.objects.services.booking import (
     release_booking,
 )
 from apps.objects.services.pricing import change_floor_price, recalc_apartment
+from apps.objects.services.section_duplication import duplicate_section
 
 _ACTION_SUFFIX: dict[str, str] = {
     "list": "view",
@@ -102,7 +104,47 @@ class SectionViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
     filterset_fields = ("is_active", "building")
 
     def get_permissions(self):
+        # `duplicate` is effectively a bulk-create — gate it by the create
+        # permission on sections (not view/edit, which wouldn't be enough).
+        if self.action == "duplicate":
+            return [
+                IsAuthenticated(),
+                HasPermission("objects.sections.create"),
+            ]
         return _permissions_for("objects.sections", self.action)
+
+    @action(detail=True, methods=["post"], url_path="duplicate")
+    def duplicate(self, request: Request, pk: str | None = None) -> Response:
+        """Clone this Section (plus all its Floors and Apartments) into the
+        specified target Building. Useful when the user has built one
+        "template" section and wants the rest of the project to mirror it.
+
+        Apartments are copied with a clean booking state (status=free,
+        no booking_expires_at). Calculations and planning files are not
+        copied — re-run the pricing service / re-upload as needed.
+        """
+        src: Section = self.get_object()
+        payload = DuplicateSectionInputSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        target_id = payload.validated_data["target_building_id"]
+        try:
+            target = Building.objects.get(pk=target_id)
+        except Building.DoesNotExist:
+            return Response(
+                {"target_building_id": "Корпус не найден."},
+                status=http_status.HTTP_404_NOT_FOUND,
+            )
+
+        result = duplicate_section(src, target)
+        new_section = Section.objects.get(pk=result.new_section_id)
+        return Response(
+            {
+                "section": SectionSerializer(new_section).data,
+                "floors_created": result.floors_created,
+                "apartments_created": result.apartments_created,
+            },
+            status=http_status.HTTP_201_CREATED,
+        )
 
 
 class FloorViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
