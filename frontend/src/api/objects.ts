@@ -69,6 +69,15 @@ export const sectionsApi = {
   destroy: (id: number) => http.delete(`/sections/${id}/`).then((r) => r.data),
 }
 
+export interface ChangePriceResponse {
+  floor: Floor
+  old_price: string
+  new_price: string
+  apartments_updated: number
+  calculations_upserted: number
+  price_history_id: number
+}
+
 export const floorsApi = {
   list: (params?: Record<string, unknown>) =>
     http.get<Paginated<Floor>>("/floors/", { params }).then((r) => r.data),
@@ -79,9 +88,27 @@ export const floorsApi = {
   update: (id: number, payload: Partial<FloorWrite>) =>
     http.patch<Floor>(`/floors/${id}/`, payload).then((r) => r.data),
   destroy: (id: number) => http.delete(`/floors/${id}/`).then((r) => r.data),
+  changePrice: (id: number, new_price: string, comment = "") =>
+    http
+      .post<ChangePriceResponse>(`/floors/${id}/change-price/`, {
+        new_price,
+        comment,
+      })
+      .then((r) => r.data),
 }
 
 export interface ChangeStatusResponse {
+  apartment: Apartment
+  log_id: number
+}
+
+export interface BookApartmentResponse {
+  apartment: Apartment
+  booking_expires_at: string | null
+  log_id: number
+}
+
+export interface ReleaseApartmentResponse {
   apartment: Apartment
   log_id: number
 }
@@ -101,6 +128,20 @@ export const apartmentsApi = {
     http
       .post<ChangeStatusResponse>(`/apartments/${id}/change-status/`, {
         new_status,
+        comment,
+      })
+      .then((r) => r.data),
+  book: (id: number, duration_days: number, comment = "", vip = false) =>
+    http
+      .post<BookApartmentResponse>(`/apartments/${id}/book/`, {
+        duration_days,
+        comment,
+        vip,
+      })
+      .then((r) => r.data),
+  release: (id: number, comment = "") =>
+    http
+      .post<ReleaseApartmentResponse>(`/apartments/${id}/release/`, {
         comment,
       })
       .then((r) => r.data),

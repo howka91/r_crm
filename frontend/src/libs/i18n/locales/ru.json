@@ -154,6 +154,14 @@
       "empty": "В этом подъезде ещё нет этажей.",
       "new": "Новый этаж",
       "edit": "Редактировать этаж",
+      "change_price": "Сменить цену",
+      "price_change_title": "Смена цены этажа",
+      "old_price": "Текущая цена",
+      "new_price_label": "Новая цена за м²",
+      "cascade_preview": "Будет пересчитано {count} квартир (+ расчёты по каждой).",
+      "cascade_done": "Пересчитано квартир: {apts} · обновлено расчётов: {calcs}",
+      "price_history": "История цен",
+      "price_history_empty": "Изменений цены ещё не было.",
       "fields": {
         "number": "Номер этажа",
         "price_per_sqm": "Цена за м² (UZS)"
@@ -180,6 +188,13 @@
       "new_status": "Новый статус",
       "comment": "Комментарий",
       "invalid_transition": "Недопустимый переход статуса",
+      "book": "Бронировать",
+      "release": "Снять бронь",
+      "book_vip": "Бронь VIP",
+      "book_title": "Бронирование квартиры",
+      "duration_days": "Срок, дней",
+      "vip_checkbox": "Бронь руководства",
+      "booking_expires_at": "Действует до",
       "status": {
         "free": "Свободно",
         "booked": "Бронь",

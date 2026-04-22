@@ -20,6 +20,7 @@ import {
   apartmentsApi,
   buildingsApi,
   floorsApi,
+  priceHistoryApi,
   projectsApi,
   sectionsApi,
 } from "@/api/objects"
@@ -33,6 +34,7 @@ import type {
   Floor,
   FloorWrite,
   I18nText,
+  PriceHistory,
   Project,
   Section,
   SectionWrite,
@@ -79,6 +81,11 @@ const canDeleteApartment = computed(() =>
 const canChangeStatus = computed(() =>
   permissions.check("objects.apartments.change_status"),
 )
+const canChangeFloorPrice = computed(() =>
+  permissions.check("objects.floors.edit_price"),
+)
+const canBook = computed(() => permissions.check("objects.apartments.book"))
+const canBookVip = computed(() => permissions.check("objects.apartments.book_vip"))
 
 function emptyI18n(): I18nText {
   return { ru: "", uz: "", oz: "" }
@@ -139,13 +146,22 @@ function toggleFloor(id: number) {
 
 // --- Modal state ---------------------------------------------------------
 
-type ModalKind = "building" | "section" | "floor" | "apartment" | "status"
+type ModalKind =
+  | "building"
+  | "section"
+  | "floor"
+  | "apartment"
+  | "status"
+  | "book"
+  | "price"
 interface ModalState {
   kind: ModalKind
   parentId: number
   editingId: number | null
-  /** For `status` modal: the apartment whose status we're changing. */
+  /** For `status` / `book` modals: the apartment whose state we're changing. */
   targetApt?: Apartment
+  /** For `price` modal: the floor whose price we're changing. */
+  targetFloor?: Floor
 }
 
 const showModal = ref(false)
@@ -202,6 +218,20 @@ const statusForm = reactive<{ new_status: ApartmentStatus; comment: string }>({
   new_status: "booked",
   comment: "",
 })
+
+const bookForm = reactive<{ duration_days: number; comment: string; vip: boolean }>({
+  duration_days: 7,
+  comment: "",
+  vip: false,
+})
+
+const priceForm = reactive<{ new_price: string; comment: string }>({
+  new_price: "0.00",
+  comment: "",
+})
+
+const priceHistory = ref<PriceHistory[]>([])
+const cascadeResult = ref<string | null>(null)
 
 function openBuildingCreate() {
   modalState.value = { kind: "building", parentId: projectId.value, editingId: null }
@@ -353,6 +383,56 @@ function openStatusModal(a: Apartment) {
   showModal.value = true
 }
 
+function openBookModal(a: Apartment) {
+  modalState.value = {
+    kind: "book",
+    parentId: a.floor,
+    editingId: a.id,
+    targetApt: a,
+  }
+  bookForm.duration_days = 7
+  bookForm.comment = ""
+  bookForm.vip = false
+  saveError.value = null
+  showModal.value = true
+}
+
+async function doRelease(a: Apartment) {
+  const comment = prompt(t("objects.apartments.comment") + " (опц.)", "") || ""
+  try {
+    await apartmentsApi.release(a.id, comment)
+    await load()
+  } catch (e) {
+    alert(
+      e instanceof AxiosError
+        ? JSON.stringify(e.response?.data)
+        : t("errors.unknown"),
+    )
+  }
+}
+
+async function openPriceModal(f: Floor) {
+  modalState.value = {
+    kind: "price",
+    parentId: f.section,
+    editingId: f.id,
+    targetFloor: f,
+  }
+  priceForm.new_price = f.price_per_sqm
+  priceForm.comment = ""
+  cascadeResult.value = null
+  saveError.value = null
+  // Fetch this floor's price history for the side panel. Best-effort —
+  // permission may be denied for roles without floor view access.
+  try {
+    const data = await priceHistoryApi.list({ floor: f.id, limit: 20 })
+    priceHistory.value = data.results
+  } catch {
+    priceHistory.value = []
+  }
+  showModal.value = true
+}
+
 // Keep in sync with services/apartments.py#_ALLOWED_TRANSITIONS.
 const TRANSITIONS: Record<ApartmentStatus, ApartmentStatus[]> = {
   free: ["booked", "booked_vip"],
@@ -389,6 +469,28 @@ async function save() {
         statusForm.new_status,
         statusForm.comment,
       )
+    } else if (kind === "book" && editingId) {
+      await apartmentsApi.book(
+        editingId,
+        bookForm.duration_days,
+        bookForm.comment,
+        bookForm.vip,
+      )
+    } else if (kind === "price" && editingId) {
+      const stats = await floorsApi.changePrice(
+        editingId,
+        priceForm.new_price,
+        priceForm.comment,
+      )
+      cascadeResult.value = t("objects.floors.cascade_done", {
+        apts: stats.apartments_updated,
+        calcs: stats.calculations_upserted,
+      })
+      await load()
+      // Refresh history panel.
+      const h = await priceHistoryApi.list({ floor: editingId, limit: 20 })
+      priceHistory.value = h.results
+      return  // keep the modal open so user sees the cascade result
     }
     showModal.value = false
     await load()
@@ -659,6 +761,14 @@ onMounted(load)
                       <i class="pi pi-plus text-[10px]" />
                       {{ t("objects.apartments.new") }}
                     </button>
+                    <button
+                      v-if="canChangeFloorPrice"
+                      class="btn btn-soft btn-xs"
+                      @click="openPriceModal(f)"
+                    >
+                      <i class="pi pi-dollar text-[10px]" />
+                      {{ t("objects.floors.change_price") }}
+                    </button>
                     <button v-if="canEditFloor" class="btn btn-ghost btn-xs" @click="openFloorEdit(f)">
                       {{ t("common.edit") }}
                     </button>
@@ -697,8 +807,26 @@ onMounted(load)
                         </td>
                         <td class="text-right whitespace-nowrap">
                           <button
-                            v-if="canChangeStatus"
+                            v-if="a.status === 'free' && canBook"
+                            class="btn btn-primary btn-xs mr-1"
+                            @click="openBookModal(a)"
+                          >
+                            <i class="pi pi-bookmark text-[10px]" />
+                            {{ t("objects.apartments.book") }}
+                          </button>
+                          <button
+                            v-if="
+                              (a.status === 'booked' || a.status === 'booked_vip') &&
+                                canChangeStatus
+                            "
                             class="btn btn-soft btn-xs mr-1"
+                            @click="doRelease(a)"
+                          >
+                            {{ t("objects.apartments.release") }}
+                          </button>
+                          <button
+                            v-if="canChangeStatus"
+                            class="btn btn-ghost btn-xs mr-1"
                             @click="openStatusModal(a)"
                           >
                             {{ t("objects.apartments.change_status") }}
@@ -748,6 +876,12 @@ onMounted(load)
           </template>
           <template v-else-if="modalState.kind === 'apartment'">
             {{ modalState.editingId ? t("objects.apartments.edit") : t("objects.apartments.new") }}
+          </template>
+          <template v-else-if="modalState.kind === 'book'">
+            {{ t("objects.apartments.book_title") }}
+          </template>
+          <template v-else-if="modalState.kind === 'price'">
+            {{ t("objects.floors.price_change_title") }}
           </template>
           <template v-else>
             {{ t("objects.apartments.change_status") }}
@@ -912,8 +1046,107 @@ onMounted(load)
           </div>
         </template>
 
+        <!-- Book apartment form -->
+        <template v-else-if="modalState.kind === 'book' && modalState.targetApt">
+          <div class="mb-3 text-[13px] text-ym-muted">
+            <span class="font-mono">#{{ modalState.targetApt.number }}</span>
+            · {{ modalState.targetApt.rooms_count }}
+            {{ t("objects.columns.rooms") }}
+            · {{ modalState.targetApt.area }} м²
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label class="block text-[12px] font-medium mb-1.5">
+                {{ t("objects.apartments.duration_days") }}
+              </label>
+              <input
+                v-model.number="bookForm.duration_days"
+                type="number"
+                min="1"
+                max="365"
+                class="inp font-mono"
+              />
+            </div>
+            <div>
+              <label v-if="canBookVip" class="flex items-center gap-2 text-sm mt-7">
+                <input v-model="bookForm.vip" type="checkbox" />
+                <span>{{ t("objects.apartments.vip_checkbox") }}</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium mb-1.5">
+              {{ t("objects.apartments.comment") }}
+            </label>
+            <textarea v-model="bookForm.comment" class="inp" rows="3" />
+          </div>
+        </template>
+
+        <!-- Change floor price form -->
+        <template v-else-if="modalState.kind === 'price' && modalState.targetFloor">
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label class="block text-[12px] font-medium mb-1.5">
+                {{ t("objects.floors.old_price") }}
+              </label>
+              <div class="inp font-mono bg-ym-sunken/40">
+                {{ fmtPrice(modalState.targetFloor.price_per_sqm) }}
+              </div>
+            </div>
+            <div>
+              <label class="block text-[12px] font-medium mb-1.5">
+                {{ t("objects.floors.new_price_label") }}
+              </label>
+              <input v-model="priceForm.new_price" class="inp font-mono" />
+            </div>
+          </div>
+          <div class="mb-4 text-[12.5px] text-ym-muted">
+            <i class="pi pi-info-circle text-[10px] mr-1" />
+            {{ t("objects.floors.cascade_preview", { count: modalState.targetFloor.apartments_count }) }}
+          </div>
+          <div class="mb-4">
+            <label class="block text-[12px] font-medium mb-1.5">
+              {{ t("objects.apartments.comment") }}
+            </label>
+            <textarea v-model="priceForm.comment" class="inp" rows="2" />
+          </div>
+          <div v-if="cascadeResult" class="mb-4 text-[12.5px] text-ym-success bg-ym-success-soft px-3 py-2 rounded">
+            <i class="pi pi-check text-[10px] mr-1" />
+            {{ cascadeResult }}
+          </div>
+
+          <div class="text-[11px] uppercase tracking-wider font-mono text-ym-subtle mt-5 mb-2">
+            {{ t("objects.floors.price_history") }}
+          </div>
+          <div
+            v-if="!priceHistory.length"
+            class="text-[12px] text-ym-muted"
+          >
+            {{ t("objects.floors.price_history_empty") }}
+          </div>
+          <table v-else class="tbl">
+            <thead>
+              <tr>
+                <th>{{ t("objects.floors.old_price") }}</th>
+                <th>{{ t("objects.floors.new_price_label") }}</th>
+                <th>{{ t("common.edit") }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="h in priceHistory" :key="h.id">
+                <td class="font-mono text-[12.5px]">{{ fmtPrice(h.old_price) }}</td>
+                <td class="font-mono text-[12.5px]">{{ fmtPrice(h.new_price) }}</td>
+                <td class="text-[12px] text-ym-muted">
+                  {{ h.changed_by_name || "—" }}
+                  · {{ new Date(h.created_at).toLocaleString() }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
+
         <label
-          v-if="modalState.kind !== 'status'"
+          v-if="!['status', 'book', 'price'].includes(modalState.kind)"
           class="flex items-center gap-2 text-sm mt-5"
         >
           <input

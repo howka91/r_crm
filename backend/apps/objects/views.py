@@ -18,7 +18,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.core.mixins import ProtectedDestroyMixin
-from apps.core.permissions import HasPermission
+from apps.core.permissions import HasPermission, check as check_permission
 from apps.objects.models import (
     Apartment,
     ApartmentStatusLog,
@@ -34,20 +34,30 @@ from apps.objects.models import (
 from apps.objects.serializers import (
     ApartmentSerializer,
     ApartmentStatusLogSerializer,
+    BookApartmentInputSerializer,
     BuildingSerializer,
     CalculationSerializer,
+    ChangeFloorPriceInputSerializer,
     ChangeStatusInputSerializer,
     DiscountRuleSerializer,
     FloorSerializer,
     PaymentPlanSerializer,
     PriceHistorySerializer,
     ProjectSerializer,
+    ReleaseApartmentInputSerializer,
     SectionSerializer,
 )
 from apps.objects.services.apartments import (
     InvalidStatusTransition,
     change_status,
 )
+from apps.objects.services.booking import (
+    ApartmentNotBookable,
+    ApartmentNotReleasable,
+    book_apartment,
+    release_booking,
+)
+from apps.objects.services.pricing import change_floor_price
 
 _ACTION_SUFFIX: dict[str, str] = {
     "list": "view",
@@ -101,7 +111,42 @@ class FloorViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
     filterset_fields = ("is_active", "section")
 
     def get_permissions(self):
+        # `change_price` has its own permission so the right to move prices
+        # can be separated from generic floor editing.
+        if self.action == "change_price":
+            return [
+                IsAuthenticated(),
+                HasPermission("objects.floors.edit_price"),
+            ]
         return _permissions_for("objects.floors", self.action)
+
+    @action(detail=True, methods=["post"], url_path="change-price")
+    def change_price(self, request: Request, pk: str | None = None) -> Response:
+        """Cascade-aware price change: writes a PriceHistory row and
+        recomputes every apartment's total_price + calculations on this
+        floor, all in one transaction via services.pricing.change_floor_price.
+        """
+        floor: Floor = self.get_object()
+        payload = ChangeFloorPriceInputSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        stats = change_floor_price(
+            floor,
+            payload.validated_data["new_price"],
+            by=request.user if request.user.is_authenticated else None,
+            comment=payload.validated_data.get("comment", ""),
+        )
+        floor.refresh_from_db()
+        return Response(
+            {
+                "floor": FloorSerializer(floor).data,
+                "old_price": str(stats.old_price),
+                "new_price": str(stats.new_price),
+                "apartments_updated": stats.apartments_updated,
+                "calculations_upserted": stats.calculations_upserted,
+                "price_history_id": stats.price_history_id,
+            },
+            status=http_status.HTTP_200_OK,
+        )
 
 
 class ApartmentViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
@@ -120,11 +165,14 @@ class ApartmentViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
         # (`objects.apartments.change_status`) — distinct from the standard
         # edit flow so roles can separate "can edit apartment metadata" from
         # "can move apartment through the sales pipeline".
-        if self.action == "change_status":
-            return [
-                IsAuthenticated(),
-                HasPermission("objects.apartments.change_status"),
-            ]
+        action_perms = {
+            "change_status": "objects.apartments.change_status",
+            "book": "objects.apartments.book",
+            "release": "objects.apartments.change_status",
+        }
+        perm = action_perms.get(self.action or "")
+        if perm:
+            return [IsAuthenticated(), HasPermission(perm)]
         # CRUD falls back to the standard map, mirroring the rest of the app.
         return _permissions_for("objects.apartments", self.action)
 
@@ -149,6 +197,77 @@ class ApartmentViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
         except InvalidStatusTransition as e:
             return Response(
                 {"detail": str(e), "code": "invalid_transition"},
+                status=http_status.HTTP_409_CONFLICT,
+            )
+        apt.refresh_from_db()
+        return Response(
+            {
+                "apartment": ApartmentSerializer(apt).data,
+                "log_id": result.log_id,
+            },
+            status=http_status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=["post"], url_path="book")
+    def book(self, request: Request, pk: str | None = None) -> Response:
+        """Reserve the apartment for `duration_days`. VIP booking requires
+        `objects.apartments.book_vip` on top of `objects.apartments.book` —
+        enforced by a second check inside the handler when vip=True.
+        """
+        apt: Apartment = self.get_object()
+        payload = BookApartmentInputSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+
+        vip = payload.validated_data.get("vip", False)
+        if vip and not request.user.is_superuser:
+            role = getattr(request.user, "role", None)
+            if not check_permission(
+                getattr(role, "permissions", None),
+                "objects.apartments.book_vip",
+            ):
+                return Response(
+                    {"detail": "Требуется разрешение на бронь руководства."},
+                    status=http_status.HTTP_403_FORBIDDEN,
+                )
+
+        try:
+            result = book_apartment(
+                apt,
+                payload.validated_data["duration_days"],
+                by=request.user if request.user.is_authenticated else None,
+                comment=payload.validated_data.get("comment", ""),
+                vip=vip,
+            )
+        except ApartmentNotBookable as e:
+            return Response(
+                {"detail": str(e), "code": "not_bookable"},
+                status=http_status.HTTP_409_CONFLICT,
+            )
+        apt.refresh_from_db()
+        return Response(
+            {
+                "apartment": ApartmentSerializer(apt).data,
+                "booking_expires_at": result.booking_expires_at,
+                "log_id": result.log_id,
+            },
+            status=http_status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=["post"], url_path="release")
+    def release(self, request: Request, pk: str | None = None) -> Response:
+        """Undo a booking — back to free, clears `booking_expires_at`."""
+        apt: Apartment = self.get_object()
+        payload = ReleaseApartmentInputSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        try:
+            result = release_booking(
+                apt,
+                by=request.user if request.user.is_authenticated else None,
+                comment=payload.validated_data.get("comment", ""),
+            )
+        except ApartmentNotReleasable as e:
+            return Response(
+                {"detail": str(e), "code": "not_releasable"},
                 status=http_status.HTTP_409_CONFLICT,
             )
         apt.refresh_from_db()

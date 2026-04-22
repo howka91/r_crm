@@ -9,6 +9,8 @@ matching the `MoneyField` convention established in references.Currency.
 """
 from __future__ import annotations
 
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from apps.objects.models import (
@@ -302,3 +304,29 @@ class PriceHistorySerializer(serializers.ModelSerializer):
 
     def get_changed_by_name(self, obj: PriceHistory) -> str | None:
         return obj.changed_by.full_name if obj.changed_by else None
+
+
+# --- Input serializers for custom actions --------------------------------
+
+
+class ChangeFloorPriceInputSerializer(serializers.Serializer):
+    """Payload for `POST /floors/:id/change-price/`."""
+
+    new_price = serializers.DecimalField(
+        max_digits=14, decimal_places=2, min_value=Decimal("0"),
+    )
+    comment = serializers.CharField(max_length=512, required=False, allow_blank=True)
+
+
+class BookApartmentInputSerializer(serializers.Serializer):
+    """Payload for `POST /apartments/:id/book/` (regular or VIP)."""
+
+    duration_days = serializers.IntegerField(min_value=1, max_value=365)
+    comment = serializers.CharField(max_length=512, required=False, allow_blank=True)
+    vip = serializers.BooleanField(required=False, default=False)
+
+
+class ReleaseApartmentInputSerializer(serializers.Serializer):
+    """Payload for `POST /apartments/:id/release/`."""
+
+    comment = serializers.CharField(max_length=512, required=False, allow_blank=True)

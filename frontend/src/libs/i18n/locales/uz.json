@@ -154,6 +154,14 @@
       "empty": "Bu podyezdda hali qavatlar yo'q.",
       "new": "Yangi qavat",
       "edit": "Qavatni tahrirlash",
+      "change_price": "Narxni o'zgartirish",
+      "price_change_title": "Qavat narxini o'zgartirish",
+      "old_price": "Joriy narx",
+      "new_price_label": "Yangi m² narxi",
+      "cascade_preview": "{count} kvartira qayta hisoblanadi (har biriga hisob-kitoblar).",
+      "cascade_done": "Qayta hisoblandi: {apts} kvartira · {calcs} hisob-kitob",
+      "price_history": "Narxlar tarixi",
+      "price_history_empty": "Narx hali o'zgartirilmagan.",
       "fields": {
         "number": "Qavat raqami",
         "price_per_sqm": "m² narxi (UZS)"
@@ -180,6 +188,13 @@
       "new_status": "Yangi holat",
       "comment": "Izoh",
       "invalid_transition": "Ruxsat etilmagan holat o'zgarishi",
+      "book": "Band qilish",
+      "release": "Brondan chiqarish",
+      "book_vip": "VIP band",
+      "book_title": "Kvartirani band qilish",
+      "duration_days": "Muddat, kun",
+      "vip_checkbox": "Rahbariyat brony",
+      "booking_expires_at": "Amal qilish muddati",
       "status": {
         "free": "Bo'sh",
         "booked": "Band",

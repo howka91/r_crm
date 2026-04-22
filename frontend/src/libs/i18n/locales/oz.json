@@ -154,6 +154,14 @@
       "empty": "Бу подъездда ҳали қаватлар йўқ.",
       "new": "Янги қават",
       "edit": "Қаватни таҳрирлаш",
+      "change_price": "Нархни ўзгартириш",
+      "price_change_title": "Қават нархини ўзгартириш",
+      "old_price": "Жорий нарх",
+      "new_price_label": "Янги м² нархи",
+      "cascade_preview": "{count} квартира қайта ҳисобланади (ҳар бирига ҳисоб-китоблар).",
+      "cascade_done": "Қайта ҳисобланди: {apts} квартира · {calcs} ҳисоб-китоб",
+      "price_history": "Нархлар тарихи",
+      "price_history_empty": "Нарх ҳали ўзгартирилмаган.",
       "fields": {
         "number": "Қават рақами",
         "price_per_sqm": "м² нархи (UZS)"
@@ -180,6 +188,13 @@
       "new_status": "Янги ҳолат",
       "comment": "Изоҳ",
       "invalid_transition": "Рухсат этилмаган ҳолат ўзгариши",
+      "book": "Банд қилиш",
+      "release": "Брондан чиқариш",
+      "book_vip": "VIP банд",
+      "book_title": "Квартирани банд қилиш",
+      "duration_days": "Муддат, кун",
+      "vip_checkbox": "Раҳбарият брони",
+      "booking_expires_at": "Амал қилиш муддати",
       "status": {
         "free": "Бўш",
         "booked": "Банд",
