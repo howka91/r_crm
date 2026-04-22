@@ -10,6 +10,7 @@ on FloorViewSet.
 """
 from __future__ import annotations
 
+from django.db import transaction
 from rest_framework import status as http_status
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -113,6 +114,28 @@ class SectionViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
             ]
         return _permissions_for("objects.sections", self.action)
 
+    def destroy(self, request: Request, *args, **kwargs):  # type: ignore[override]
+        """Default destroy is blocked by ProtectedError when floors exist.
+
+        Pass `?force=true` to cascade — deletes every Apartment in the
+        section (which cascades Calculations + ApartmentStatusLogs via the
+        models' on_delete=CASCADE), then every Floor (which cascades
+        PriceHistory), then the Section itself. Runs in one transaction.
+
+        Uses `all_objects` (the plain Manager) on bulk deletes because
+        `objects` is a SoftDeleteManager whose `.delete()` only flips
+        `is_active=False` — which would leave the rows in place and the
+        parent PROTECT check would still block the Section delete.
+        """
+        if request.query_params.get("force") == "true":
+            section: Section = self.get_object()
+            with transaction.atomic():
+                Apartment.all_objects.filter(floor__section=section).delete()
+                Floor.all_objects.filter(section=section).delete()
+                section.delete()
+            return Response(status=http_status.HTTP_204_NO_CONTENT)
+        return super().destroy(request, *args, **kwargs)
+
     @action(detail=True, methods=["post"], url_path="duplicate")
     def duplicate(self, request: Request, pk: str | None = None) -> Response:
         """Clone this Section (plus all its Floors and Apartments) into the
@@ -161,6 +184,22 @@ class FloorViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
                 HasPermission("objects.floors.edit_price"),
             ]
         return _permissions_for("objects.floors", self.action)
+
+    def destroy(self, request: Request, *args, **kwargs):  # type: ignore[override]
+        """Pass `?force=true` to cascade-delete every Apartment (and its
+        Calculations / ApartmentStatusLogs) before removing the Floor.
+        Without it, Apartment.floor's PROTECT blocks the delete and the
+        shared ProtectedDestroyMixin returns 409.
+
+        See SectionViewSet.destroy for why `all_objects` is used on the bulk.
+        """
+        if request.query_params.get("force") == "true":
+            floor: Floor = self.get_object()
+            with transaction.atomic():
+                Apartment.all_objects.filter(floor=floor).delete()
+                floor.delete()
+            return Response(status=http_status.HTTP_204_NO_CONTENT)
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=["post"], url_path="change-price")
     def change_price(self, request: Request, pk: str | None = None) -> Response:

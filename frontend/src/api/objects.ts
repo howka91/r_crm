@@ -73,6 +73,9 @@ export const sectionsApi = {
   update: (id: number, payload: Partial<SectionWrite>) =>
     http.patch<Section>(`/sections/${id}/`, payload).then((r) => r.data),
   destroy: (id: number) => http.delete(`/sections/${id}/`).then((r) => r.data),
+  /** Cascade-delete the section plus every Floor and Apartment under it. */
+  destroyForce: (id: number) =>
+    http.delete(`/sections/${id}/?force=true`).then((r) => r.data),
   duplicate: (source_section_id: number, target_building_id: number) =>
     http
       .post<DuplicateSectionResponse>(
@@ -101,6 +104,9 @@ export const floorsApi = {
   update: (id: number, payload: Partial<FloorWrite>) =>
     http.patch<Floor>(`/floors/${id}/`, payload).then((r) => r.data),
   destroy: (id: number) => http.delete(`/floors/${id}/`).then((r) => r.data),
+  /** Cascade-delete the floor plus every Apartment on it. */
+  destroyForce: (id: number) =>
+    http.delete(`/floors/${id}/?force=true`).then((r) => r.data),
   changePrice: (id: number, new_price: string, comment = "") =>
     http
       .post<ChangePriceResponse>(`/floors/${id}/change-price/`, {

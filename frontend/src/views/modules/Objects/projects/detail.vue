@@ -590,13 +590,39 @@ async function removeBuilding(b: Building) {
     alert(e instanceof AxiosError ? JSON.stringify(e.response?.data) : t("errors.unknown"))
   }
 }
+/** Format the 409 `blocked_by` payload as "Floor: 3, Apartment: 42". */
+function describeBlockedBy(err: AxiosError): string {
+  const data = err.response?.data as { blocked_by?: Record<string, number> } | undefined
+  const bb = data?.blocked_by
+  if (!bb) return ""
+  return Object.entries(bb)
+    .map(([model, n]) => `${model.split(".").pop()}: ${n}`)
+    .join(", ")
+}
+
 async function removeSection(s: Section) {
   if (!confirm(`${t("objects.sections.confirm_delete")}?`)) return
   try {
     await sectionsApi.destroy(s.id)
     await load()
+    return
   } catch (e) {
-    alert(e instanceof AxiosError ? JSON.stringify(e.response?.data) : t("errors.unknown"))
+    if (!(e instanceof AxiosError) || e.response?.status !== 409) {
+      alert(e instanceof AxiosError ? JSON.stringify(e.response?.data) : t("errors.unknown"))
+      return
+    }
+    // Blocked by children — offer cascade delete.
+    const summary = describeBlockedBy(e)
+    const prompt = t("objects.sections.confirm_cascade_delete", { summary })
+    if (!confirm(prompt)) return
+    try {
+      await sectionsApi.destroyForce(s.id)
+      await load()
+    } catch (e2) {
+      alert(
+        e2 instanceof AxiosError ? JSON.stringify(e2.response?.data) : t("errors.unknown"),
+      )
+    }
   }
 }
 async function removeFloor(f: Floor) {
@@ -604,8 +630,23 @@ async function removeFloor(f: Floor) {
   try {
     await floorsApi.destroy(f.id)
     await load()
+    return
   } catch (e) {
-    alert(e instanceof AxiosError ? JSON.stringify(e.response?.data) : t("errors.unknown"))
+    if (!(e instanceof AxiosError) || e.response?.status !== 409) {
+      alert(e instanceof AxiosError ? JSON.stringify(e.response?.data) : t("errors.unknown"))
+      return
+    }
+    const summary = describeBlockedBy(e)
+    const prompt = t("objects.floors.confirm_cascade_delete", { summary })
+    if (!confirm(prompt)) return
+    try {
+      await floorsApi.destroyForce(f.id)
+      await load()
+    } catch (e2) {
+      alert(
+        e2 instanceof AxiosError ? JSON.stringify(e2.response?.data) : t("errors.unknown"),
+      )
+    }
   }
 }
 async function removeApartment(a: Apartment) {

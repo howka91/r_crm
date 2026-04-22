@@ -154,7 +154,8 @@
         "title": "Название",
         "number": "Номер подъезда"
       },
-      "confirm_delete": "Удалить подъезд"
+      "confirm_delete": "Удалить подъезд",
+      "confirm_cascade_delete": "В подъезде есть связанные записи ({summary}). Удалить подъезд и всё его содержимое?"
     },
     "floors": {
       "title": "Этажи",
@@ -173,7 +174,8 @@
         "number": "Номер этажа",
         "price_per_sqm": "Цена за м² (UZS)"
       },
-      "confirm_delete": "Удалить этаж"
+      "confirm_delete": "Удалить этаж",
+      "confirm_cascade_delete": "На этаже есть связанные записи ({summary}). Удалить этаж и все его квартиры?"
     },
     "apartments": {
       "title": "Квартиры",
