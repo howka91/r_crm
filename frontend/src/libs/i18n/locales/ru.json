@@ -285,6 +285,98 @@
       "confirm_delete": "Удалить правило"
     }
   },
+  "clients": {
+    "title": "Клиенты",
+    "subtitle": "База клиентов с контактами и реквизитами",
+    "new": "Новый клиент",
+    "edit": "Редактировать клиента",
+    "empty": "Клиентов пока нет.",
+    "confirm_delete": "Удалить клиента",
+    "fields": {
+      "entity": "Тип",
+      "gender": "Пол",
+      "full_name": "ФИО / Название",
+      "phones": "Телефоны",
+      "emails": "Email-адреса",
+      "inn": "ИНН",
+      "oked": "ОКЭД",
+      "pin": "ПИНФЛ",
+      "birth_date": "Дата рождения",
+      "address": "Адрес",
+      "description": "Заметки",
+      "manager": "Менеджер",
+      "status": "Статус",
+      "groups": "Группы"
+    },
+    "entity_phys": "Физ. лицо",
+    "entity_jur": "Юр. лицо",
+    "gender_male": "Муж.",
+    "gender_female": "Жен.",
+    "columns": {
+      "name": "ФИО / Название",
+      "entity": "Тип",
+      "phone": "Телефон",
+      "manager": "Менеджер",
+      "status": "Статус",
+      "contacts": "Контактов",
+      "requisites": "Реквизитов"
+    },
+    "tabs": {
+      "contacts": "Контакты",
+      "requisites": "Реквизиты",
+      "notes": "Заметки",
+      "contracts": "Договоры"
+    },
+    "contracts_stub": "Договоры появятся после подключения Этапа 5.",
+    "contacts": {
+      "title": "Контакты клиента",
+      "empty": "Контактов ещё нет.",
+      "new": "Новый контакт",
+      "edit": "Редактировать контакт",
+      "confirm_delete": "Удалить контакт",
+      "fields": {
+        "full_name": "ФИО",
+        "role": "Роль",
+        "is_chief": "Главный подписант",
+        "phones": "Телефоны",
+        "email": "Email",
+        "inn": "ИНН",
+        "pin": "ПИНФЛ",
+        "birth_date": "Дата рождения",
+        "passport_series": "Серия паспорта",
+        "passport_number": "Номер паспорта",
+        "passport_issued_by": "Кем выдан",
+        "passport_issued_date": "Дата выдачи",
+        "passport_registration_address": "Адрес регистрации"
+      }
+    },
+    "requisites": {
+      "title": "Банковские реквизиты",
+      "empty": "Реквизитов ещё нет.",
+      "new": "Новый реквизит",
+      "edit": "Редактировать реквизит",
+      "confirm_delete": "Удалить реквизит",
+      "type_internal": "Внутренний",
+      "type_local": "Местный",
+      "fields": {
+        "type": "Тип",
+        "account": "Расчётный счёт",
+        "bank": "Банк",
+        "mfo": "МФО",
+        "currency": "Валюта"
+      }
+    },
+    "notes": {
+      "title": "Заметки",
+      "placeholder": "Произвольные заметки о клиенте, которые не требуют отдельных полей…"
+    },
+    "statuses": {
+      "title": "Статусы клиентов"
+    },
+    "groups": {
+      "title": "Группы клиентов"
+    }
+  },
   "references": {
     "hub_title": "Справочники",
     "hub_subtitle": "Базовые данные проекта: застройщики, офисы, валюты, классификаторы",

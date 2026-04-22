@@ -285,6 +285,98 @@
       "confirm_delete": "Қоидани ўчириш"
     }
   },
+  "clients": {
+    "title": "Мижозлар",
+    "subtitle": "Контактлар ва реквизитлар билан мижозлар базаси",
+    "new": "Янги мижоз",
+    "edit": "Мижозни таҳрирлаш",
+    "empty": "Ҳали мижозлар йўқ.",
+    "confirm_delete": "Мижозни ўчириш",
+    "fields": {
+      "entity": "Тури",
+      "gender": "Жинси",
+      "full_name": "ФИО / Номи",
+      "phones": "Телефонлар",
+      "emails": "Email манзиллари",
+      "inn": "СТИР",
+      "oked": "ОКЭД",
+      "pin": "ЖШШИР",
+      "birth_date": "Туғилган сана",
+      "address": "Манзил",
+      "description": "Изоҳлар",
+      "manager": "Менежер",
+      "status": "Ҳолати",
+      "groups": "Гуруҳлар"
+    },
+    "entity_phys": "Жисмоний шахс",
+    "entity_jur": "Юридик шахс",
+    "gender_male": "Эрк.",
+    "gender_female": "Аёл",
+    "columns": {
+      "name": "ФИО / Номи",
+      "entity": "Тури",
+      "phone": "Телефон",
+      "manager": "Менежер",
+      "status": "Ҳолати",
+      "contacts": "Контактлар",
+      "requisites": "Реквизитлар"
+    },
+    "tabs": {
+      "contacts": "Контактлар",
+      "requisites": "Реквизитлар",
+      "notes": "Изоҳлар",
+      "contracts": "Шартномалар"
+    },
+    "contracts_stub": "Шартномалар 5-босқичда қўшилади.",
+    "contacts": {
+      "title": "Мижоз контактлари",
+      "empty": "Ҳали контактлар йўқ.",
+      "new": "Янги контакт",
+      "edit": "Контактни таҳрирлаш",
+      "confirm_delete": "Контактни ўчириш",
+      "fields": {
+        "full_name": "ФИО",
+        "role": "Роли",
+        "is_chief": "Асосий имзоловчи",
+        "phones": "Телефонлар",
+        "email": "Email",
+        "inn": "СТИР",
+        "pin": "ЖШШИР",
+        "birth_date": "Туғилган сана",
+        "passport_series": "Паспорт серияси",
+        "passport_number": "Паспорт рақами",
+        "passport_issued_by": "Ким томонидан берилган",
+        "passport_issued_date": "Берилган сана",
+        "passport_registration_address": "Рўйхатга олинган манзил"
+      }
+    },
+    "requisites": {
+      "title": "Банк реквизитлари",
+      "empty": "Ҳали реквизитлар йўқ.",
+      "new": "Янги реквизит",
+      "edit": "Реквизитни таҳрирлаш",
+      "confirm_delete": "Реквизитни ўчириш",
+      "type_internal": "Ички",
+      "type_local": "Маҳаллий",
+      "fields": {
+        "type": "Тури",
+        "account": "Ҳисоб рақами",
+        "bank": "Банк",
+        "mfo": "МФО",
+        "currency": "Валюта"
+      }
+    },
+    "notes": {
+      "title": "Изоҳлар",
+      "placeholder": "Алоҳида майдонни талаб қилмайдиган эркин изоҳлар…"
+    },
+    "statuses": {
+      "title": "Мижоз ҳолатлари"
+    },
+    "groups": {
+      "title": "Мижоз гуруҳлари"
+    }
+  },
   "references": {
     "hub_title": "Маълумотномалар",
     "hub_subtitle": "Лойиҳа асосий маълумотлари: қурувчилар, офислар, валюталар, таснифлагичлар",

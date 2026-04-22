@@ -329,6 +329,110 @@ export interface PriceHistory {
   created_at: string
 }
 
+// --- Clients --------------------------------------------------------------
+// Mirrors backend models in apps.clients.models.
+
+export type ClientEntity = "phys" | "jur"
+export type ClientGender = "" | "male" | "female"
+export type RequisiteType = "internal" | "local"
+
+export interface ClientStatus extends TimeStamped {
+  id: number
+  name: I18nText
+  color: string
+  sort: number
+  is_active: boolean
+}
+export type ClientStatusWrite = Omit<ClientStatus, "id" | "created_at" | "modified_at">
+
+export interface ClientGroup extends TimeStamped {
+  id: number
+  name: I18nText
+  sort: number
+  is_active: boolean
+}
+export type ClientGroupWrite = Omit<ClientGroup, "id" | "created_at" | "modified_at">
+
+export interface Client extends TimeStamped {
+  id: number
+  entity: ClientEntity
+  gender: ClientGender
+  full_name: string
+  phones: string[]
+  emails: string[]
+  inn: string
+  oked: string
+  pin: string
+  birth_date: string | null
+  address: string
+  description: string
+  manager: string | null
+  /** Read-only — Staff.full_name joined in. */
+  manager_name: string | null
+  status: number | null
+  /** Read-only — ClientStatus.name joined in. */
+  status_name: I18nText | null
+  groups: number[]
+  contacts_count: number
+  requisites_count: number
+  is_active: boolean
+}
+export type ClientWrite = Omit<
+  Client,
+  | "id"
+  | "created_at"
+  | "modified_at"
+  | "manager_name"
+  | "status_name"
+  | "contacts_count"
+  | "requisites_count"
+>
+
+export interface ClientContactPassport {
+  series?: string
+  number?: string
+  issued_by?: string
+  issued_date?: string
+  registration_address?: string
+  [k: string]: unknown
+}
+
+export interface ClientContact extends TimeStamped {
+  id: number
+  client: number
+  full_name: string
+  role: string
+  is_chief: boolean
+  phones: string[]
+  email: string
+  passport: ClientContactPassport
+  birth_date: string | null
+  inn: string
+  pin: string
+  is_active: boolean
+}
+export type ClientContactWrite = Omit<
+  ClientContact,
+  "id" | "created_at" | "modified_at"
+>
+
+export interface BankRequisite {
+  account?: string
+  bank?: string
+  mfo?: string
+  currency?: string
+  [k: string]: unknown
+}
+
+export interface Requisite extends TimeStamped {
+  id: number
+  client: number
+  type: RequisiteType
+  bank_requisite: BankRequisite
+  is_active: boolean
+}
+export type RequisiteWrite = Omit<Requisite, "id" | "created_at" | "modified_at">
+
 /** URL slug for each lookup type — matches backend kebab-cased class names. */
 export type LookupTypeSlug =
   | "apartment-type"

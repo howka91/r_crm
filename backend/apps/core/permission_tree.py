@@ -56,7 +56,29 @@ PERMISSION_TREE: list[PermissionNode] = [
     {
         "key": "clients",
         "label": _label("Клиенты", "Mijozlar", "Мижозлар"),
-        "children": _crud("clients", "клиента", "Mijoz", "Мижоз"),
+        "children": [
+            *_crud("clients", "клиента", "Mijoz", "Мижоз"),
+            {
+                "key": "clients.contacts",
+                "label": _label("Контакты клиента", "Mijoz kontaktlari", "Мижоз контактлари"),
+                "children": _crud("clients.contacts", "контакт", "Kontakt", "Контакт"),
+            },
+            {
+                "key": "clients.requisites",
+                "label": _label("Реквизиты клиента", "Mijoz rekvizitlari", "Мижоз реквизитлари"),
+                "children": _crud("clients.requisites", "реквизит", "Rekvizit", "Реквизит"),
+            },
+            {
+                "key": "clients.statuses",
+                "label": _label("Статусы клиентов", "Mijoz statuslari", "Мижоз ҳолатлари"),
+                "children": _crud("clients.statuses", "статус", "Status", "Ҳолат"),
+            },
+            {
+                "key": "clients.groups",
+                "label": _label("Группы клиентов", "Mijoz guruhlari", "Мижоз гуруҳлари"),
+                "children": _crud("clients.groups", "группу", "Guruh", "Гуруҳ"),
+            },
+        ],
     },
     # --- ДОГОВОРЫ ---
     {

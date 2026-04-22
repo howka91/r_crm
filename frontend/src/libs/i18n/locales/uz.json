@@ -285,6 +285,98 @@
       "confirm_delete": "Qoidani o'chirish"
     }
   },
+  "clients": {
+    "title": "Mijozlar",
+    "subtitle": "Kontaktlar va rekvizitlar bilan mijozlar bazasi",
+    "new": "Yangi mijoz",
+    "edit": "Mijozni tahrirlash",
+    "empty": "Hali mijozlar yo'q.",
+    "confirm_delete": "Mijozni o'chirish",
+    "fields": {
+      "entity": "Turi",
+      "gender": "Jinsi",
+      "full_name": "FIO / Nomi",
+      "phones": "Telefonlar",
+      "emails": "Email manzillari",
+      "inn": "STIR",
+      "oked": "OKED",
+      "pin": "JShShIR",
+      "birth_date": "Tug'ilgan sana",
+      "address": "Manzil",
+      "description": "Izohlar",
+      "manager": "Menejer",
+      "status": "Holat",
+      "groups": "Guruhlar"
+    },
+    "entity_phys": "Jismoniy shaxs",
+    "entity_jur": "Yuridik shaxs",
+    "gender_male": "Erk.",
+    "gender_female": "Ayol",
+    "columns": {
+      "name": "FIO / Nomi",
+      "entity": "Turi",
+      "phone": "Telefon",
+      "manager": "Menejer",
+      "status": "Holat",
+      "contacts": "Kontaktlar",
+      "requisites": "Rekvizitlar"
+    },
+    "tabs": {
+      "contacts": "Kontaktlar",
+      "requisites": "Rekvizitlar",
+      "notes": "Izohlar",
+      "contracts": "Shartnomalar"
+    },
+    "contracts_stub": "Shartnomalar 5-bosqichda qo'shiladi.",
+    "contacts": {
+      "title": "Mijoz kontaktlari",
+      "empty": "Hali kontaktlar yo'q.",
+      "new": "Yangi kontakt",
+      "edit": "Kontaktni tahrirlash",
+      "confirm_delete": "Kontaktni o'chirish",
+      "fields": {
+        "full_name": "FIO",
+        "role": "Roli",
+        "is_chief": "Asosiy imzolovchi",
+        "phones": "Telefonlar",
+        "email": "Email",
+        "inn": "STIR",
+        "pin": "JShShIR",
+        "birth_date": "Tug'ilgan sana",
+        "passport_series": "Pasport seriyasi",
+        "passport_number": "Pasport raqami",
+        "passport_issued_by": "Kim tomonidan berilgan",
+        "passport_issued_date": "Berilgan sana",
+        "passport_registration_address": "Ro'yxatga olingan manzil"
+      }
+    },
+    "requisites": {
+      "title": "Bank rekvizitlari",
+      "empty": "Hali rekvizitlar yo'q.",
+      "new": "Yangi rekvizit",
+      "edit": "Rekvizitni tahrirlash",
+      "confirm_delete": "Rekvizitni o'chirish",
+      "type_internal": "Ichki",
+      "type_local": "Mahalliy",
+      "fields": {
+        "type": "Turi",
+        "account": "Hisob raqami",
+        "bank": "Bank",
+        "mfo": "MFO",
+        "currency": "Valyuta"
+      }
+    },
+    "notes": {
+      "title": "Izohlar",
+      "placeholder": "Alohida maydonni talab qilmaydigan erkin izohlar…"
+    },
+    "statuses": {
+      "title": "Mijoz statuslari"
+    },
+    "groups": {
+      "title": "Mijoz guruhlari"
+    }
+  },
   "references": {
     "hub_title": "Ma'lumotnomalar",
     "hub_subtitle": "Loyiha asosiy ma'lumotlari: quruvchilar, ofislar, valyutalar, tasniflagichlar",

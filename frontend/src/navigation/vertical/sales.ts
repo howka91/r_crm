@@ -7,7 +7,14 @@ import type { NavGroup } from "./types"
  */
 const sales: NavGroup = {
   headerKey: "nav.group_sales",
-  children: [{ titleKey: "nav.clients", icon: "pi-user", disabled: true }],
+  children: [
+    {
+      titleKey: "nav.clients",
+      icon: "pi-user",
+      to: "/clients",
+      permission: "clients.view",
+    },
+  ],
 }
 
 export default sales
