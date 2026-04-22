@@ -8,6 +8,8 @@ by default so deleting a parent with children is always a deliberate act.
 Re-exports so `from apps.objects.models import Project` keeps working, and so
 Django's app-model discovery finds every model on `apps.objects.models`.
 """
+from apps.objects.models.apartment import Apartment
+from apps.objects.models.apartment_status_log import ApartmentStatusLog
 from apps.objects.models.building import Building
 from apps.objects.models.floor import Floor
 from apps.objects.models.project import Project
@@ -18,4 +20,6 @@ __all__ = [
     "Building",
     "Section",
     "Floor",
+    "Apartment",
+    "ApartmentStatusLog",
 ]

@@ -6,7 +6,7 @@ from decimal import Decimal
 import factory
 from factory.django import DjangoModelFactory
 
-from apps.objects.models import Building, Floor, Project, Section
+from apps.objects.models import Apartment, Building, Floor, Project, Section
 from apps.references.tests.factories import DeveloperFactory
 
 
@@ -45,3 +45,14 @@ class FloorFactory(DjangoModelFactory):
     section = factory.SubFactory(SectionFactory)
     number = factory.Sequence(lambda n: (n % 30) + 1)
     price_per_sqm = Decimal("15000000.00")
+
+
+class ApartmentFactory(DjangoModelFactory):
+    class Meta:
+        model = Apartment
+
+    floor = factory.SubFactory(FloorFactory)
+    number = factory.Sequence(lambda n: str(n + 1))
+    rooms_count = 2
+    area = Decimal("50.00")
+    total_price = Decimal("750000000.00")

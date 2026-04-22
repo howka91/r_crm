@@ -11,7 +11,14 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from apps.objects.models import Building, Floor, Project, Section
+from apps.objects.models import (
+    Apartment,
+    ApartmentStatusLog,
+    Building,
+    Floor,
+    Project,
+    Section,
+)
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -108,6 +115,10 @@ class SectionSerializer(serializers.ModelSerializer):
 
 
 class FloorSerializer(serializers.ModelSerializer):
+    apartments_count = serializers.IntegerField(
+        source="apartments.count", read_only=True,
+    )
+
     class Meta:
         model = Floor
         fields = (
@@ -117,7 +128,82 @@ class FloorSerializer(serializers.ModelSerializer):
             "price_per_sqm",
             "sort",
             "is_active",
+            "apartments_count",
             "created_at",
             "modified_at",
         )
-        read_only_fields = ("id", "created_at", "modified_at")
+        read_only_fields = ("id", "apartments_count", "created_at", "modified_at")
+
+
+class ApartmentSerializer(serializers.ModelSerializer):
+    """Full Apartment shape. `status` is writable via create/update — but only
+    to allowable values. For state transitions post-create, clients should
+    hit the `change-status` action; writing `status` directly via PATCH is
+    supported for superusers and initial data import (no transition check)."""
+
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = Apartment
+        fields = (
+            "id",
+            "floor",
+            "number",
+            "rooms_count",
+            "area",
+            "total_bti_area",
+            "total_price",
+            "surcharge",
+            "is_duplex",
+            "is_studio",
+            "is_euro_planning",
+            "planning_file",
+            "decoration",
+            "output_window",
+            "occupied_by",
+            "characteristics",
+            "status",
+            "status_display",
+            "booking_expires_at",
+            "sort",
+            "is_active",
+            "created_at",
+            "modified_at",
+        )
+        read_only_fields = (
+            "id",
+            "status_display",
+            "booking_expires_at",
+            "created_at",
+            "modified_at",
+        )
+
+
+class ApartmentStatusLogSerializer(serializers.ModelSerializer):
+    """Read-only — writes happen inside services.apartments.change_status."""
+
+    changed_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApartmentStatusLog
+        fields = (
+            "id",
+            "apartment",
+            "old_status",
+            "new_status",
+            "changed_by",
+            "changed_by_name",
+            "comment",
+            "created_at",
+        )
+        read_only_fields = fields
+
+    def get_changed_by_name(self, obj: ApartmentStatusLog) -> str | None:
+        return obj.changed_by.full_name if obj.changed_by else None
+
+
+class ChangeStatusInputSerializer(serializers.Serializer):
+    """Payload for the `POST /apartments/:id/change-status/` action."""
+
+    new_status = serializers.ChoiceField(choices=Apartment.Status.choices)
+    comment = serializers.CharField(max_length=512, required=False, allow_blank=True)

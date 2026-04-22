@@ -160,12 +160,46 @@
       },
       "confirm_delete": "Удалить этаж"
     },
+    "apartments": {
+      "title": "Квартиры",
+      "empty": "На этом этаже ещё нет квартир.",
+      "new": "Новая квартира",
+      "edit": "Редактировать квартиру",
+      "fields": {
+        "number": "Номер",
+        "rooms_count": "Комнат",
+        "area": "Площадь, м²",
+        "total_price": "Итоговая цена",
+        "surcharge": "Наценка",
+        "is_duplex": "Дуплекс",
+        "is_studio": "Студия",
+        "is_euro_planning": "Европлан"
+      },
+      "confirm_delete": "Удалить квартиру",
+      "change_status": "Сменить статус",
+      "new_status": "Новый статус",
+      "comment": "Комментарий",
+      "invalid_transition": "Недопустимый переход статуса",
+      "status": {
+        "free": "Свободно",
+        "booked": "Бронь",
+        "booked_vip": "Бронь VIP",
+        "formalized": "Оформлено",
+        "escrow": "Эскроу",
+        "sold": "Продано"
+      }
+    },
     "columns": {
       "buildings_count": "Корпусов",
       "sections_count": "Подъездов",
       "floors_count": "Этажей",
+      "apartments_count": "Квартир",
       "number": "Номер",
-      "price_per_sqm": "Цена за м²"
+      "price_per_sqm": "Цена за м²",
+      "rooms": "Комн.",
+      "area": "Площадь",
+      "price": "Цена",
+      "status": "Статус"
     }
   },
   "references": {

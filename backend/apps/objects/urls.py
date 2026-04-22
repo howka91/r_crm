@@ -12,6 +12,8 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from apps.objects.views import (
+    ApartmentStatusLogViewSet,
+    ApartmentViewSet,
     BuildingViewSet,
     FloorViewSet,
     ProjectViewSet,
@@ -23,6 +25,12 @@ router.register("projects", ProjectViewSet, basename="project")
 router.register("buildings", BuildingViewSet, basename="building")
 router.register("sections", SectionViewSet, basename="section")
 router.register("floors", FloorViewSet, basename="floor")
+router.register("apartments", ApartmentViewSet, basename="apartment")
+router.register(
+    "apartment-status-logs",
+    ApartmentStatusLogViewSet,
+    basename="apartment-status-log",
+)
 
 urlpatterns = [
     path("", include(router.urls)),

@@ -1,23 +1,33 @@
 <script setup lang="ts">
 /**
- * Project detail — nested drill-down for Buildings → Sections → Floors.
+ * Project detail — nested drill-down for Buildings → Sections → Floors →
+ * Apartments.
  *
- * We load all children for the project up front (one request each) — in practice
- * no project has more than a few hundred apartments total, so 3 round-trips on
- * mount is fine. Apartment (phase 3.2) will change this to lazy-load per floor.
+ * Phase 3.1 shipped the first three levels; phase 3.2 adds Apartments with
+ * their status chip and the "change status" workflow. A single modal handles
+ * create/edit for all child entity types plus the status-change dialog.
  *
- * A single modal handles create/edit for all 3 child entity types. Entity kind
- * and parent id are encoded in `modalState` so the template can render the
- * right form body.
+ * For small projects (a few hundred apartments total) loading everything up
+ * front is acceptable. When totals grow, lazy-loading per floor is easy —
+ * the `apartmentsFor(floorId)` helper is already filtering client-side.
  */
 import { AxiosError } from "axios"
 import { computed, onMounted, reactive, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
-import { buildingsApi, floorsApi, projectsApi, sectionsApi } from "@/api/objects"
+import {
+  apartmentsApi,
+  buildingsApi,
+  floorsApi,
+  projectsApi,
+  sectionsApi,
+} from "@/api/objects"
 import { usePermissionStore } from "@/store/permissions"
 import type {
+  Apartment,
+  ApartmentStatus,
+  ApartmentWrite,
   Building,
   BuildingWrite,
   Floor,
@@ -40,10 +50,12 @@ const project = ref<Project | null>(null)
 const buildings = ref<Building[]>([])
 const sections = ref<Section[]>([])
 const floors = ref<Floor[]>([])
+const apartments = ref<Apartment[]>([])
 const loading = ref(false)
-const expanded = ref<{ buildings: Set<number>; sections: Set<number> }>({
+const expanded = ref<{ buildings: Set<number>; sections: Set<number>; floors: Set<number> }>({
   buildings: new Set(),
   sections: new Set(),
+  floors: new Set(),
 })
 
 const canCreateBuilding = computed(() => permissions.check("objects.buildings.create"))
@@ -55,6 +67,18 @@ const canDeleteSection = computed(() => permissions.check("objects.sections.dele
 const canCreateFloor = computed(() => permissions.check("objects.floors.create"))
 const canEditFloor = computed(() => permissions.check("objects.floors.edit"))
 const canDeleteFloor = computed(() => permissions.check("objects.floors.delete"))
+const canCreateApartment = computed(() =>
+  permissions.check("objects.apartments.edit"),
+)
+const canEditApartment = computed(() =>
+  permissions.check("objects.apartments.edit"),
+)
+const canDeleteApartment = computed(() =>
+  permissions.check("objects.apartments.delete"),
+)
+const canChangeStatus = computed(() =>
+  permissions.check("objects.apartments.change_status"),
+)
 
 function emptyI18n(): I18nText {
   return { ru: "", uz: "", oz: "" }
@@ -67,20 +91,21 @@ async function load() {
     const bs = await buildingsApi.list({ project: projectId.value, limit: 200 })
     buildings.value = bs.results
     if (buildings.value.length) {
-      // Load sections for every building via a single request (filter by
-      // `building__in` would be ideal — we approximate by loading all and
-      // filtering client-side since totals are small).
-      const ss = await sectionsApi.list({ limit: 500 })
-      sections.value = ss.results.filter((s) =>
-        buildings.value.some((b) => b.id === s.building),
-      )
-      const fs = await floorsApi.list({ limit: 1000 })
-      floors.value = fs.results.filter((f) =>
-        sections.value.some((s) => s.id === f.section),
-      )
+      const [ss, fs, apts] = await Promise.all([
+        sectionsApi.list({ limit: 500 }),
+        floorsApi.list({ limit: 1000 }),
+        apartmentsApi.list({ limit: 5000 }),
+      ])
+      const buildingIds = new Set(buildings.value.map((b) => b.id))
+      sections.value = ss.results.filter((s) => buildingIds.has(s.building))
+      const sectionIds = new Set(sections.value.map((s) => s.id))
+      floors.value = fs.results.filter((f) => sectionIds.has(f.section))
+      const floorIds = new Set(floors.value.map((f) => f.id))
+      apartments.value = apts.results.filter((a) => floorIds.has(a.floor))
     } else {
       sections.value = []
       floors.value = []
+      apartments.value = []
     }
   } finally {
     loading.value = false
@@ -95,6 +120,9 @@ function sectionsFor(buildingId: number): Section[] {
 function floorsFor(sectionId: number): Floor[] {
   return floors.value.filter((f) => f.section === sectionId)
 }
+function apartmentsFor(floorId: number): Apartment[] {
+  return apartments.value.filter((a) => a.floor === floorId)
+}
 
 function toggleBuilding(id: number) {
   if (expanded.value.buildings.has(id)) expanded.value.buildings.delete(id)
@@ -104,16 +132,20 @@ function toggleSection(id: number) {
   if (expanded.value.sections.has(id)) expanded.value.sections.delete(id)
   else expanded.value.sections.add(id)
 }
+function toggleFloor(id: number) {
+  if (expanded.value.floors.has(id)) expanded.value.floors.delete(id)
+  else expanded.value.floors.add(id)
+}
 
 // --- Modal state ---------------------------------------------------------
 
-type ModalKind = "building" | "section" | "floor"
+type ModalKind = "building" | "section" | "floor" | "apartment" | "status"
 interface ModalState {
   kind: ModalKind
-  /** Parent id (project for buildings, building for sections, section for floors). */
   parentId: number
-  /** If editing — the current item id; null if creating. */
   editingId: number | null
+  /** For `status` modal: the apartment whose status we're changing. */
+  targetApt?: Apartment
 }
 
 const showModal = ref(false)
@@ -144,6 +176,31 @@ const floorForm = reactive<FloorWrite>({
   price_per_sqm: "0.00",
   sort: 0,
   is_active: true,
+})
+
+const apartmentForm = reactive<ApartmentWrite>({
+  floor: 0,
+  number: "",
+  rooms_count: 1,
+  area: "0.00",
+  total_bti_area: "0.00",
+  total_price: "0.00",
+  surcharge: "0.00",
+  is_duplex: false,
+  is_studio: false,
+  is_euro_planning: false,
+  decoration: null,
+  output_window: null,
+  occupied_by: null,
+  characteristics: [],
+  status: "free",
+  sort: 0,
+  is_active: true,
+})
+
+const statusForm = reactive<{ new_status: ApartmentStatus; comment: string }>({
+  new_status: "booked",
+  comment: "",
 })
 
 function openBuildingCreate() {
@@ -227,6 +284,88 @@ function openFloorEdit(f: Floor) {
   showModal.value = true
 }
 
+function openApartmentCreate(floorId: number) {
+  modalState.value = { kind: "apartment", parentId: floorId, editingId: null }
+  const existing = apartmentsFor(floorId)
+  const maxNum = existing
+    .map((a) => Number(a.number))
+    .filter((n) => !Number.isNaN(n))
+  const next = (maxNum.length ? Math.max(...maxNum) : 0) + 1
+  Object.assign(apartmentForm, {
+    floor: floorId,
+    number: String(next),
+    rooms_count: 1,
+    area: "0.00",
+    total_bti_area: "0.00",
+    total_price: "0.00",
+    surcharge: "0.00",
+    is_duplex: false,
+    is_studio: false,
+    is_euro_planning: false,
+    decoration: null,
+    output_window: null,
+    occupied_by: null,
+    characteristics: [],
+    status: "free",
+    sort: 0,
+    is_active: true,
+  })
+  saveError.value = null
+  showModal.value = true
+}
+function openApartmentEdit(a: Apartment) {
+  modalState.value = { kind: "apartment", parentId: a.floor, editingId: a.id }
+  Object.assign(apartmentForm, {
+    floor: a.floor,
+    number: a.number,
+    rooms_count: a.rooms_count,
+    area: a.area,
+    total_bti_area: a.total_bti_area,
+    total_price: a.total_price,
+    surcharge: a.surcharge,
+    is_duplex: a.is_duplex,
+    is_studio: a.is_studio,
+    is_euro_planning: a.is_euro_planning,
+    decoration: a.decoration,
+    output_window: a.output_window,
+    occupied_by: a.occupied_by,
+    characteristics: [...a.characteristics],
+    status: a.status,
+    sort: a.sort,
+    is_active: a.is_active,
+  })
+  saveError.value = null
+  showModal.value = true
+}
+
+function openStatusModal(a: Apartment) {
+  modalState.value = {
+    kind: "status",
+    parentId: a.floor,
+    editingId: a.id,
+    targetApt: a,
+  }
+  // Pick a reasonable default that's actually a legal transition.
+  const first = allowedNextStatuses(a.status)[0]
+  statusForm.new_status = first || "free"
+  statusForm.comment = ""
+  saveError.value = null
+  showModal.value = true
+}
+
+// Keep in sync with services/apartments.py#_ALLOWED_TRANSITIONS.
+const TRANSITIONS: Record<ApartmentStatus, ApartmentStatus[]> = {
+  free: ["booked", "booked_vip"],
+  booked: ["free", "formalized"],
+  booked_vip: ["free", "formalized"],
+  formalized: ["free", "escrow"],
+  escrow: ["formalized", "sold"],
+  sold: ["free"],
+}
+function allowedNextStatuses(cur: ApartmentStatus): ApartmentStatus[] {
+  return TRANSITIONS[cur] || []
+}
+
 async function save() {
   if (!modalState.value) return
   saveError.value = null
@@ -241,6 +380,15 @@ async function save() {
     } else if (kind === "floor") {
       if (editingId) await floorsApi.update(editingId, floorForm)
       else await floorsApi.create(floorForm)
+    } else if (kind === "apartment") {
+      if (editingId) await apartmentsApi.update(editingId, apartmentForm)
+      else await apartmentsApi.create(apartmentForm)
+    } else if (kind === "status" && editingId) {
+      await apartmentsApi.changeStatus(
+        editingId,
+        statusForm.new_status,
+        statusForm.comment,
+      )
     }
     showModal.value = false
     await load()
@@ -279,6 +427,15 @@ async function removeFloor(f: Floor) {
     alert(e instanceof AxiosError ? JSON.stringify(e.response?.data) : t("errors.unknown"))
   }
 }
+async function removeApartment(a: Apartment) {
+  if (!confirm(`${t("objects.apartments.confirm_delete")}?`)) return
+  try {
+    await apartmentsApi.destroy(a.id)
+    await load()
+  } catch (e) {
+    alert(e instanceof AxiosError ? JSON.stringify(e.response?.data) : t("errors.unknown"))
+  }
+}
 
 function localized(item: { title?: I18nText } | null): string {
   if (!item?.title) return ""
@@ -298,6 +455,23 @@ function fmtPrice(v: string): string {
   const n = Number(v)
   if (Number.isNaN(n)) return v
   return new Intl.NumberFormat("ru-RU").format(n) + " UZS"
+}
+
+/** Map apartment status → chip class. Kept close to the backend status set. */
+function statusChipClass(s: ApartmentStatus): string {
+  switch (s) {
+    case "free":
+      return "chip chip-success"
+    case "booked":
+      return "chip chip-warn"
+    case "booked_vip":
+      return "chip chip-primary"
+    case "formalized":
+    case "escrow":
+      return "chip chip-info"
+    case "sold":
+      return "chip chip-ghost"
+  }
 }
 
 onMounted(load)
@@ -342,11 +516,9 @@ onMounted(load)
 
     <div v-else class="space-y-3">
       <div v-for="b in buildings" :key="b.id" class="card overflow-hidden">
+        <!-- Building row -->
         <div class="flex items-center gap-3 px-5 py-4 border-b border-ym-line-soft">
-          <button
-            class="btn btn-ghost btn-icon btn-xs"
-            @click="toggleBuilding(b.id)"
-          >
+          <button class="btn btn-ghost btn-icon btn-xs" @click="toggleBuilding(b.id)">
             <i
               :class="[
                 'pi',
@@ -392,6 +564,7 @@ onMounted(load)
           </div>
         </div>
 
+        <!-- Sections inside a building -->
         <div v-if="expanded.buildings.has(b.id)" class="bg-ym-sunken/40">
           <div v-if="!sectionsFor(b.id).length" class="px-5 py-4 text-[12.5px] text-ym-muted">
             {{ t("objects.sections.empty") }}
@@ -403,10 +576,7 @@ onMounted(load)
             class="border-b last:border-b-0 border-ym-line-soft"
           >
             <div class="flex items-center gap-3 pl-10 pr-5 py-3">
-              <button
-                class="btn btn-ghost btn-icon btn-xs"
-                @click="toggleSection(s.id)"
-              >
+              <button class="btn btn-ghost btn-icon btn-xs" @click="toggleSection(s.id)">
                 <i
                   :class="[
                     'pi',
@@ -425,73 +595,127 @@ onMounted(load)
                 </div>
               </div>
               <div class="flex items-center gap-1">
-                <button
-                  v-if="canCreateFloor"
-                  class="btn btn-soft btn-xs"
-                  @click="openFloorCreate(s.id)"
-                >
+                <button v-if="canCreateFloor" class="btn btn-soft btn-xs" @click="openFloorCreate(s.id)">
                   <i class="pi pi-plus text-[10px]" />
                   {{ t("objects.floors.new") }}
                 </button>
-                <button
-                  v-if="canEditSection"
-                  class="btn btn-ghost btn-xs"
-                  @click="openSectionEdit(s)"
-                >
+                <button v-if="canEditSection" class="btn btn-ghost btn-xs" @click="openSectionEdit(s)">
                   {{ t("common.edit") }}
                 </button>
-                <button
-                  v-if="canDeleteSection"
-                  class="btn btn-danger btn-xs"
-                  @click="removeSection(s)"
-                >
+                <button v-if="canDeleteSection" class="btn btn-danger btn-xs" @click="removeSection(s)">
                   {{ t("common.delete") }}
                 </button>
               </div>
             </div>
 
+            <!-- Floors inside a section -->
             <div v-if="expanded.sections.has(s.id)" class="pl-16 pr-5 pb-3 bg-ym-bg/40">
               <div v-if="!floorsFor(s.id).length" class="text-[12px] text-ym-muted py-2">
                 {{ t("objects.floors.empty") }}
               </div>
-              <table v-else class="tbl">
-                <thead>
-                  <tr>
-                    <th>{{ t("objects.columns.number") }}</th>
-                    <th>{{ t("objects.columns.price_per_sqm") }}</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="f in floorsFor(s.id)" :key="f.id">
-                    <td class="font-mono">{{ f.number }}</td>
-                    <td class="font-mono text-[12.5px]">{{ fmtPrice(f.price_per_sqm) }}</td>
-                    <td class="text-right whitespace-nowrap">
-                      <button
-                        v-if="canEditFloor"
-                        class="btn btn-ghost btn-xs mr-1"
-                        @click="openFloorEdit(f)"
-                      >
-                        {{ t("common.edit") }}
-                      </button>
-                      <button
-                        v-if="canDeleteFloor"
-                        class="btn btn-danger btn-xs"
-                        @click="removeFloor(f)"
-                      >
-                        {{ t("common.delete") }}
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+
+              <div
+                v-for="f in floorsFor(s.id)"
+                :key="f.id"
+                class="mb-1.5 last:mb-0 bg-white rounded-md border border-ym-line-soft overflow-hidden"
+              >
+                <div class="flex items-center gap-3 px-3 py-2">
+                  <button class="btn btn-ghost btn-icon btn-xs" @click="toggleFloor(f.id)">
+                    <i
+                      :class="[
+                        'pi',
+                        expanded.floors.has(f.id) ? 'pi-chevron-down' : 'pi-chevron-right',
+                        'text-[10px]',
+                      ]"
+                    />
+                  </button>
+                  <div class="flex-1 min-w-0 text-[12.5px] flex items-center gap-3">
+                    <span class="font-mono">{{ t("objects.columns.number") }}: {{ f.number }}</span>
+                    <span class="text-ym-muted">·</span>
+                    <span class="font-mono text-ym-muted">{{ fmtPrice(f.price_per_sqm) }}</span>
+                    <span class="text-ym-muted">·</span>
+                    <span class="text-ym-muted">{{ t("objects.columns.apartments_count") }}: {{ f.apartments_count }}</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <button
+                      v-if="canCreateApartment"
+                      class="btn btn-soft btn-xs"
+                      @click="openApartmentCreate(f.id)"
+                    >
+                      <i class="pi pi-plus text-[10px]" />
+                      {{ t("objects.apartments.new") }}
+                    </button>
+                    <button v-if="canEditFloor" class="btn btn-ghost btn-xs" @click="openFloorEdit(f)">
+                      {{ t("common.edit") }}
+                    </button>
+                    <button v-if="canDeleteFloor" class="btn btn-danger btn-xs" @click="removeFloor(f)">
+                      {{ t("common.delete") }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Apartments inside a floor -->
+                <div v-if="expanded.floors.has(f.id)" class="border-t border-ym-line-soft bg-ym-sunken/30">
+                  <div v-if="!apartmentsFor(f.id).length" class="px-5 py-3 text-[12px] text-ym-muted">
+                    {{ t("objects.apartments.empty") }}
+                  </div>
+                  <table v-else class="tbl">
+                    <thead>
+                      <tr>
+                        <th>{{ t("objects.columns.number") }}</th>
+                        <th>{{ t("objects.columns.rooms") }}</th>
+                        <th>{{ t("objects.columns.area") }}</th>
+                        <th>{{ t("objects.columns.price") }}</th>
+                        <th>{{ t("objects.columns.status") }}</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="a in apartmentsFor(f.id)" :key="a.id">
+                        <td class="font-mono">{{ a.number }}</td>
+                        <td class="font-mono">{{ a.rooms_count }}</td>
+                        <td class="font-mono text-[12.5px]">{{ a.area }}</td>
+                        <td class="font-mono text-[12.5px]">{{ fmtPrice(a.total_price) }}</td>
+                        <td>
+                          <span :class="statusChipClass(a.status)">
+                            {{ t(`objects.apartments.status.${a.status}`) }}
+                          </span>
+                        </td>
+                        <td class="text-right whitespace-nowrap">
+                          <button
+                            v-if="canChangeStatus"
+                            class="btn btn-soft btn-xs mr-1"
+                            @click="openStatusModal(a)"
+                          >
+                            {{ t("objects.apartments.change_status") }}
+                          </button>
+                          <button
+                            v-if="canEditApartment"
+                            class="btn btn-ghost btn-xs mr-1"
+                            @click="openApartmentEdit(a)"
+                          >
+                            {{ t("common.edit") }}
+                          </button>
+                          <button
+                            v-if="canDeleteApartment"
+                            class="btn btn-danger btn-xs"
+                            @click="removeApartment(a)"
+                          >
+                            {{ t("common.delete") }}
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Modal (building / section / floor create+edit) -->
+    <!-- Modal dispatches by kind -->
     <div
       v-if="showModal && modalState"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
@@ -505,8 +729,14 @@ onMounted(load)
           <template v-else-if="modalState.kind === 'section'">
             {{ modalState.editingId ? t("objects.sections.edit") : t("objects.sections.new") }}
           </template>
-          <template v-else>
+          <template v-else-if="modalState.kind === 'floor'">
             {{ modalState.editingId ? t("objects.floors.edit") : t("objects.floors.new") }}
+          </template>
+          <template v-else-if="modalState.kind === 'apartment'">
+            {{ modalState.editingId ? t("objects.apartments.edit") : t("objects.apartments.new") }}
+          </template>
+          <template v-else>
+            {{ t("objects.apartments.change_status") }}
           </template>
         </h2>
 
@@ -582,7 +812,96 @@ onMounted(load)
           </div>
         </template>
 
-        <label class="flex items-center gap-2 text-sm mt-5">
+        <!-- Apartment form -->
+        <template v-else-if="modalState.kind === 'apartment'">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[12px] font-medium mb-1.5">
+                {{ t("objects.apartments.fields.number") }}
+              </label>
+              <input v-model="apartmentForm.number" class="inp font-mono" />
+            </div>
+            <div>
+              <label class="block text-[12px] font-medium mb-1.5">
+                {{ t("objects.apartments.fields.rooms_count") }}
+              </label>
+              <input
+                v-model.number="apartmentForm.rooms_count"
+                type="number"
+                min="0"
+                class="inp font-mono"
+              />
+            </div>
+            <div>
+              <label class="block text-[12px] font-medium mb-1.5">
+                {{ t("objects.apartments.fields.area") }}
+              </label>
+              <input v-model="apartmentForm.area" class="inp font-mono" placeholder="50.00" />
+            </div>
+            <div>
+              <label class="block text-[12px] font-medium mb-1.5">
+                {{ t("objects.apartments.fields.total_price") }}
+              </label>
+              <input v-model="apartmentForm.total_price" class="inp font-mono" placeholder="750000000.00" />
+            </div>
+            <div>
+              <label class="block text-[12px] font-medium mb-1.5">
+                {{ t("objects.apartments.fields.surcharge") }}
+              </label>
+              <input v-model="apartmentForm.surcharge" class="inp font-mono" placeholder="0.00" />
+            </div>
+          </div>
+          <div class="mt-4 flex gap-4 text-sm">
+            <label class="flex items-center gap-2">
+              <input v-model="apartmentForm.is_studio" type="checkbox" />
+              <span>{{ t("objects.apartments.fields.is_studio") }}</span>
+            </label>
+            <label class="flex items-center gap-2">
+              <input v-model="apartmentForm.is_duplex" type="checkbox" />
+              <span>{{ t("objects.apartments.fields.is_duplex") }}</span>
+            </label>
+            <label class="flex items-center gap-2">
+              <input v-model="apartmentForm.is_euro_planning" type="checkbox" />
+              <span>{{ t("objects.apartments.fields.is_euro_planning") }}</span>
+            </label>
+          </div>
+        </template>
+
+        <!-- Status change form -->
+        <template v-else-if="modalState.kind === 'status' && modalState.targetApt">
+          <div class="mb-3 text-[13px] text-ym-muted">
+            <span class="font-mono">#{{ modalState.targetApt.number }}</span>
+            · {{ t("objects.columns.status") }}:
+            <span :class="statusChipClass(modalState.targetApt.status)">
+              {{ t(`objects.apartments.status.${modalState.targetApt.status}`) }}
+            </span>
+          </div>
+          <div class="mb-4">
+            <label class="block text-[12px] font-medium mb-1.5">
+              {{ t("objects.apartments.new_status") }}
+            </label>
+            <select v-model="statusForm.new_status" class="inp">
+              <option
+                v-for="s in allowedNextStatuses(modalState.targetApt.status)"
+                :key="s"
+                :value="s"
+              >
+                {{ t(`objects.apartments.status.${s}`) }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[12px] font-medium mb-1.5">
+              {{ t("objects.apartments.comment") }}
+            </label>
+            <textarea v-model="statusForm.comment" class="inp" rows="3" />
+          </div>
+        </template>
+
+        <label
+          v-if="modalState.kind !== 'status'"
+          class="flex items-center gap-2 text-sm mt-5"
+        >
           <input
             v-if="modalState.kind === 'building'"
             v-model="buildingForm.is_active"
@@ -594,10 +913,11 @@ onMounted(load)
             type="checkbox"
           />
           <input
-            v-else
+            v-else-if="modalState.kind === 'floor'"
             v-model="floorForm.is_active"
             type="checkbox"
           />
+          <input v-else v-model="apartmentForm.is_active" type="checkbox" />
           <span>{{ t("common.yes") }} / {{ t("common.no") }}</span>
         </label>
 

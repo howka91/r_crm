@@ -207,9 +207,70 @@ export interface Floor extends TimeStamped {
   price_per_sqm: string
   sort: number
   is_active: boolean
+  apartments_count: number
 }
 
-export type FloorWrite = Omit<Floor, "id" | "created_at" | "modified_at">
+export type FloorWrite = Omit<
+  Floor,
+  "id" | "created_at" | "modified_at" | "apartments_count"
+>
+
+/** Apartment status — mirrors backend Apartment.Status.values. */
+export type ApartmentStatus =
+  | "free"
+  | "booked"
+  | "booked_vip"
+  | "formalized"
+  | "escrow"
+  | "sold"
+
+export interface Apartment extends TimeStamped {
+  id: number
+  floor: number
+  number: string
+  rooms_count: number
+  /** Decimal strings — never Float. */
+  area: string
+  total_bti_area: string
+  total_price: string
+  surcharge: string
+  is_duplex: boolean
+  is_studio: boolean
+  is_euro_planning: boolean
+  planning_file: string | null
+  decoration: number | null
+  output_window: number | null
+  occupied_by: number | null
+  /** Array of Badge IDs. */
+  characteristics: number[]
+  status: ApartmentStatus
+  /** Translated status label (read-only). */
+  status_display: string
+  booking_expires_at: string | null
+  sort: number
+  is_active: boolean
+}
+
+export type ApartmentWrite = Omit<
+  Apartment,
+  | "id"
+  | "created_at"
+  | "modified_at"
+  | "status_display"
+  | "booking_expires_at"
+  | "planning_file"
+>
+
+export interface ApartmentStatusLog {
+  id: number
+  apartment: number
+  old_status: string
+  new_status: string
+  changed_by: string | null
+  changed_by_name: string | null
+  comment: string
+  created_at: string
+}
 
 /** URL slug for each lookup type — matches backend kebab-cased class names. */
 export type LookupTypeSlug =

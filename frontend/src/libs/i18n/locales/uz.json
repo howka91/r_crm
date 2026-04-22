@@ -160,12 +160,46 @@
       },
       "confirm_delete": "Qavatni o'chirish"
     },
+    "apartments": {
+      "title": "Kvartiralar",
+      "empty": "Bu qavatda hali kvartiralar yo'q.",
+      "new": "Yangi kvartira",
+      "edit": "Kvartirani tahrirlash",
+      "fields": {
+        "number": "Raqam",
+        "rooms_count": "Xonalar",
+        "area": "Maydon, m²",
+        "total_price": "Umumiy narxi",
+        "surcharge": "Qo'shimcha",
+        "is_duplex": "Dupleks",
+        "is_studio": "Studiya",
+        "is_euro_planning": "Yevroplan"
+      },
+      "confirm_delete": "Kvartirani o'chirish",
+      "change_status": "Holatni o'zgartirish",
+      "new_status": "Yangi holat",
+      "comment": "Izoh",
+      "invalid_transition": "Ruxsat etilmagan holat o'zgarishi",
+      "status": {
+        "free": "Bo'sh",
+        "booked": "Band",
+        "booked_vip": "VIP band",
+        "formalized": "Rasmiylashtirilgan",
+        "escrow": "Eskrou",
+        "sold": "Sotildi"
+      }
+    },
     "columns": {
       "buildings_count": "Binolar",
       "sections_count": "Podyezdlar",
       "floors_count": "Qavatlar",
+      "apartments_count": "Kvartiralar",
       "number": "Raqam",
-      "price_per_sqm": "m² narxi"
+      "price_per_sqm": "m² narxi",
+      "rooms": "Xon.",
+      "area": "Maydon",
+      "price": "Narx",
+      "status": "Holat"
     }
   },
   "references": {

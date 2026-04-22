@@ -160,12 +160,46 @@
       },
       "confirm_delete": "Қаватни ўчириш"
     },
+    "apartments": {
+      "title": "Квартиралар",
+      "empty": "Бу қаватда ҳали квартиралар йўқ.",
+      "new": "Янги квартира",
+      "edit": "Квартирани таҳрирлаш",
+      "fields": {
+        "number": "Рақам",
+        "rooms_count": "Хоналар",
+        "area": "Майдон, м²",
+        "total_price": "Умумий нархи",
+        "surcharge": "Қўшимча",
+        "is_duplex": "Дуплекс",
+        "is_studio": "Студия",
+        "is_euro_planning": "Европлан"
+      },
+      "confirm_delete": "Квартирани ўчириш",
+      "change_status": "Ҳолатни ўзгартириш",
+      "new_status": "Янги ҳолат",
+      "comment": "Изоҳ",
+      "invalid_transition": "Рухсат этилмаган ҳолат ўзгариши",
+      "status": {
+        "free": "Бўш",
+        "booked": "Банд",
+        "booked_vip": "VIP банд",
+        "formalized": "Расмийлаштирилган",
+        "escrow": "Эскроу",
+        "sold": "Сотилди"
+      }
+    },
     "columns": {
       "buildings_count": "Бинолар",
       "sections_count": "Подъездлар",
       "floors_count": "Қаватлар",
+      "apartments_count": "Квартиралар",
       "number": "Рақам",
-      "price_per_sqm": "м² нархи"
+      "price_per_sqm": "м² нархи",
+      "rooms": "Хон.",
+      "area": "Майдон",
+      "price": "Нарх",
+      "status": "Ҳолат"
     }
   },
   "references": {
