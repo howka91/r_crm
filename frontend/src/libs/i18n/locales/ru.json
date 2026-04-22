@@ -218,7 +218,36 @@
     },
     "tabs": {
       "structure": "Структура",
-      "pricing": "Прайсинг"
+      "pricing": "Прайсинг",
+      "shaxmatka": "Шахматка"
+    },
+    "shaxmatka": {
+      "title": "Шахматка",
+      "subtitle": "Визуальная карта фонда ЖК",
+      "select_building": "Корпус",
+      "select_section": "Подъезд",
+      "no_data": "В выбранной секции ещё нет квартир.",
+      "legend": "Легенда",
+      "filter_rooms": "Комн.",
+      "filter_all": "Все",
+      "empty_floor": "Нет квартир",
+      "apt_details": "Квартира",
+      "apt_floor": "Этаж",
+      "apt_rooms": "Комнат",
+      "apt_area": "Площадь",
+      "apt_total_price": "Итого",
+      "apt_surcharge": "Наценка",
+      "calculations_title": "Расчёты по % оплаты",
+      "calc_percent": "% оплаты",
+      "calc_discount": "Скидка",
+      "calc_price_sqm": "Цена за м²",
+      "calc_total": "Итог",
+      "calc_initial": "Первый взнос",
+      "calc_monthly": "Ежемесячно",
+      "calculations_empty": "Расчётов ещё нет — нажмите «Пересчитать», чтобы создать.",
+      "log_title": "История статусов",
+      "log_empty": "История пуста.",
+      "recalc": "Пересчитать"
     },
     "payment_plans": {
       "title": "Планы оплаты",

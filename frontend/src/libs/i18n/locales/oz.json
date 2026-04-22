@@ -218,7 +218,36 @@
     },
     "tabs": {
       "structure": "Тузилма",
-      "pricing": "Нархлаш"
+      "pricing": "Нархлаш",
+      "shaxmatka": "Шахматка"
+    },
+    "shaxmatka": {
+      "title": "Шахматка",
+      "subtitle": "ТЖМ фондининг визуал харитаси",
+      "select_building": "Бино",
+      "select_section": "Подъезд",
+      "no_data": "Танланган подъездда ҳали квартиралар йўқ.",
+      "legend": "Изоҳ",
+      "filter_rooms": "Хон.",
+      "filter_all": "Барчаси",
+      "empty_floor": "Квартиралар йўқ",
+      "apt_details": "Квартира",
+      "apt_floor": "Қават",
+      "apt_rooms": "Хоналар",
+      "apt_area": "Майдон",
+      "apt_total_price": "Жами",
+      "apt_surcharge": "Қўшимча",
+      "calculations_title": "Тўлов % бўйича ҳисоб-китоблар",
+      "calc_percent": "Тўлов %",
+      "calc_discount": "Чегирма",
+      "calc_price_sqm": "м² нархи",
+      "calc_total": "Жами",
+      "calc_initial": "Биринчи тўлов",
+      "calc_monthly": "Ойлик",
+      "calculations_empty": "Ҳисоб-китоблар ҳали йўқ — «Қайта ҳисоблаш» тугмасини босинг.",
+      "log_title": "Ҳолатлар тарихи",
+      "log_empty": "Тарих бўш.",
+      "recalc": "Қайта ҳисоблаш"
     },
     "payment_plans": {
       "title": "Тўлов режалари",

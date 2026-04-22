@@ -28,6 +28,13 @@ const routes: RouteRecordRaw[] = [
     meta: { permission: "objects.projects.view" },
     props: true,
   },
+  {
+    path: "objects/projects/:id/shaxmatka",
+    name: "objects-project-shaxmatka",
+    component: () => import("@/views/modules/Objects/projects/shaxmatka.vue"),
+    meta: { permission: "objects.apartments.view" },
+    props: true,
+  },
 ]
 
 export default routes

@@ -622,6 +622,12 @@ onMounted(load)
       >
         {{ t("objects.tabs.pricing") }}
       </button>
+      <button
+        class="px-3 py-2 text-[13px] border-b-2 border-transparent text-ym-muted hover:text-ym-text"
+        @click="router.push(`/objects/projects/${projectId}/shaxmatka`)"
+      >
+        {{ t("objects.tabs.shaxmatka") }}
+      </button>
     </div>
 
     <div v-if="loading" class="text-ym-muted">{{ t("common.loading") }}</div>

@@ -145,6 +145,12 @@ export const apartmentsApi = {
         comment,
       })
       .then((r) => r.data),
+  recalc: (id: number) =>
+    http
+      .post<{ apartment: Apartment; calculations_upserted: number }>(
+        `/apartments/${id}/recalc/`,
+      )
+      .then((r) => r.data),
 }
 
 export const apartmentStatusLogsApi = {

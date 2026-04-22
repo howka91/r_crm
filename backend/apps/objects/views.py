@@ -57,7 +57,7 @@ from apps.objects.services.booking import (
     book_apartment,
     release_booking,
 )
-from apps.objects.services.pricing import change_floor_price
+from apps.objects.services.pricing import change_floor_price, recalc_apartment
 
 _ACTION_SUFFIX: dict[str, str] = {
     "list": "view",
@@ -169,6 +169,7 @@ class ApartmentViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
             "change_status": "objects.apartments.change_status",
             "book": "objects.apartments.book",
             "release": "objects.apartments.change_status",
+            "recalc": "objects.apartments.edit",
         }
         perm = action_perms.get(self.action or "")
         if perm:
@@ -249,6 +250,26 @@ class ApartmentViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
                 "apartment": ApartmentSerializer(apt).data,
                 "booking_expires_at": result.booking_expires_at,
                 "log_id": result.log_id,
+            },
+            status=http_status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=["post"], url_path="recalc")
+    def recalc(self, request: Request, pk: str | None = None) -> Response:
+        """Force a pricing recalc on a single apartment.
+
+        Useful when: area changed, a new PaymentInPercent was added, or a
+        discount rule was edited — the user wants to refresh the price matrix
+        without waiting for a floor-price change. Gated by the standard edit
+        permission (same as editing the apartment).
+        """
+        apt: Apartment = self.get_object()
+        touched = recalc_apartment(apt)
+        apt.refresh_from_db()
+        return Response(
+            {
+                "apartment": ApartmentSerializer(apt).data,
+                "calculations_upserted": touched,
             },
             status=http_status.HTTP_200_OK,
         )

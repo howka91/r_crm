@@ -218,7 +218,36 @@
     },
     "tabs": {
       "structure": "Tuzilma",
-      "pricing": "Narxlash"
+      "pricing": "Narxlash",
+      "shaxmatka": "Shaxmatka"
+    },
+    "shaxmatka": {
+      "title": "Shaxmatka",
+      "subtitle": "JK fondining vizual xaritasi",
+      "select_building": "Bino",
+      "select_section": "Podyezd",
+      "no_data": "Tanlangan podyezdda hali kvartiralar yo'q.",
+      "legend": "Izoh",
+      "filter_rooms": "Xon.",
+      "filter_all": "Barchasi",
+      "empty_floor": "Kvartiralar yo'q",
+      "apt_details": "Kvartira",
+      "apt_floor": "Qavat",
+      "apt_rooms": "Xonalar",
+      "apt_area": "Maydon",
+      "apt_total_price": "Jami",
+      "apt_surcharge": "Qo'shimcha",
+      "calculations_title": "To'lov % bo'yicha hisob-kitoblar",
+      "calc_percent": "To'lov %",
+      "calc_discount": "Chegirma",
+      "calc_price_sqm": "m² narxi",
+      "calc_total": "Jami",
+      "calc_initial": "Birinchi to'lov",
+      "calc_monthly": "Oylik",
+      "calculations_empty": "Hisob-kitoblar hali yo'q — «Qayta hisoblash» tugmasini bosing.",
+      "log_title": "Holatlar tarixi",
+      "log_empty": "Tarix bo'sh.",
+      "recalc": "Qayta hisoblash"
     },
     "payment_plans": {
       "title": "To'lov rejalari",
