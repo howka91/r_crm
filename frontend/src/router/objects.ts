@@ -21,6 +21,13 @@ const routes: RouteRecordRaw[] = [
     meta: { permission: "objects.projects.view" },
     props: true,
   },
+  {
+    path: "objects/projects/:id/pricing",
+    name: "objects-project-pricing",
+    component: () => import("@/views/modules/Objects/projects/pricing.vue"),
+    meta: { permission: "objects.projects.view" },
+    props: true,
+  },
 ]
 
 export default routes

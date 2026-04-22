@@ -15,7 +15,11 @@ from apps.objects.views import (
     ApartmentStatusLogViewSet,
     ApartmentViewSet,
     BuildingViewSet,
+    CalculationViewSet,
+    DiscountRuleViewSet,
     FloorViewSet,
+    PaymentPlanViewSet,
+    PriceHistoryViewSet,
     ProjectViewSet,
     SectionViewSet,
 )
@@ -31,6 +35,10 @@ router.register(
     ApartmentStatusLogViewSet,
     basename="apartment-status-log",
 )
+router.register("payment-plans", PaymentPlanViewSet, basename="payment-plan")
+router.register("discount-rules", DiscountRuleViewSet, basename="discount-rule")
+router.register("calculations", CalculationViewSet, basename="calculation")
+router.register("price-history", PriceHistoryViewSet, basename="price-history")
 
 urlpatterns = [
     path("", include(router.urls)),

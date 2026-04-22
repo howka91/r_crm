@@ -7,7 +7,11 @@ from apps.objects.models import (
     Apartment,
     ApartmentStatusLog,
     Building,
+    Calculation,
+    DiscountRule,
     Floor,
+    PaymentPlan,
+    PriceHistory,
     Project,
     Section,
 )
@@ -61,3 +65,38 @@ class ApartmentStatusLogAdmin(admin.ModelAdmin):
     list_filter = ("new_status",)
     date_hierarchy = "created_at"
     readonly_fields = tuple(f.name for f in ApartmentStatusLog._meta.fields)
+
+
+@admin.register(PaymentPlan)
+class PaymentPlanAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "project", "down_payment_percent", "installment_months", "sort", "is_active")
+    list_filter = ("is_active", "project")
+    ordering = ("project_id", "sort", "id")
+
+
+@admin.register(DiscountRule)
+class DiscountRuleAdmin(admin.ModelAdmin):
+    list_display = (
+        "id", "project", "area_start", "area_end",
+        "payment_percent", "discount_percent", "is_duplex", "is_active",
+    )
+    list_filter = ("is_active", "is_duplex", "project")
+    ordering = ("project_id", "sort", "id")
+
+
+@admin.register(Calculation)
+class CalculationAdmin(admin.ModelAdmin):
+    list_display = (
+        "id", "apartment", "payment_percent", "discount_percent",
+        "new_price_per_sqm", "new_total_price", "initial_fee", "monthly_payment",
+    )
+    list_filter = ("payment_percent", "is_active")
+    search_fields = ("apartment__number",)
+    ordering = ("apartment_id", "payment_percent_id")
+
+
+@admin.register(PriceHistory)
+class PriceHistoryAdmin(admin.ModelAdmin):
+    list_display = ("id", "floor", "old_price", "new_price", "changed_by", "created_at")
+    date_hierarchy = "created_at"
+    readonly_fields = tuple(f.name for f in PriceHistory._meta.fields)

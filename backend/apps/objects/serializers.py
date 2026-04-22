@@ -15,7 +15,11 @@ from apps.objects.models import (
     Apartment,
     ApartmentStatusLog,
     Building,
+    Calculation,
+    DiscountRule,
     Floor,
+    PaymentPlan,
+    PriceHistory,
     Project,
     Section,
 )
@@ -207,3 +211,94 @@ class ChangeStatusInputSerializer(serializers.Serializer):
 
     new_status = serializers.ChoiceField(choices=Apartment.Status.choices)
     comment = serializers.CharField(max_length=512, required=False, allow_blank=True)
+
+
+# --- Pricing entities ----------------------------------------------------
+
+
+class PaymentPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentPlan
+        fields = (
+            "id",
+            "project",
+            "name",
+            "down_payment_percent",
+            "installment_months",
+            "sort",
+            "is_active",
+            "created_at",
+            "modified_at",
+        )
+        read_only_fields = ("id", "created_at", "modified_at")
+
+
+class DiscountRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DiscountRule
+        fields = (
+            "id",
+            "project",
+            "area_start",
+            "area_end",
+            "payment_percent",
+            "discount_percent",
+            "is_duplex",
+            "sort",
+            "is_active",
+            "created_at",
+            "modified_at",
+        )
+        read_only_fields = ("id", "created_at", "modified_at")
+
+    def validate(self, attrs: dict) -> dict:
+        # Model CheckConstraint enforces area_end >= area_start at DB level,
+        # but reject early so clients get a clean 400 instead of a DB error.
+        start = attrs.get("area_start", getattr(self.instance, "area_start", None))
+        end = attrs.get("area_end", getattr(self.instance, "area_end", None))
+        if start is not None and end is not None and end < start:
+            raise serializers.ValidationError(
+                {"area_end": "Верхняя граница должна быть ≥ нижней."},
+            )
+        return attrs
+
+
+class CalculationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Calculation
+        fields = (
+            "id",
+            "apartment",
+            "payment_percent",
+            "discount_percent",
+            "installment_months",
+            "new_price_per_sqm",
+            "new_total_price",
+            "initial_fee",
+            "monthly_payment",
+            "is_active",
+            "created_at",
+            "modified_at",
+        )
+        read_only_fields = ("id", "created_at", "modified_at")
+
+
+class PriceHistorySerializer(serializers.ModelSerializer):
+    changed_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PriceHistory
+        fields = (
+            "id",
+            "floor",
+            "old_price",
+            "new_price",
+            "changed_by",
+            "changed_by_name",
+            "comment",
+            "created_at",
+        )
+        read_only_fields = fields
+
+    def get_changed_by_name(self, obj: PriceHistory) -> str | None:
+        return obj.changed_by.full_name if obj.changed_by else None

@@ -16,8 +16,15 @@ import type {
   ApartmentWrite,
   Building,
   BuildingWrite,
+  Calculation,
+  CalculationWrite,
+  DiscountRule,
+  DiscountRuleWrite,
   Floor,
   FloorWrite,
+  PaymentPlan,
+  PaymentPlanWrite,
+  PriceHistory,
   Project,
   ProjectWrite,
   Section,
@@ -104,4 +111,48 @@ export const apartmentStatusLogsApi = {
     http
       .get<Paginated<ApartmentStatusLog>>("/apartment-status-logs/", { params })
       .then((r) => r.data),
+}
+
+export const paymentPlansApi = {
+  list: (params?: Record<string, unknown>) =>
+    http.get<Paginated<PaymentPlan>>("/payment-plans/", { params }).then((r) => r.data),
+  retrieve: (id: number) =>
+    http.get<PaymentPlan>(`/payment-plans/${id}/`).then((r) => r.data),
+  create: (payload: PaymentPlanWrite) =>
+    http.post<PaymentPlan>("/payment-plans/", payload).then((r) => r.data),
+  update: (id: number, payload: Partial<PaymentPlanWrite>) =>
+    http.patch<PaymentPlan>(`/payment-plans/${id}/`, payload).then((r) => r.data),
+  destroy: (id: number) =>
+    http.delete(`/payment-plans/${id}/`).then((r) => r.data),
+}
+
+export const discountRulesApi = {
+  list: (params?: Record<string, unknown>) =>
+    http.get<Paginated<DiscountRule>>("/discount-rules/", { params }).then((r) => r.data),
+  retrieve: (id: number) =>
+    http.get<DiscountRule>(`/discount-rules/${id}/`).then((r) => r.data),
+  create: (payload: DiscountRuleWrite) =>
+    http.post<DiscountRule>("/discount-rules/", payload).then((r) => r.data),
+  update: (id: number, payload: Partial<DiscountRuleWrite>) =>
+    http.patch<DiscountRule>(`/discount-rules/${id}/`, payload).then((r) => r.data),
+  destroy: (id: number) =>
+    http.delete(`/discount-rules/${id}/`).then((r) => r.data),
+}
+
+export const calculationsApi = {
+  list: (params?: Record<string, unknown>) =>
+    http.get<Paginated<Calculation>>("/calculations/", { params }).then((r) => r.data),
+  retrieve: (id: number) =>
+    http.get<Calculation>(`/calculations/${id}/`).then((r) => r.data),
+  create: (payload: CalculationWrite) =>
+    http.post<Calculation>("/calculations/", payload).then((r) => r.data),
+  update: (id: number, payload: Partial<CalculationWrite>) =>
+    http.patch<Calculation>(`/calculations/${id}/`, payload).then((r) => r.data),
+  destroy: (id: number) =>
+    http.delete(`/calculations/${id}/`).then((r) => r.data),
+}
+
+export const priceHistoryApi = {
+  list: (params?: Record<string, unknown>) =>
+    http.get<Paginated<PriceHistory>>("/price-history/", { params }).then((r) => r.data),
 }

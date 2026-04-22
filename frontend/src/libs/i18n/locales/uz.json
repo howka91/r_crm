@@ -200,6 +200,36 @@
       "area": "Maydon",
       "price": "Narx",
       "status": "Holat"
+    },
+    "tabs": {
+      "structure": "Tuzilma",
+      "pricing": "Narxlash"
+    },
+    "payment_plans": {
+      "title": "To'lov rejalari",
+      "empty": "To'lov rejalari hali yo'q.",
+      "new": "Yangi reja",
+      "edit": "Rejani tahrirlash",
+      "fields": {
+        "name": "Nomi",
+        "down_payment_percent": "Birinchi to'lov, %",
+        "installment_months": "Muddat, oy"
+      },
+      "confirm_delete": "To'lov rejasini o'chirish"
+    },
+    "discount_rules": {
+      "title": "Chegirma qoidalari",
+      "empty": "Chegirma qoidalari hali yo'q.",
+      "new": "Yangi qoida",
+      "edit": "Qoidani tahrirlash",
+      "fields": {
+        "area_start": "Maydon dan, m²",
+        "area_end": "Maydon gacha, m²",
+        "payment_percent": "To'lov foizi",
+        "discount_percent": "Chegirma, %",
+        "is_duplex": "Faqat duplekslar uchun"
+      },
+      "confirm_delete": "Qoidani o'chirish"
     }
   },
   "references": {

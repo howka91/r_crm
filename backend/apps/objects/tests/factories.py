@@ -6,7 +6,17 @@ from decimal import Decimal
 import factory
 from factory.django import DjangoModelFactory
 
-from apps.objects.models import Apartment, Building, Floor, Project, Section
+from apps.objects.models import (
+    Apartment,
+    Building,
+    Calculation,
+    DiscountRule,
+    Floor,
+    PaymentPlan,
+    Project,
+    Section,
+)
+from apps.references.models import PaymentInPercent
 from apps.references.tests.factories import DeveloperFactory
 
 
@@ -56,3 +66,46 @@ class ApartmentFactory(DjangoModelFactory):
     rooms_count = 2
     area = Decimal("50.00")
     total_price = Decimal("750000000.00")
+
+
+class PaymentInPercentFactory(DjangoModelFactory):
+    class Meta:
+        model = PaymentInPercent
+
+    name = factory.LazyFunction(lambda: {"ru": "100%", "uz": "100%", "oz": "100%"})
+    percent = Decimal("100.00")
+
+
+class PaymentPlanFactory(DjangoModelFactory):
+    class Meta:
+        model = PaymentPlan
+
+    project = factory.SubFactory(ProjectFactory)
+    name = factory.LazyFunction(
+        lambda: {"ru": "Стандарт", "uz": "Standart", "oz": "Стандарт"},
+    )
+    down_payment_percent = Decimal("30.00")
+    installment_months = 12
+
+
+class DiscountRuleFactory(DjangoModelFactory):
+    class Meta:
+        model = DiscountRule
+
+    project = factory.SubFactory(ProjectFactory)
+    area_start = Decimal("0.00")
+    area_end = Decimal("200.00")
+    payment_percent = factory.SubFactory(PaymentInPercentFactory)
+    discount_percent = Decimal("5.00")
+    is_duplex = False
+
+
+class CalculationFactory(DjangoModelFactory):
+    class Meta:
+        model = Calculation
+
+    apartment = factory.SubFactory(ApartmentFactory)
+    payment_percent = factory.SubFactory(PaymentInPercentFactory)
+    discount_percent = Decimal("0.00")
+    new_price_per_sqm = Decimal("15000000.00")
+    new_total_price = Decimal("750000000.00")

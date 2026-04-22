@@ -150,10 +150,26 @@ PERMISSION_TREE: list[PermissionNode] = [
             {
                 "key": "objects.discounts",
                 "label": _label("Скидки", "Chegirmalar", "Чегирмалар"),
-                "children": [
-                    {"key": "objects.discounts.view", "label": _label("Просмотр", "Ko'rish", "Кўриш")},
-                    {"key": "objects.discounts.edit", "label": _label("Редактировать", "Tahrirlash", "Таҳрирлаш")},
-                ],
+                "children": _crud(
+                    "objects.discounts", "правило скидок",
+                    "Chegirma qoidasi", "Чегирма қоидаси",
+                ),
+            },
+            {
+                "key": "objects.payment_plans",
+                "label": _label("Планы оплаты", "To'lov rejalari", "Тўлов режалари"),
+                "children": _crud(
+                    "objects.payment_plans", "план оплаты",
+                    "To'lov rejasi", "Тўлов режаси",
+                ),
+            },
+            {
+                "key": "objects.calculations",
+                "label": _label("Расчёты по квартирам", "Kvartira hisob-kitoblari", "Квартира ҳисоб-китоблари"),
+                "children": _crud(
+                    "objects.calculations", "расчёт",
+                    "Hisob-kitob", "Ҳисоб-китоб",
+                ),
             },
         ],
     },

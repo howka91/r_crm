@@ -200,6 +200,36 @@
       "area": "Площадь",
       "price": "Цена",
       "status": "Статус"
+    },
+    "tabs": {
+      "structure": "Структура",
+      "pricing": "Прайсинг"
+    },
+    "payment_plans": {
+      "title": "Планы оплаты",
+      "empty": "Планы оплаты ещё не заведены.",
+      "new": "Новый план",
+      "edit": "Редактировать план",
+      "fields": {
+        "name": "Название",
+        "down_payment_percent": "Первый взнос, %",
+        "installment_months": "Срок, мес."
+      },
+      "confirm_delete": "Удалить план оплаты"
+    },
+    "discount_rules": {
+      "title": "Правила скидок",
+      "empty": "Правила скидок ещё не заведены.",
+      "new": "Новое правило",
+      "edit": "Редактировать правило",
+      "fields": {
+        "area_start": "Площадь от, м²",
+        "area_end": "Площадь до, м²",
+        "payment_percent": "Процент оплаты",
+        "discount_percent": "Скидка, %",
+        "is_duplex": "Только для дуплексов"
+      },
+      "confirm_delete": "Удалить правило"
     }
   },
   "references": {

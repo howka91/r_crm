@@ -200,6 +200,36 @@
       "area": "Майдон",
       "price": "Нарх",
       "status": "Ҳолат"
+    },
+    "tabs": {
+      "structure": "Тузилма",
+      "pricing": "Нархлаш"
+    },
+    "payment_plans": {
+      "title": "Тўлов режалари",
+      "empty": "Тўлов режалари ҳали йўқ.",
+      "new": "Янги режа",
+      "edit": "Режани таҳрирлаш",
+      "fields": {
+        "name": "Номи",
+        "down_payment_percent": "Биринчи тўлов, %",
+        "installment_months": "Муддат, ой"
+      },
+      "confirm_delete": "Тўлов режасини ўчириш"
+    },
+    "discount_rules": {
+      "title": "Чегирма қоидалари",
+      "empty": "Чегирма қоидалари ҳали йўқ.",
+      "new": "Янги қоида",
+      "edit": "Қоидани таҳрирлаш",
+      "fields": {
+        "area_start": "Майдон дан, м²",
+        "area_end": "Майдон гача, м²",
+        "payment_percent": "Тўлов фоизи",
+        "discount_percent": "Чегирма, %",
+        "is_duplex": "Фақат дуплекслар учун"
+      },
+      "confirm_delete": "Қоидани ўчириш"
     }
   },
   "references": {

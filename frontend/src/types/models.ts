@@ -272,6 +272,63 @@ export interface ApartmentStatusLog {
   created_at: string
 }
 
+// --- Pricing (PaymentPlan / DiscountRule / Calculation / PriceHistory) ----
+
+export interface PaymentPlan extends TimeStamped {
+  id: number
+  project: number
+  name: I18nText
+  /** Decimal string, 0..100. */
+  down_payment_percent: string
+  installment_months: number
+  sort: number
+  is_active: boolean
+}
+
+export type PaymentPlanWrite = Omit<PaymentPlan, "id" | "created_at" | "modified_at">
+
+export interface DiscountRule extends TimeStamped {
+  id: number
+  project: number
+  /** Decimal strings. */
+  area_start: string
+  area_end: string
+  /** FK id → references.PaymentInPercent. */
+  payment_percent: number
+  discount_percent: string
+  is_duplex: boolean
+  sort: number
+  is_active: boolean
+}
+
+export type DiscountRuleWrite = Omit<DiscountRule, "id" | "created_at" | "modified_at">
+
+export interface Calculation extends TimeStamped {
+  id: number
+  apartment: number
+  payment_percent: number
+  discount_percent: string
+  installment_months: number
+  new_price_per_sqm: string
+  new_total_price: string
+  initial_fee: string
+  monthly_payment: string
+  is_active: boolean
+}
+
+export type CalculationWrite = Omit<Calculation, "id" | "created_at" | "modified_at">
+
+export interface PriceHistory {
+  id: number
+  floor: number
+  old_price: string
+  new_price: string
+  changed_by: string | null
+  changed_by_name: string | null
+  comment: string
+  created_at: string
+}
+
 /** URL slug for each lookup type — matches backend kebab-cased class names. */
 export type LookupTypeSlug =
   | "apartment-type"

@@ -479,7 +479,7 @@ onMounted(load)
 
 <template>
   <div>
-    <div class="flex items-end justify-between mb-5 mt-1 px-1">
+    <div class="flex items-end justify-between mb-3 mt-1 px-1">
       <div>
         <div class="text-[11px] uppercase tracking-[0.12em] font-mono mb-1.5 text-ym-subtle flex items-center gap-2">
           <button class="hover:text-ym-primary" @click="router.push('/objects')">
@@ -505,6 +505,20 @@ onMounted(load)
       >
         <i class="pi pi-plus text-[11px]" />
         {{ t("objects.buildings.new") }}
+      </button>
+    </div>
+
+    <div class="flex gap-1 mb-5 border-b border-ym-line-soft">
+      <button
+        class="px-3 py-2 text-[13px] border-b-2 border-ym-primary text-ym-primary font-medium"
+      >
+        {{ t("objects.tabs.structure") }}
+      </button>
+      <button
+        class="px-3 py-2 text-[13px] border-b-2 border-transparent text-ym-muted hover:text-ym-text"
+        @click="router.push(`/objects/projects/${projectId}/pricing`)"
+      >
+        {{ t("objects.tabs.pricing") }}
       </button>
     </div>
 

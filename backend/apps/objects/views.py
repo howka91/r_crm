@@ -23,7 +23,11 @@ from apps.objects.models import (
     Apartment,
     ApartmentStatusLog,
     Building,
+    Calculation,
+    DiscountRule,
     Floor,
+    PaymentPlan,
+    PriceHistory,
     Project,
     Section,
 )
@@ -31,8 +35,12 @@ from apps.objects.serializers import (
     ApartmentSerializer,
     ApartmentStatusLogSerializer,
     BuildingSerializer,
+    CalculationSerializer,
     ChangeStatusInputSerializer,
+    DiscountRuleSerializer,
     FloorSerializer,
+    PaymentPlanSerializer,
+    PriceHistorySerializer,
     ProjectSerializer,
     SectionSerializer,
 )
@@ -167,3 +175,57 @@ class ApartmentStatusLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_permissions(self):
         return _permissions_for("objects.apartments", self.action)
+
+
+# --- Pricing entities ----------------------------------------------------
+
+
+class PaymentPlanViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    queryset = PaymentPlan.objects.select_related("project").all()
+    serializer_class = PaymentPlanSerializer
+    filterset_fields = ("is_active", "project")
+
+    def get_permissions(self):
+        return _permissions_for("objects.payment_plans", self.action)
+
+
+class DiscountRuleViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    queryset = (
+        DiscountRule.objects
+        .select_related("project", "payment_percent")
+        .all()
+    )
+    serializer_class = DiscountRuleSerializer
+    filterset_fields = ("is_active", "project", "is_duplex")
+
+    def get_permissions(self):
+        return _permissions_for("objects.discounts", self.action)
+
+
+class CalculationViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    queryset = (
+        Calculation.objects
+        .select_related("apartment", "payment_percent")
+        .all()
+    )
+    serializer_class = CalculationSerializer
+    filterset_fields = ("is_active", "apartment", "payment_percent")
+
+    def get_permissions(self):
+        return _permissions_for("objects.calculations", self.action)
+
+
+class PriceHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only log — write access belongs to services.pricing (phase 3.4)."""
+
+    queryset = (
+        PriceHistory.objects
+        .select_related("floor", "changed_by")
+        .all()
+    )
+    serializer_class = PriceHistorySerializer
+    filterset_fields = ("floor",)
+
+    def get_permissions(self):
+        # Gated by floor-view: if you can see a floor, you can see its log.
+        return _permissions_for("objects.floors", self.action)
