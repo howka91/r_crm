@@ -17,10 +17,12 @@ import { RouterLink } from "vue-router"
 import { projectsApi } from "@/api/objects"
 import { developersApi } from "@/api/references"
 import { usePermissionStore } from "@/store/permissions"
+import { useToastStore } from "@/store/toast"
 import type { Developer, I18nText, Project, ProjectWrite } from "@/types/models"
 
 const { t, locale } = useI18n()
 const permissions = usePermissionStore()
+const toast = useToastStore()
 
 const items = ref<Project[]>([])
 const developers = ref<Developer[]>([])
@@ -113,13 +115,19 @@ async function remove(item: Project) {
   if (!confirm(`${t("objects.projects.confirm_delete")}: ${nameLoc}?`)) return
   try {
     await projectsApi.destroy(item.id)
+    toast.success(t("objects.projects.confirm_delete"))
     await load()
   } catch (e) {
-    const msg =
-      e instanceof AxiosError && e.response?.data
-        ? JSON.stringify(e.response.data)
-        : t("errors.unknown")
-    alert(msg)
+    if (e instanceof AxiosError && e.response?.data) {
+      toast.error(
+        t("errors.unknown"),
+        typeof e.response.data === "object"
+          ? JSON.stringify(e.response.data)
+          : String(e.response.data),
+      )
+    } else {
+      toast.error(t("errors.unknown"))
+    }
   }
 }
 

@@ -25,6 +25,7 @@ import {
 } from "@/api/objects"
 import { lookupsApi } from "@/api/references"
 import { usePermissionStore } from "@/store/permissions"
+import { useToastStore } from "@/store/toast"
 import type {
   DiscountRule,
   DiscountRuleWrite,
@@ -40,7 +41,20 @@ const props = defineProps<{ id: string | number }>()
 
 const { t, locale } = useI18n()
 const permissions = usePermissionStore()
+const toast = useToastStore()
 const router = useRouter()
+
+function toastApiError(e: unknown) {
+  if (e instanceof AxiosError && e.response?.data) {
+    const body = e.response.data
+    toast.error(
+      t("errors.unknown"),
+      typeof body === "object" ? JSON.stringify(body) : String(body),
+    )
+  } else {
+    toast.error(t("errors.unknown"))
+  }
+}
 
 const projectId = computed(() => Number(props.id))
 
@@ -201,18 +215,20 @@ async function removePlan(p: PaymentPlan) {
   if (!confirm(`${t("objects.payment_plans.confirm_delete")}?`)) return
   try {
     await paymentPlansApi.destroy(p.id)
+    toast.success(t("objects.payment_plans.confirm_delete"))
     await load()
   } catch (e) {
-    alert(e instanceof AxiosError ? JSON.stringify(e.response?.data) : t("errors.unknown"))
+    toastApiError(e)
   }
 }
 async function removeRule(r: DiscountRule) {
   if (!confirm(`${t("objects.discount_rules.confirm_delete")}?`)) return
   try {
     await discountRulesApi.destroy(r.id)
+    toast.success(t("objects.discount_rules.confirm_delete"))
     await load()
   } catch (e) {
-    alert(e instanceof AxiosError ? JSON.stringify(e.response?.data) : t("errors.unknown"))
+    toastApiError(e)
   }
 }
 

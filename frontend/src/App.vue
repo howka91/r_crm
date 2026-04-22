@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import Toast from "primevue/toast"
 import ConfirmDialog from "primevue/confirmdialog"
+
+import ToastContainer from "@/components/ToastContainer.vue"
 </script>
 
 <template>
   <RouterView />
-  <Toast position="top-right" />
+  <ToastContainer />
   <ConfirmDialog />
 </template>

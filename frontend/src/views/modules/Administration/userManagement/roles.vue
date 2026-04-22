@@ -10,11 +10,13 @@ import { useRouter } from "vue-router"
 
 import { roleApi, type RoleWritePayload } from "@/api/administration"
 import { usePermissionStore } from "@/store/permissions"
+import { useToastStore } from "@/store/toast"
 import type { Role } from "@/types/models"
 
 const { t, locale } = useI18n()
 const router = useRouter()
 const permissions = usePermissionStore()
+const toast = useToastStore()
 
 const roles = ref<Role[]>([])
 const loading = ref(false)
@@ -75,7 +77,16 @@ async function remove(role: Role) {
     await roleApi.destroy(role.id)
     await load()
   } catch (e) {
-    alert(e instanceof AxiosError ? JSON.stringify(e.response?.data) : t("errors.unknown"))
+    if (e instanceof AxiosError && e.response?.data) {
+      toast.error(
+        t("errors.unknown"),
+        typeof e.response.data === "object"
+          ? JSON.stringify(e.response.data)
+          : String(e.response.data),
+      )
+    } else {
+      toast.error(t("errors.unknown"))
+    }
   }
 }
 

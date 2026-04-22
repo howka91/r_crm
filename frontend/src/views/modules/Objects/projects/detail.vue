@@ -25,6 +25,7 @@ import {
   sectionsApi,
 } from "@/api/objects"
 import { usePermissionStore } from "@/store/permissions"
+import { useToastStore } from "@/store/toast"
 import type {
   Apartment,
   ApartmentStatus,
@@ -44,7 +45,21 @@ const props = defineProps<{ id: string | number }>()
 
 const { t, locale } = useI18n()
 const permissions = usePermissionStore()
+const toast = useToastStore()
 const router = useRouter()
+
+/** Formats an Axios/network error into a compact toast body. */
+function toastApiError(e: unknown) {
+  if (e instanceof AxiosError && e.response?.data) {
+    const body = e.response.data
+    toast.error(
+      t("errors.unknown"),
+      typeof body === "object" ? JSON.stringify(body) : String(body),
+    )
+  } else {
+    toast.error(t("errors.unknown"))
+  }
+}
 
 const projectId = computed(() => Number(props.id))
 
@@ -234,7 +249,6 @@ const priceForm = reactive<{ new_price: string; comment: string }>({
 })
 
 const priceHistory = ref<PriceHistory[]>([])
-const cascadeResult = ref<string | null>(null)
 
 // Duplicate-section modal state: holds catalog data (loaded lazily on first
 // open) plus the currently picked source in the cascading dropdowns.
@@ -250,7 +264,6 @@ const duplicateForm = reactive<{
   source_building_id: null,
   source_section_id: null,
 })
-const duplicateResult = ref<string | null>(null)
 
 function openBuildingCreate() {
   modalState.value = { kind: "building", parentId: projectId.value, editingId: null }
@@ -420,13 +433,10 @@ async function doRelease(a: Apartment) {
   const comment = prompt(t("objects.apartments.comment") + " (опц.)", "") || ""
   try {
     await apartmentsApi.release(a.id, comment)
+    toast.success(t("objects.apartments.release"))
     await load()
   } catch (e) {
-    alert(
-      e instanceof AxiosError
-        ? JSON.stringify(e.response?.data)
-        : t("errors.unknown"),
-    )
+    toastApiError(e)
   }
 }
 
@@ -440,7 +450,6 @@ async function openDuplicateSectionModal(targetBuildingId: number) {
   duplicateForm.source_project_id = null
   duplicateForm.source_building_id = null
   duplicateForm.source_section_id = null
-  duplicateResult.value = null
   saveError.value = null
   // Load catalog once per session — projects / all buildings / all sections.
   if (!allProjects.value.length) {
@@ -465,7 +474,6 @@ async function openPriceModal(f: Floor) {
   }
   priceForm.new_price = f.price_per_sqm
   priceForm.comment = ""
-  cascadeResult.value = null
   saveError.value = null
   // Fetch this floor's price history for the side panel. Best-effort —
   // permission may be denied for roles without floor view access.
@@ -547,15 +555,16 @@ async function save() {
         priceForm.new_price,
         priceForm.comment,
       )
-      cascadeResult.value = t("objects.floors.cascade_done", {
-        apts: stats.apartments_updated,
-        calcs: stats.calculations_upserted,
-      })
+      toast.success(
+        t("objects.floors.price_change_title"),
+        t("objects.floors.cascade_done", {
+          apts: stats.apartments_updated,
+          calcs: stats.calculations_upserted,
+        }),
+      )
+      showModal.value = false
       await load()
-      // Refresh history panel.
-      const h = await priceHistoryApi.list({ floor: editingId, limit: 20 })
-      priceHistory.value = h.results
-      return  // keep the modal open so user sees the cascade result
+      return
     } else if (kind === "duplicate_section") {
       if (!duplicateForm.source_section_id || !modalState.value.targetBuildingId) {
         return
@@ -564,12 +573,16 @@ async function save() {
         duplicateForm.source_section_id,
         modalState.value.targetBuildingId,
       )
-      duplicateResult.value = t("objects.sections.duplicate_result", {
-        floors: res.floors_created,
-        apts: res.apartments_created,
-      })
+      toast.success(
+        t("objects.sections.duplicate"),
+        t("objects.sections.duplicate_result", {
+          floors: res.floors_created,
+          apts: res.apartments_created,
+        }),
+      )
+      showModal.value = false
       await load()
-      return  // keep modal open to show the result banner
+      return
     }
     showModal.value = false
     await load()
@@ -585,9 +598,10 @@ async function removeBuilding(b: Building) {
   if (!confirm(`${t("objects.buildings.confirm_delete")}?`)) return
   try {
     await buildingsApi.destroy(b.id)
+    toast.success(t("objects.buildings.confirm_delete"))
     await load()
   } catch (e) {
-    alert(e instanceof AxiosError ? JSON.stringify(e.response?.data) : t("errors.unknown"))
+    toastApiError(e)
   }
 }
 /** Format the 409 `blocked_by` payload as "Floor: 3, Apartment: 42". */
@@ -604,11 +618,12 @@ async function removeSection(s: Section) {
   if (!confirm(`${t("objects.sections.confirm_delete")}?`)) return
   try {
     await sectionsApi.destroy(s.id)
+    toast.success(t("objects.sections.confirm_delete"))
     await load()
     return
   } catch (e) {
     if (!(e instanceof AxiosError) || e.response?.status !== 409) {
-      alert(e instanceof AxiosError ? JSON.stringify(e.response?.data) : t("errors.unknown"))
+      toastApiError(e)
       return
     }
     // Blocked by children — offer cascade delete.
@@ -617,11 +632,10 @@ async function removeSection(s: Section) {
     if (!confirm(prompt)) return
     try {
       await sectionsApi.destroyForce(s.id)
+      toast.success(t("objects.sections.confirm_delete"))
       await load()
     } catch (e2) {
-      alert(
-        e2 instanceof AxiosError ? JSON.stringify(e2.response?.data) : t("errors.unknown"),
-      )
+      toastApiError(e2)
     }
   }
 }
@@ -629,11 +643,12 @@ async function removeFloor(f: Floor) {
   if (!confirm(`${t("objects.floors.confirm_delete")}?`)) return
   try {
     await floorsApi.destroy(f.id)
+    toast.success(t("objects.floors.confirm_delete"))
     await load()
     return
   } catch (e) {
     if (!(e instanceof AxiosError) || e.response?.status !== 409) {
-      alert(e instanceof AxiosError ? JSON.stringify(e.response?.data) : t("errors.unknown"))
+      toastApiError(e)
       return
     }
     const summary = describeBlockedBy(e)
@@ -641,11 +656,10 @@ async function removeFloor(f: Floor) {
     if (!confirm(prompt)) return
     try {
       await floorsApi.destroyForce(f.id)
+      toast.success(t("objects.floors.confirm_delete"))
       await load()
     } catch (e2) {
-      alert(
-        e2 instanceof AxiosError ? JSON.stringify(e2.response?.data) : t("errors.unknown"),
-      )
+      toastApiError(e2)
     }
   }
 }
@@ -653,9 +667,10 @@ async function removeApartment(a: Apartment) {
   if (!confirm(`${t("objects.apartments.confirm_delete")}?`)) return
   try {
     await apartmentsApi.destroy(a.id)
+    toast.success(t("objects.apartments.confirm_delete"))
     await load()
   } catch (e) {
-    alert(e instanceof AxiosError ? JSON.stringify(e.response?.data) : t("errors.unknown"))
+    toastApiError(e)
   }
 }
 
@@ -1247,11 +1262,6 @@ onMounted(load)
             </label>
             <textarea v-model="priceForm.comment" class="inp" rows="2" />
           </div>
-          <div v-if="cascadeResult" class="mb-4 text-[12.5px] text-ym-success bg-ym-success-soft px-3 py-2 rounded">
-            <i class="pi pi-check text-[10px] mr-1" />
-            {{ cascadeResult }}
-          </div>
-
           <div class="text-[11px] uppercase tracking-wider font-mono text-ym-subtle mt-5 mb-2">
             {{ t("objects.floors.price_history") }}
           </div>
@@ -1337,13 +1347,6 @@ onMounted(load)
                 · {{ t("objects.columns.floors_count") }}: {{ s.floors_count }}
               </option>
             </select>
-          </div>
-          <div
-            v-if="duplicateResult"
-            class="mt-4 text-[12.5px] text-ym-success bg-ym-success-soft px-3 py-2 rounded"
-          >
-            <i class="pi pi-check text-[10px] mr-1" />
-            {{ duplicateResult }}
           </div>
         </template>
 
