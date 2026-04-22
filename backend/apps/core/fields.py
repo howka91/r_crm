@@ -44,7 +44,12 @@ class I18nField(models.JSONField):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault("default", empty_i18n)
-        kwargs.setdefault("validators", []).append(validate_i18n)
+        # Dedupe: Django's JSONField.deconstruct() may surface the validator
+        # again on reload, and a bare .append() would accumulate duplicates.
+        validators = list(kwargs.get("validators") or [])
+        if validate_i18n not in validators:
+            validators.append(validate_i18n)
+        kwargs["validators"] = validators
         super().__init__(*args, **kwargs)
 
 
