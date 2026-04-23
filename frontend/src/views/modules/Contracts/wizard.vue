@@ -12,21 +12,15 @@
  * transition (see `apps/contracts/services/numbering.py`).
  */
 import { AxiosError } from "axios"
-import { computed, ref, watch } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import MoneyInput from "@/components/MoneyInput.vue"
+import ShaxmatkaPicker from "@/components/ShaxmatkaPicker.vue"
 import { contractTemplatesApi, contractsApi } from "@/api/contracts"
 import { clientContactsApi, clientsApi } from "@/api/clients"
-import {
-  apartmentsApi,
-  buildingsApi,
-  calculationsApi,
-  floorsApi,
-  projectsApi,
-  sectionsApi,
-} from "@/api/objects"
+import { calculationsApi, projectsApi } from "@/api/objects"
 import { useToastStore } from "@/store/toast"
 import type {
   Apartment,
@@ -49,86 +43,111 @@ const createError = ref<string | null>(null)
 // --- Step 1: project + apartment ----------------------------------------
 
 const projects = ref<Project[]>([])
-const apartments = ref<Apartment[]>([])
 const selectedProject = ref<number | null>(null)
-const selectedApartment = ref<number | null>(null)
-const loadingApartments = ref(false)
+const selectedApartmentObj = ref<Apartment | null>(null)
+const showPicker = ref(false)
+
+// Apartment id derived from the full object — other steps (calculations,
+// submit payload) only need the id.
+const selectedApartment = computed<number | null>(
+  () => selectedApartmentObj.value?.id ?? null,
+)
 
 async function loadProjects() {
   const resp = await projectsApi.list({ limit: 200 })
   projects.value = resp.results
 }
 
-// Load every Apartment inside a project by walking
-// building → section → floor → apartment. It's the same traversal the
-// Shaxmatka page does; we can't filter Apartment by project directly
-// (Apartment.floor.section.building.project).
-async function loadApartmentsForProject(projectId: number) {
-  loadingApartments.value = true
-  apartments.value = []
-  try {
-    const bs = await buildingsApi.list({ project: projectId, limit: 200 })
-    const sectionResps = await Promise.all(
-      bs.results.map((b) =>
-        sectionsApi.list({ building: b.id, limit: 200 }),
-      ),
-    )
-    const sections = sectionResps.flatMap((r) => r.results)
-    const floorResps = await Promise.all(
-      sections.map((s) => floorsApi.list({ section: s.id, limit: 500 })),
-    )
-    const floors = floorResps.flatMap((r) => r.results)
-    const apartmentResps = await Promise.all(
-      floors.map((f) => apartmentsApi.list({ floor: f.id, limit: 500 })),
-    )
-    apartments.value = apartmentResps
-      .flatMap((r) => r.results)
-      .sort((a, b) => a.number.localeCompare(b.number, "ru", { numeric: true }))
-  } finally {
-    loadingApartments.value = false
-  }
-}
-
-watch(selectedProject, (pid) => {
-  selectedApartment.value = null
-  if (pid === null) {
-    apartments.value = []
-    return
-  }
-  void loadApartmentsForProject(pid)
+watch(selectedProject, () => {
+  // Clear the apartment when the project changes — its building lives
+  // in a different project tree.
+  selectedApartmentObj.value = null
 })
+
+function onApartmentPicked(apt: Apartment) {
+  selectedApartmentObj.value = apt
+}
 
 const projectLabel = (p: Project) =>
   p.title[locale.value as "ru" | "uz" | "oz"] || `#${p.id}`
 
 // --- Step 2: client + signer --------------------------------------------
+//
+// Combobox-style client picker: open on focus, load the first page of 20
+// clients even with an empty query, filter on typing, paginate via
+// "load more". Selected client displays as a chip (not in the input),
+// so typing a new query never overlaps with the chosen value.
+
+const CLIENT_PAGE_SIZE = 20
 
 const clientSearch = ref("")
 const clientMatches = ref<Client[]>([])
+const clientsTotal = ref(0)
+const clientsOffset = ref(0)
+const clientsLoading = ref(false)
+const clientDropdownOpen = ref(false)
+const clientFieldRef = ref<HTMLElement | null>(null)
+
 const selectedClient = ref<Client | null>(null)
 const contacts = ref<ClientContact[]>([])
 const selectedSigner = ref<number | null>(null)
 
 let clientSearchTimer: ReturnType<typeof setTimeout> | null = null
 
-async function runClientSearch() {
-  const q = clientSearch.value.trim()
-  if (!q) {
-    clientMatches.value = []
-    return
+/** Fetch one page of clients matching the current query. `reset=true`
+ *  replaces the result list; `reset=false` appends (for pagination). */
+async function fetchClients(reset: boolean) {
+  clientsLoading.value = true
+  try {
+    const offset = reset ? 0 : clientsOffset.value
+    const q = clientSearch.value.trim()
+    const params: Record<string, unknown> = {
+      limit: CLIENT_PAGE_SIZE,
+      offset,
+      ordering: "full_name",
+    }
+    if (q) params.search = q
+    const resp = await clientsApi.list(params)
+    clientsTotal.value = resp.count
+    if (reset) {
+      clientMatches.value = resp.results
+      clientsOffset.value = resp.results.length
+    } else {
+      clientMatches.value = [...clientMatches.value, ...resp.results]
+      clientsOffset.value += resp.results.length
+    }
+  } finally {
+    clientsLoading.value = false
   }
-  const resp = await clientsApi.list({ search: q, limit: 20 })
-  clientMatches.value = resp.results
 }
 
-watch(clientSearch, () => {
+const canLoadMoreClients = computed(
+  () => clientsOffset.value < clientsTotal.value,
+)
+
+function openClientDropdown() {
+  clientDropdownOpen.value = true
+  // Always reset pagination when the dropdown opens — the first view
+  // should show the top of the current result set.
+  void fetchClients(true)
+}
+
+function closeClientDropdown() {
+  clientDropdownOpen.value = false
+}
+
+function onClientSearchInput() {
   if (clientSearchTimer) clearTimeout(clientSearchTimer)
-  clientSearchTimer = setTimeout(runClientSearch, 300)
-})
+  clientSearchTimer = setTimeout(() => {
+    if (!clientDropdownOpen.value) return
+    void fetchClients(true)
+  }, 250)
+}
 
 async function pickClient(c: Client) {
   selectedClient.value = c
-  clientSearch.value = c.full_name
+  closeClientDropdown()
+  clientSearch.value = ""  // so next "clear" leaves the input empty
   clientMatches.value = []
   const resp = await clientContactsApi.list({ client: c.id, limit: 50 })
   contacts.value = resp.results
@@ -136,6 +155,30 @@ async function pickClient(c: Client) {
   const chief = contacts.value.find((x) => x.is_chief)
   selectedSigner.value = chief?.id ?? contacts.value[0]?.id ?? null
 }
+
+function clearSelectedClient() {
+  selectedClient.value = null
+  selectedSigner.value = null
+  contacts.value = []
+  clientSearch.value = ""
+}
+
+// Close the dropdown when the user clicks outside the field.
+function onDocumentClick(e: MouseEvent) {
+  if (!clientDropdownOpen.value) return
+  const root = clientFieldRef.value
+  if (root && !root.contains(e.target as Node)) {
+    closeClientDropdown()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener("mousedown", onDocumentClick)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener("mousedown", onDocumentClick)
+  if (clientSearchTimer) clearTimeout(clientSearchTimer)
+})
 
 // --- Step 3: calculation + template + money -----------------------------
 
@@ -166,15 +209,12 @@ async function loadTemplatesForProject(projectId: number | null) {
   )
 }
 
-watch(selectedApartment, (aptId) => {
+watch(selectedApartmentObj, (apt) => {
   calculations.value = []
   selectedCalculation.value = null
-  if (aptId === null) return
-  void loadCalculationsForApartment(aptId)
-  const apt = apartments.value.find((x) => x.id === aptId)
-  if (apt) {
-    totalAmount.value = apt.total_price
-  }
+  if (!apt) return
+  void loadCalculationsForApartment(apt.id)
+  totalAmount.value = apt.total_price
 })
 
 watch(selectedCalculation, (cid) => {
@@ -338,21 +378,64 @@ void loadProjects()
         <label class="block text-[12px] font-medium mb-1.5">
           {{ t("contracts.wizard.select_apartment") }}
         </label>
-        <div v-if="loadingApartments" class="text-ym-muted text-[12px]">
-          {{ t("common.loading") }}
-        </div>
-        <select
-          v-else
-          v-model="selectedApartment"
-          class="inp"
-          :disabled="selectedProject === null"
+        <!-- Either empty state with "open shaxmatka" CTA, or a card
+             with the current pick + a "change" button. -->
+        <div
+          v-if="!selectedApartmentObj"
+          class="border border-dashed border-ym-line rounded-md p-5 text-center"
         >
-          <option :value="null">—</option>
-          <option v-for="a in apartments" :key="a.id" :value="a.id">
-            #{{ a.number }} · {{ a.rooms_count }}к · {{ a.area }}м² ·
-            {{ a.status_display }}
-          </option>
-        </select>
+          <div class="text-ym-muted text-[13px] mb-3">
+            Выберите квартиру на шахматке ЖК
+          </div>
+          <button
+            type="button"
+            class="btn btn-primary"
+            :disabled="selectedProject === null"
+            @click="showPicker = true"
+          >
+            <i class="pi pi-th-large text-[11px]" />
+            Открыть шахматку
+          </button>
+          <div
+            v-if="selectedProject === null"
+            class="mt-2 text-[11px] text-ym-subtle"
+          >
+            Сначала выберите ЖК
+          </div>
+        </div>
+        <div
+          v-else
+          class="flex items-center gap-3 p-3 border border-ym-primary-soft rounded-md bg-ym-primary-soft/30"
+        >
+          <div class="flex-1 flex flex-col gap-1">
+            <div class="flex items-center gap-2">
+              <span class="mono text-[15px] font-semibold text-ym-primary">
+                № {{ selectedApartmentObj.number }}
+              </span>
+              <span class="chip chip-ghost">
+                {{ selectedApartmentObj.status_display }}
+              </span>
+            </div>
+            <div class="text-[12px] text-ym-muted">
+              {{ selectedApartmentObj.rooms_count }}к ·
+              {{ selectedApartmentObj.area }} м² ·
+              {{
+                new Intl.NumberFormat("ru-RU").format(
+                  Number(selectedApartmentObj.total_price),
+                )
+              }}
+              сум
+            </div>
+          </div>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            @click="showPicker = true"
+          >
+            <i class="pi pi-th-large text-[11px]" />
+            Сменить
+          </button>
+        </div>
       </div>
     </section>
 
@@ -362,27 +445,94 @@ void loadProjects()
         <label class="block text-[12px] font-medium mb-1.5">
           {{ t("clients.title") }}
         </label>
-        <input
-          v-model="clientSearch"
-          class="inp"
-          :placeholder="t('contracts.filters.search_placeholder')"
-        />
+
+        <!-- Selected state: card-chip of the picked client with clear -->
         <div
-          v-if="clientMatches.length > 0"
-          class="mt-2 border border-ym-line-soft rounded-md max-h-[240px] overflow-auto art-scroll"
+          v-if="selectedClient"
+          class="flex items-center gap-3 p-3 border border-ym-primary-soft rounded-md bg-ym-primary-soft/30"
         >
-          <button
-            v-for="c in clientMatches"
-            :key="c.id"
-            type="button"
-            class="w-full text-left px-3 py-2 hover:bg-ym-primary-soft/40 border-b border-ym-line-soft last:border-0"
-            @click="pickClient(c)"
-          >
-            <div class="text-[13px] font-medium">{{ c.full_name }}</div>
-            <div class="text-[11px] text-ym-muted mono">
-              {{ c.inn || c.pin || "—" }} · {{ c.phones.join(", ") || "—" }}
+          <div class="flex-1 flex flex-col gap-0.5">
+            <div class="text-[13.5px] font-semibold">
+              {{ selectedClient.full_name }}
             </div>
+            <div class="text-[11px] text-ym-muted mono">
+              {{ selectedClient.inn || selectedClient.pin || "—" }} ·
+              {{ selectedClient.phones.join(", ") || "—" }}
+            </div>
+          </div>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            @click="clearSelectedClient"
+          >
+            <i class="pi pi-times text-[11px]" />
+            Другой клиент
           </button>
+        </div>
+
+        <!-- Picker (combobox): input + dropdown with pagination -->
+        <div v-else ref="clientFieldRef" class="relative">
+          <input
+            v-model="clientSearch"
+            class="inp"
+            :placeholder="t('contracts.filters.search_placeholder')"
+            @focus="openClientDropdown"
+            @input="onClientSearchInput"
+          />
+
+          <div
+            v-if="clientDropdownOpen"
+            class="absolute left-0 right-0 top-full mt-1 z-20 bg-ym-surface border border-ym-line rounded-md shadow-ym-float overflow-hidden"
+          >
+            <div class="max-h-[320px] overflow-auto art-scroll">
+              <button
+                v-for="c in clientMatches"
+                :key="c.id"
+                type="button"
+                class="w-full text-left px-3 py-2 hover:bg-ym-primary-soft/40 border-b border-ym-line-soft last:border-0"
+                @click="pickClient(c)"
+              >
+                <div class="text-[13px] font-medium">{{ c.full_name }}</div>
+                <div class="text-[11px] text-ym-muted mono">
+                  {{ c.inn || c.pin || "—" }} ·
+                  {{ c.phones.join(", ") || "—" }}
+                </div>
+              </button>
+
+              <div
+                v-if="clientsLoading"
+                class="px-3 py-2 text-[12px] text-ym-muted"
+              >
+                {{ t("common.loading") }}
+              </div>
+
+              <div
+                v-else-if="clientMatches.length === 0"
+                class="px-3 py-4 text-center text-[12px] text-ym-muted"
+              >
+                {{ t("common.no_data") }}
+              </div>
+            </div>
+
+            <!-- Pagination footer -->
+            <div
+              v-if="clientMatches.length > 0"
+              class="flex items-center justify-between px-3 py-2 border-t border-ym-line-soft text-[11px] text-ym-muted bg-ym-sunken/40"
+            >
+              <span>
+                Показано {{ clientMatches.length }} из {{ clientsTotal }}
+              </span>
+              <button
+                v-if="canLoadMoreClients"
+                type="button"
+                class="btn btn-ghost btn-xs"
+                :disabled="clientsLoading"
+                @click="fetchClients(false)"
+              >
+                Загрузить ещё {{ CLIENT_PAGE_SIZE }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -489,9 +639,7 @@ void loadProjects()
         <div>
           <dt class="text-ym-muted">{{ t("contracts.fields.apartment") }}</dt>
           <dd class="mt-0.5 font-mono">
-            {{
-              apartments.find((a) => a.id === selectedApartment)?.number || "—"
-            }}
+            {{ selectedApartmentObj?.number || "—" }}
           </dd>
         </div>
         <div>
@@ -570,5 +718,15 @@ void loadProjects()
         {{ t("contracts.wizard.create") }}
       </button>
     </div>
+
+    <!-- Sibling to the stepper wrapper, outside the v-if/v-else-if chain
+         so we don't break Vue's sequential matcher. Uses Teleport to
+         body internally, so its placement in the template is cosmetic. -->
+    <ShaxmatkaPicker
+      v-model="showPicker"
+      :project-id="selectedProject"
+      :selected-id="selectedApartment"
+      @pick="onApartmentPicked"
+    />
   </div>
 </template>
