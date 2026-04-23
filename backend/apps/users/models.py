@@ -89,32 +89,35 @@ class Theme(models.TextChoices):
 
 
 class StaffManager(BaseUserManager):
-    """Email-based auth — no `username`."""
+    """Login-based auth — `login` is USERNAME_FIELD, `email` is optional contact."""
 
     use_in_migrations = True
 
-    def _create_user(self, email: str, password: str | None, **extra_fields):
-        if not email:
-            raise ValueError("Email is required")
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+    def _create_user(self, login: str, password: str | None, **extra_fields):
+        if not login:
+            raise ValueError("Login is required")
+        # Normalise any stray email-shaped input, but leave plain logins alone.
+        email = extra_fields.get("email") or ""
+        if email:
+            extra_fields["email"] = self.normalize_email(email)
+        user = self.model(login=login, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_user(self, email: str, password: str | None = None, **extra_fields):
+    def create_user(self, login: str, password: str | None = None, **extra_fields):
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
-        return self._create_user(email, password, **extra_fields)
+        return self._create_user(login, password, **extra_fields)
 
-    def create_superuser(self, email: str, password: str | None = None, **extra_fields):
+    def create_superuser(self, login: str, password: str | None = None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         if extra_fields.get("is_staff") is not True:
             raise ValueError("Superuser must have is_staff=True.")
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
-        return self._create_user(email, password, **extra_fields)
+        return self._create_user(login, password, **extra_fields)
 
 
 class Staff(AbstractUser):
@@ -130,7 +133,13 @@ class Staff(AbstractUser):
     last_name = None
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    email = models.EmailField(_("Email"), unique=True)
+    login = models.CharField(
+        _("Логин"),
+        max_length=150,
+        unique=True,  # unique=True implies an index; db_index=True would dupe
+        help_text=_("Короткий уникальный идентификатор для входа в CRM."),
+    )
+    email = models.EmailField(_("Email"), blank=True)
     full_name = models.CharField(_("ФИО"), max_length=255, blank=True)
     phone_number = models.CharField(
         _("Телефон"),
@@ -165,7 +174,7 @@ class Staff(AbstractUser):
         related_name="staff",
     )
 
-    USERNAME_FIELD = "email"
+    USERNAME_FIELD = "login"
     REQUIRED_FIELDS: list[str] = []
 
     objects = StaffManager()
@@ -173,7 +182,7 @@ class Staff(AbstractUser):
     class Meta:
         verbose_name = _("Сотрудник")
         verbose_name_plural = _("Сотрудники")
-        ordering = ["full_name", "email"]
+        ordering = ["full_name", "login"]
 
     def __str__(self) -> str:
-        return self.full_name or self.email
+        return self.full_name or self.login

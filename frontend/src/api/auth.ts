@@ -2,7 +2,7 @@ import { http, tokenStore } from "@/libs/axios"
 import type { Staff } from "@/types/models"
 
 export interface LoginRequest {
-  email: string
+  login: string
   password: string
 }
 

@@ -19,7 +19,8 @@ export interface Paginated<T> {
 // --- Staff ----------------------------------------------------------------
 
 export interface StaffWritePayload {
-  email: string
+  login: string
+  email?: string
   full_name: string
   phone_number?: string
   language?: "ru" | "uz" | "oz"

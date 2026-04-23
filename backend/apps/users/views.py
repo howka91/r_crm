@@ -125,7 +125,7 @@ class StaffViewSet(viewsets.ModelViewSet):
     queryset = Staff.objects.all().select_related("role")
     serializer_class = StaffSerializer
     filterset_fields = ("is_active", "role", "language")
-    search_fields = ("email", "full_name", "phone_number")
+    search_fields = ("login", "email", "full_name", "phone_number")
 
     def get_permissions(self):
         action_map = {

@@ -31,7 +31,7 @@ const visibleGroups = computed(() =>
 const userInitials = computed(() => {
   const staff = auth.user
   if (!staff) return "?"
-  const source = staff.full_name || staff.email || ""
+  const source = staff.full_name || staff.login || ""
   const parts = source.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return "?"
   return parts
@@ -41,7 +41,7 @@ const userInitials = computed(() => {
     .toUpperCase()
 })
 
-const userDisplayName = computed(() => auth.user?.full_name || auth.user?.email || "")
+const userDisplayName = computed(() => auth.user?.full_name || auth.user?.login || "")
 const userRoleLabel = computed(() => auth.user?.role?.code ?? "")
 </script>
 

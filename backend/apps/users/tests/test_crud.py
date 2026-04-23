@@ -66,6 +66,7 @@ class TestStaffCRUD:
         resp = api_client.post(
             reverse("staff-list"),
             {
+                "login": "newuser",
                 "email": "new@example.com",
                 "full_name": "Новый Юзер",
                 "phone_number": "+998901234567",
@@ -76,6 +77,7 @@ class TestStaffCRUD:
             format="json",
         )
         assert resp.status_code == status.HTTP_201_CREATED, resp.json()
+        assert resp.json()["login"] == "newuser"
         assert resp.json()["email"] == "new@example.com"
         assert resp.json()["role"]["code"] == "sales"
 
@@ -84,7 +86,7 @@ class TestStaffCRUD:
         resp = api_client.post(
             reverse("staff-list"),
             {
-                "email": "bad@example.com",
+                "login": "baduser",
                 "full_name": "x",
                 "phone_number": "123",  # invalid
                 "password": "newpassword123",
@@ -96,7 +98,7 @@ class TestStaffCRUD:
 
     def test_list_hides_passwords(self, api_client):
         self._admin_auth(api_client)
-        StaffFactory(email="visible@example.com")
+        StaffFactory(login="visible")
         resp = api_client.get(reverse("staff-list"))
         assert resp.status_code == status.HTTP_200_OK
         for row in resp.json().get("results", resp.json()):

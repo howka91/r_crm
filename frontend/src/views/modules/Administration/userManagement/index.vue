@@ -24,6 +24,7 @@ const showModal = ref(false)
 const saveError = ref<string | null>(null)
 
 const form = reactive<StaffWritePayload>({
+  login: "",
   email: "",
   full_name: "",
   phone_number: "",
@@ -51,6 +52,7 @@ async function load() {
 function openCreate() {
   editing.value = null
   Object.assign(form, {
+    login: "",
     email: "",
     full_name: "",
     phone_number: "",
@@ -67,6 +69,7 @@ function openCreate() {
 function openEdit(user: Staff) {
   editing.value = user
   Object.assign(form, {
+    login: user.login,
     email: user.email,
     full_name: user.full_name,
     phone_number: user.phone_number,
@@ -104,7 +107,7 @@ async function save() {
 async function remove(user: Staff) {
   const ok = await confirmStore.ask({
     title: t("common.delete"),
-    message: user.full_name || user.email,
+    message: user.full_name || user.login,
     severity: "danger",
     okLabel: t("common.delete"),
   })
@@ -132,8 +135,9 @@ onMounted(load)
       <table class="tbl">
         <thead>
           <tr>
-            <th>Email</th>
+            <th>Логин</th>
             <th>ФИО</th>
+            <th>Email</th>
             <th>Роль</th>
             <th>Телефон</th>
             <th>Активен</th>
@@ -142,8 +146,9 @@ onMounted(load)
         </thead>
         <tbody>
           <tr v-for="u in users" :key="u.id">
-            <td class="font-mono text-[12.5px] text-ym-primary">{{ u.email }}</td>
+            <td class="font-mono text-[12.5px] text-ym-primary">{{ u.login }}</td>
             <td class="font-medium">{{ u.full_name }}</td>
+            <td class="font-mono text-[12.5px] text-ym-muted">{{ u.email || "—" }}</td>
             <td class="text-ym-muted">{{ u.role?.code ?? "—" }}</td>
             <td class="font-mono text-[12.5px]">{{ u.phone_number }}</td>
             <td>
@@ -179,12 +184,16 @@ onMounted(load)
 
         <div class="space-y-3 text-sm">
           <div>
-            <label class="block mb-1.5 font-medium">Email</label>
-            <input v-model="form.email" type="email" class="inp" />
+            <label class="block mb-1.5 font-medium">Логин</label>
+            <input v-model="form.login" class="inp font-mono" autocomplete="off" />
           </div>
           <div>
             <label class="block mb-1.5 font-medium">ФИО</label>
             <input v-model="form.full_name" class="inp" />
+          </div>
+          <div>
+            <label class="block mb-1.5 font-medium">Email (необязательно)</label>
+            <input v-model="form.email" type="email" class="inp" />
           </div>
           <div>
             <label class="block mb-1.5 font-medium">Телефон</label>

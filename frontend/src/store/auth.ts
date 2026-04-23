@@ -22,10 +22,13 @@ export const useAuthStore = defineStore("auth", () => {
 
   const isAuthenticated = computed(() => user.value !== null)
 
-  async function login(email: string, password: string): Promise<void> {
+  async function login(loginValue: string, password: string): Promise<void> {
     loading.value = true
     try {
-      const { access, refresh, user: signedIn } = await authApi.login({ email, password })
+      const { access, refresh, user: signedIn } = await authApi.login({
+        login: loginValue,
+        password,
+      })
       tokenStore.set(access, refresh)
       applyUser(signedIn)
     } finally {

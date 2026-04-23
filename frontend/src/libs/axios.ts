@@ -18,7 +18,10 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios"
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1"
+// Default is a same-origin relative path so the SPA works from any host
+// (localhost, LAN IP, future tunnel). Vite's dev proxy (`vite.config.ts`)
+// forwards `/api/*` to the backend container.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1"
 
 export const http: AxiosInstance = axios.create({
   baseURL: BASE_URL,

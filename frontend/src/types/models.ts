@@ -46,6 +46,7 @@ export interface RoleBrief {
 
 export interface Staff {
   id: string
+  login: string
   email: string
   full_name: string
   phone_number: string

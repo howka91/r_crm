@@ -9,35 +9,46 @@ from apps.users.tests.factories import StaffFactory
 @pytest.mark.django_db
 class TestLogin:
     def test_success_returns_access_refresh_and_user(self, api_client):
-        staff = StaffFactory(email="a@example.com", password="secret-pass-1")
+        staff = StaffFactory(login="a-user", password="secret-pass-1")
         resp = api_client.post(
             reverse("auth-login"),
-            {"email": "a@example.com", "password": "secret-pass-1"},
+            {"login": "a-user", "password": "secret-pass-1"},
             format="json",
         )
         assert resp.status_code == status.HTTP_200_OK
         data = resp.json()
         assert "access" in data and "refresh" in data
         assert data["user"]["id"] == str(staff.id)
-        assert data["user"]["email"] == staff.email
+        assert data["user"]["login"] == staff.login
 
     def test_wrong_password(self, api_client):
-        StaffFactory(email="b@example.com", password="right-pass")
+        StaffFactory(login="b-user", password="right-pass")
         resp = api_client.post(
             reverse("auth-login"),
-            {"email": "b@example.com", "password": "wrong-pass"},
+            {"login": "b-user", "password": "wrong-pass"},
             format="json",
         )
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_inactive_user_blocked(self, api_client):
-        StaffFactory(email="c@example.com", password="x12345678", is_active=False)
+        StaffFactory(login="c-user", password="x12345678", is_active=False)
         resp = api_client.post(
             reverse("auth-login"),
-            {"email": "c@example.com", "password": "x12345678"},
+            {"login": "c-user", "password": "x12345678"},
             format="json",
         )
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_short_password_admin_login(self, api_client):
+        """Dev convenience: password="1" is accepted end-to-end (no min_length
+        on the auth path itself)."""
+        StaffFactory(login="admin", password="1")
+        resp = api_client.post(
+            reverse("auth-login"),
+            {"login": "admin", "password": "1"},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_200_OK
 
 
 @pytest.mark.django_db
@@ -47,11 +58,11 @@ class TestMe:
         assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_returns_current_user(self, api_client):
-        staff = StaffFactory(email="me@example.com", password="x12345678")
+        staff = StaffFactory(login="me-user", password="x12345678")
         api_client.force_authenticate(staff)
         resp = api_client.get(reverse("auth-me"))
         assert resp.status_code == status.HTTP_200_OK
-        assert resp.json()["email"] == "me@example.com"
+        assert resp.json()["login"] == "me-user"
 
 
 @pytest.mark.django_db

@@ -76,12 +76,18 @@ class StaffSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
-    password = serializers.CharField(write_only=True, required=False, min_length=8)
+    # Login length floor of 1 — "admin" / "1" should work. Uniqueness is on
+    # the model.
+    login = serializers.CharField(max_length=150)
+    # Email is optional contact info, no auth role.
+    email = serializers.EmailField(required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True, required=False, min_length=1)
 
     class Meta:
         model = Staff
         fields = (
             "id",
+            "login",
             "email",
             "full_name",
             "phone_number",
@@ -119,18 +125,20 @@ class StaffSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    # `login` is the Staff username (USERNAME_FIELD). Email is contact info
+    # only and has no auth role.
+    login = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
         user = authenticate(
             request=self.context.get("request"),
-            email=attrs["email"],
+            login=attrs["login"],
             password=attrs["password"],
         )
         if user is None:
             raise serializers.ValidationError(
-                {"detail": "Неверный email или пароль."},
+                {"detail": "Неверный логин или пароль."},
                 code="authentication_failed",
             )
         if not user.is_active:

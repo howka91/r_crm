@@ -19,5 +19,15 @@ export default defineConfig({
       usePolling: true,
       interval: 500,
     },
+    // Proxy /api/* to the backend container. Lets the SPA call a
+    // same-origin relative URL (`/api/v1/...`) regardless of whether the
+    // browser reaches Vite via `localhost:5173` or a LAN IP like
+    // `192.168.1.121:5173` — the hardcoded host goes away.
+    proxy: {
+      "/api": {
+        target: "http://backend:8000",
+        changeOrigin: true,
+      },
+    },
   },
 })

@@ -23,7 +23,7 @@ const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
-const email = ref("")
+const login = ref("")
 const password = ref("")
 const remember = ref(false)
 const showPassword = ref(false)
@@ -34,7 +34,7 @@ const localeCodes = Object.keys(LOCALES) as Locale[]
 async function handleSubmit() {
   error.value = null
   try {
-    await auth.login(email.value, password.value)
+    await auth.login(login.value, password.value)
     const next = typeof route.query.next === "string" ? route.query.next : "/"
     await router.push(next)
   } catch (e) {
@@ -158,13 +158,13 @@ const ghostCells = computed(() => {
         <form class="space-y-4" @submit.prevent="handleSubmit">
           <div>
             <label class="block text-[12px] font-medium mb-1.5">
-              {{ t("auth.email") }}
+              {{ t("auth.login_field") }}
             </label>
             <input
-              v-model="email"
-              type="email"
+              v-model="login"
+              type="text"
               required
-              autocomplete="email"
+              autocomplete="username"
               class="inp"
             />
           </div>

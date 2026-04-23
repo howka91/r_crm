@@ -20,6 +20,7 @@ class StaffFactory(DjangoModelFactory):
     class Meta:
         model = Staff
 
+    login = factory.Sequence(lambda n: f"user{n}")
     email = factory.Sequence(lambda n: f"user{n}@example.com")
     full_name = factory.Faker("name")
     is_active = True
