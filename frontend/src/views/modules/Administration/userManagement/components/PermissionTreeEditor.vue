@@ -13,8 +13,13 @@
  * enables the whole subtree; clicking a fully-checked parent disables it.
  *
  * Implementation note:
- *   * `:checked` is declaratively bound so Vue keeps it in sync on every
- *     modelValue propagation (including deep-recursive updates).
+ *   * We use `@change` (not `@click.prevent`) so the browser performs its
+ *     own toggle first; our handler then reads the *previous* modelValue,
+ *     computes the cascade target and emits. Vue re-renders `:checked` to
+ *     reconcile. This "controlled checkbox" pattern is the idiomatic way
+ *     to keep DOM and reactive state in sync — `@click.prevent` turned out
+ *     to leave the DOM `.checked` property desynced under some label-click
+ *     flows in Chromium.
  *   * `indeterminate` has no HTML attribute — only a DOM property. A
  *     lightweight custom directive (`v-indeterminate`) sets it imperatively
  *     on `mounted` and `updated`, which is what Vue template-ref callbacks
@@ -166,7 +171,7 @@ function label(node: PermissionNode): string {
             type="checkbox"
             :checked="isChecked(node)"
             v-indeterminate="isMixed(node)"
-            @click.prevent="toggleCheck(node)"
+            @change="toggleCheck(node)"
           />
           <span :class="{ 'font-medium': currentDepth <= 1 }">
             {{ label(node) }}
