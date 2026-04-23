@@ -7,17 +7,22 @@
  *   * leaf              → plain checked / unchecked
  *   * parent, all descendant leaves on       → checked
  *   * parent, all descendant leaves off      → unchecked
- *   * parent, mixed descendants              → indeterminate (HTML
- *     `input.indeterminate = true`, no attribute exists for it)
+ *   * parent, mixed descendants              → indeterminate (filled square)
  *
- * Click on any node cascades to every descendant — standard "select all"
- * ergonomics. Clicking an indeterminate parent enables every descendant.
+ * Click cascades to every descendant. Clicking a mixed or unchecked parent
+ * enables the whole subtree; clicking a fully-checked parent disables it.
  *
- * Expansion state is shared across recursive levels via provide/inject
+ * Implementation note:
+ *   * `:checked` is declaratively bound so Vue keeps it in sync on every
+ *     modelValue propagation (including deep-recursive updates).
+ *   * `indeterminate` has no HTML attribute — only a DOM property. We set
+ *     it via a `:ref` callback which fires on every re-render.
+ *
+ * Expansion state is shared across levels via provide/inject
  * (`permTreeExpanded`). Root caller (roleView.vue) provides a Ref<Set>
- * so "Expand all / Collapse all" reaches every level.
+ * so "Expand / Collapse all" reaches every depth.
  */
-import { inject, onMounted, provide, ref, watch, type Ref } from "vue"
+import { inject, provide, ref, type Ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 import type { PermissionNode } from "@/types/models"
@@ -58,14 +63,14 @@ function toggleExpand(key: string) {
 
 // --- Tri-state logic --------------------------------------------------
 
-/** Collect every descendant key (including the node itself). */
+/** All keys in the subtree rooted at `node`, including `node.key`. */
 function collectDescendants(node: PermissionNode): string[] {
   const out = [node.key]
   for (const child of node.children ?? []) out.push(...collectDescendants(child))
   return out
 }
 
-/** Collect only leaf-descendant keys — used to decide parent tri-state. */
+/** Leaf-only descendants — used to determine tri-state of parent. */
 function collectLeafDescendants(node: PermissionNode): string[] {
   if (!hasChildren(node)) return [node.key]
   const out: string[] = []
@@ -79,21 +84,26 @@ function nodeState(node: PermissionNode): TriState {
   if (!hasChildren(node)) {
     return props.modelValue[node.key] ? "checked" : "unchecked"
   }
-  const leaves = collectLeafDescendants(node)
   let on = 0
   let off = 0
-  for (const key of leaves) {
+  for (const key of collectLeafDescendants(node)) {
     if (props.modelValue[key]) on++
     else off++
-    // Early exit once we've seen both states.
     if (on > 0 && off > 0) return "mixed"
   }
   return on > 0 ? "checked" : "unchecked"
 }
 
+function isChecked(node: PermissionNode): boolean {
+  return nodeState(node) === "checked"
+}
+
+function isMixed(node: PermissionNode): boolean {
+  return nodeState(node) === "mixed"
+}
+
 function toggleCheck(node: PermissionNode) {
-  // Flip to the opposite of the majority: mixed or unchecked → enable all,
-  // fully-checked → disable all. Matches every tri-state UI I've seen.
+  // Fully-checked → disable subtree. Mixed or unchecked → enable subtree.
   const target = nodeState(node) !== "checked"
   const next = { ...props.modelValue }
   for (const key of collectDescendants(node)) next[key] = target
@@ -105,34 +115,22 @@ function label(node: PermissionNode): string {
   return node.label[loc] || node.label.ru
 }
 
-// --- Applying `indeterminate` -----------------------------------------
-// HTML has no `indeterminate` attribute — it's a DOM property only. After
-// the checkbox renders (and on every state change), imperatively set it.
-
-const rootRef = ref<HTMLElement | null>(null)
-
-function applyIndeterminate() {
-  const root = rootRef.value
-  if (!root) return
-  for (const node of props.nodes) {
-    const el = root.querySelector<HTMLInputElement>(
-      `input[data-perm-key="${CSS.escape(node.key)}"]`,
-    )
-    if (!el) continue
-    const state = nodeState(node)
-    el.indeterminate = state === "mixed"
-    el.checked = state === "checked"
-  }
+/**
+ * Callback ref that imperatively sets `input.indeterminate` on every render.
+ * HTML has no `indeterminate` attribute — it's a DOM property — so we can't
+ * bind it with `v-bind`. `:ref` callbacks are invoked whenever the vnode is
+ * patched, which gives us a consistent place to reflect modelValue changes
+ * into the DOM without re-implementing checkbox rendering.
+ */
+function applyIndeterminate(el: unknown, mixed: boolean) {
+  const input = el as HTMLInputElement | null
+  if (!input) return
+  input.indeterminate = mixed
 }
-
-onMounted(applyIndeterminate)
-watch(() => props.modelValue, applyIndeterminate, { deep: true })
-watch(() => props.nodes, applyIndeterminate)
 </script>
 
 <template>
   <ul
-    ref="rootRef"
     :class="
       currentDepth === 0
         ? 'space-y-1'
@@ -162,7 +160,8 @@ watch(() => props.nodes, applyIndeterminate)
         <label class="inline-flex items-center gap-2 text-sm cursor-pointer select-none">
           <input
             type="checkbox"
-            :data-perm-key="node.key"
+            :checked="isChecked(node)"
+            :ref="(el) => applyIndeterminate(el, isMixed(node))"
             @click.prevent="toggleCheck(node)"
           />
           <span :class="{ 'font-medium': currentDepth <= 1 }">
