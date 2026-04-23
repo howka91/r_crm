@@ -15,17 +15,33 @@
  * Implementation note:
  *   * `:checked` is declaratively bound so Vue keeps it in sync on every
  *     modelValue propagation (including deep-recursive updates).
- *   * `indeterminate` has no HTML attribute — only a DOM property. We set
- *     it via a `:ref` callback which fires on every re-render.
+ *   * `indeterminate` has no HTML attribute — only a DOM property. A
+ *     lightweight custom directive (`v-indeterminate`) sets it imperatively
+ *     on `mounted` and `updated`, which is what Vue template-ref callbacks
+ *     don't reliably do (those only fire on mount / unmount).
  *
  * Expansion state is shared across levels via provide/inject
  * (`permTreeExpanded`). Root caller (roleView.vue) provides a Ref<Set>
  * so "Expand / Collapse all" reaches every depth.
  */
-import { inject, provide, ref, type Ref } from "vue"
+import { inject, provide, ref, type Directive, type Ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 import type { PermissionNode } from "@/types/models"
+
+/**
+ * `v-indeterminate="boolean"` — reflects the value into
+ * `input.indeterminate` on mount and every subsequent vnode patch.
+ * Local to this component because nothing else needs it today.
+ */
+const vIndeterminate: Directive<HTMLInputElement, boolean> = {
+  mounted(el, binding) {
+    el.indeterminate = !!binding.value
+  },
+  updated(el, binding) {
+    el.indeterminate = !!binding.value
+  },
+}
 
 const props = defineProps<{
   nodes: PermissionNode[]
@@ -115,18 +131,6 @@ function label(node: PermissionNode): string {
   return node.label[loc] || node.label.ru
 }
 
-/**
- * Callback ref that imperatively sets `input.indeterminate` on every render.
- * HTML has no `indeterminate` attribute — it's a DOM property — so we can't
- * bind it with `v-bind`. `:ref` callbacks are invoked whenever the vnode is
- * patched, which gives us a consistent place to reflect modelValue changes
- * into the DOM without re-implementing checkbox rendering.
- */
-function applyIndeterminate(el: unknown, mixed: boolean) {
-  const input = el as HTMLInputElement | null
-  if (!input) return
-  input.indeterminate = mixed
-}
 </script>
 
 <template>
@@ -161,7 +165,7 @@ function applyIndeterminate(el: unknown, mixed: boolean) {
           <input
             type="checkbox"
             :checked="isChecked(node)"
-            :ref="(el) => applyIndeterminate(el, isMixed(node))"
+            v-indeterminate="isMixed(node)"
             @click.prevent="toggleCheck(node)"
           />
           <span :class="{ 'font-medium': currentDepth <= 1 }">
