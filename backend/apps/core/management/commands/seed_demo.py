@@ -25,16 +25,29 @@ Objects:
     * 4 apartments per floor = 20 apartments total, with area + total_price
       pre-computed (no discounts — add DiscountRule + Calculation manually
       if testing pricing cascade).
+
+Clients:
+    * 4 ClientStatus rows + 3 ClientGroup rows.
+    * 4 demo clients (2 phys, 2 jur) with contacts and bank requisites.
+      All point at the superuser as their manager when one exists.
 """
 from __future__ import annotations
 
-from datetime import time
+from datetime import date, time
 from decimal import Decimal
 from typing import Any
 
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
+from apps.clients.models import (
+    Client,
+    ClientContact,
+    ClientGroup,
+    ClientStatus,
+    Requisite,
+)
 from apps.objects.models import Apartment, Building, Floor, Project, Section
 from apps.references.models import (
     ApartmentType,
@@ -107,12 +120,15 @@ class Command(BaseCommand):
             project, building, section, floors, apartments = self._seed_demo_project()
             self._log(
                 self.style.SUCCESS(
-                    f"\nГотово: 1 ЖК, {len(floors)} этажей, {len(apartments)} квартир."
+                    f"\nЖК: {len(floors)} этажей, {len(apartments)} квартир."
                 )
             )
             self._log(f"  Project id={project.id} title={project.title['ru']}")
             self._log(f"  Building id={building.id}")
             self._log(f"  Section id={section.id}")
+
+            self._log(self.style.MIGRATE_HEADING("\n=== Клиенты ==="))
+            self._seed_clients()
 
     # --- References ---
 
@@ -383,3 +399,220 @@ class Command(BaseCommand):
         self._tally("Apartment", apartments_created, Apartment.objects.count())
 
         return project, building, section, floors, apartments
+
+    # --- Clients ---
+
+    def _seed_clients(self) -> None:
+        # --- ClientStatus (4)
+        created = 0
+        for ru, color in (
+            ("Лид", "#64748b"),
+            ("В работе", "#3b82f6"),
+            ("Активный", "#22c55e"),
+            ("Закрыт", "#ef4444"),
+        ):
+            _, new = _get_or_create_lookup(ClientStatus, ru, color=color)
+            created += int(new)
+        self._tally("ClientStatus", created, ClientStatus.objects.count())
+
+        # --- ClientGroup (3)
+        created = 0
+        for ru in ("VIP", "Партнёр", "Рассрочка"):
+            _, new = _get_or_create_lookup(ClientGroup, ru)
+            created += int(new)
+        self._tally("ClientGroup", created, ClientGroup.objects.count())
+
+        # Lookup handles for attaching to Clients.
+        status_lead = ClientStatus.objects.filter(name__ru="Лид").first()
+        status_active = ClientStatus.objects.filter(name__ru="Активный").first()
+        status_in_work = ClientStatus.objects.filter(name__ru="В работе").first()
+        group_vip = ClientGroup.objects.filter(name__ru="VIP").first()
+        group_partner = ClientGroup.objects.filter(name__ru="Партнёр").first()
+        group_rassrochka = ClientGroup.objects.filter(name__ru="Рассрочка").first()
+
+        # Manager = the first superuser (admin/1 after `seed_demo` runs post-
+        # auth setup). If none exists yet the clients are created unassigned.
+        Staff = get_user_model()
+        manager = Staff.objects.filter(is_superuser=True).first()
+
+        # --- 4 demo clients ---
+        created_clients = 0
+        created_contacts = 0
+        created_requisites = 0
+
+        def _make_client(
+            full_name: str,
+            *,
+            entity: str,
+            phones: list[str],
+            status: ClientStatus | None,
+            groups: list[ClientGroup | None],
+            **extra: Any,
+        ) -> tuple[Client, bool]:
+            c = Client.objects.filter(full_name=full_name, entity=entity).first()
+            if c is not None:
+                return c, False
+            c = Client.objects.create(
+                entity=entity,
+                full_name=full_name,
+                phones=phones,
+                status=status,
+                manager=manager,
+                **extra,
+            )
+            active_groups = [g for g in groups if g is not None]
+            if active_groups:
+                c.groups.set(active_groups)
+            return c, True
+
+        # 1) Phys, VIP lead
+        c1, new = _make_client(
+            "Иванов Иван Иванович",
+            entity=Client.Entity.PHYS,
+            phones=["+998901234567"],
+            status=status_lead,
+            groups=[group_vip],
+            emails=["ivanov@example.com"],
+            gender=Client.Gender.MALE,
+            pin="12345678901234",
+            birth_date=date(1988, 5, 17),
+            address="г. Ташкент, Юнусабадский район, ул. Амира Темура, 45, кв. 12",
+            description="Интересуется 2-комнатной квартирой, предпочитает 4-5 этаж.",
+        )
+        created_clients += int(new)
+        if new:
+            ClientContact.objects.create(
+                client=c1,
+                full_name="Иванов Иван Иванович",
+                role="Основной контакт",
+                is_chief=True,
+                phones=["+998901234567"],
+                email="ivanov@example.com",
+                passport={
+                    "series": "AB",
+                    "number": "1234567",
+                    "issued_by": "ОВД Юнусабадского района",
+                    "issued_date": "2015-04-22",
+                    "registration_address": "г. Ташкент, ул. Амира Темура, 45, кв. 12",
+                },
+                birth_date=date(1988, 5, 17),
+                pin="12345678901234",
+            )
+            created_contacts += 1
+
+        # 2) Phys, active
+        c2, new = _make_client(
+            "Петрова Анна Сергеевна",
+            entity=Client.Entity.PHYS,
+            phones=["+998935557788", "+998911112233"],
+            status=status_active,
+            groups=[group_rassrochka],
+            emails=["anna.petrova@example.com"],
+            gender=Client.Gender.FEMALE,
+            pin="98765432109876",
+            birth_date=date(1992, 11, 3),
+            address="г. Ташкент, Мирабадский район, ул. Мирабадская, 10",
+            description="Рассрочка 24 мес, первый взнос 50%.",
+        )
+        created_clients += int(new)
+        if new:
+            ClientContact.objects.create(
+                client=c2,
+                full_name="Петрова Анна Сергеевна",
+                role="Основной контакт",
+                is_chief=True,
+                phones=["+998935557788"],
+                email="anna.petrova@example.com",
+                passport={
+                    "series": "AA",
+                    "number": "9876543",
+                    "issued_by": "ОВД Мирабадского района",
+                    "issued_date": "2018-09-10",
+                },
+                birth_date=date(1992, 11, 3),
+                pin="98765432109876",
+            )
+            created_contacts += 1
+
+        # 3) Jur, active — with a director contact + bank requisite
+        c3, new = _make_client(
+            "ООО «Ташкент-Строй»",
+            entity=Client.Entity.JUR,
+            phones=["+998712000001"],
+            status=status_active,
+            groups=[group_partner],
+            emails=["info@tashkent-stroy.uz"],
+            inn="301112233",
+            oked="41200",
+            address="г. Ташкент, ул. Шахрисабзская, 7",
+            description="Корпоративный клиент, покупает пакет квартир для сотрудников.",
+        )
+        created_clients += int(new)
+        if new:
+            ClientContact.objects.create(
+                client=c3,
+                full_name="Каримов Бахтияр Тимурович",
+                role="Директор",
+                is_chief=True,
+                phones=["+998712000001", "+998903335577"],
+                email="director@tashkent-stroy.uz",
+                passport={
+                    "series": "AC",
+                    "number": "5555555",
+                    "issued_by": "ОВД Мирзо-Улугбекского района",
+                    "issued_date": "2017-06-01",
+                },
+                birth_date=date(1975, 3, 12),
+                pin="17503120000001",
+                inn="301112233",
+            )
+            created_contacts += 1
+            Requisite.objects.create(
+                client=c3,
+                type=Requisite.Kind.LOCAL,
+                bank_requisite={
+                    "account": "20208000900900900001",
+                    "bank": "Hamkorbank",
+                    "mfo": "00449",
+                    "currency": "UZS",
+                },
+            )
+            created_requisites += 1
+
+        # 4) Jur, in work — sole proprietor
+        c4, new = _make_client(
+            "ИП Юлдашев Шавкат",
+            entity=Client.Entity.JUR,
+            phones=["+998977778899"],
+            status=status_in_work,
+            groups=[],
+            emails=["shavkat.ip@example.com"],
+            inn="305555667",
+            oked="41200",
+            address="г. Ташкент, Чиланзарский район, ул. Чиланзар, 28",
+            description="ИП — хочет квартиру под сдачу в аренду.",
+        )
+        created_clients += int(new)
+        if new:
+            ClientContact.objects.create(
+                client=c4,
+                full_name="Юлдашев Шавкат Абдурахимович",
+                role="Владелец",
+                is_chief=True,
+                phones=["+998977778899"],
+                email="shavkat.ip@example.com",
+                passport={
+                    "series": "AD",
+                    "number": "7777777",
+                    "issued_by": "ОВД Чиланзарского района",
+                    "issued_date": "2016-12-15",
+                },
+                birth_date=date(1980, 7, 22),
+                pin="18007220000007",
+                inn="305555667",
+            )
+            created_contacts += 1
+
+        self._tally("Client", created_clients, Client.objects.count())
+        self._tally("ClientContact", created_contacts, ClientContact.objects.count())
+        self._tally("Requisite", created_requisites, Requisite.objects.count())
