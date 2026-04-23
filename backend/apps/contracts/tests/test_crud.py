@@ -261,13 +261,13 @@ class TestContractTemplateCRUD:
         _superuser(api_client)
         tpl = ContractTemplateFactory(
             placeholders=[
-                {"model": "Contract", "field": "contract_number", "field_name": "№"},
-                {"model": "Client", "field": "full_name", "field_name": "ФИО"},
+                {"key": "contract_number", "path": "contract.contract_number", "label": "№"},
+                {"key": "client_name", "path": "client.full_name", "label": "ФИО"},
             ],
         )
         resp = api_client.get(reverse("contract-template-detail", args=[tpl.id]))
         assert len(resp.data["placeholders"]) == 2
-        assert resp.data["placeholders"][0]["field"] == "contract_number"
+        assert resp.data["placeholders"][0]["key"] == "contract_number"
 
 
 # --- PaymentSchedule ------------------------------------------------------

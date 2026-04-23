@@ -9,6 +9,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 #   - libpq: psycopg runtime
 #   - build-essential: wheels for some libs (reportlab etc.)
 #   - libjpeg/zlib/freetype: Pillow
+#   - libpango/cairo/gdk-pixbuf + shared-mime-info: WeasyPrint (HTML→PDF for
+#     contract docgen — replaced the separate libreoffice service in 5.3)
+#   - fonts-dejavu/fonts-noto: glyph coverage for Cyrillic + Latin + Uzbek
 #   - curl: healthchecks
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -16,6 +19,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg-dev \
     zlib1g-dev \
     libfreetype6-dev \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libcairo2 \
+    libgdk-pixbuf-2.0-0 \
+    shared-mime-info \
+    fonts-dejavu \
+    fonts-noto \
     curl \
  && rm -rf /var/lib/apt/lists/*
 

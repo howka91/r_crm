@@ -65,10 +65,21 @@ class ContractAdmin(admin.ModelAdmin):
 
 @admin.register(ContractTemplate)
 class ContractTemplateAdmin(admin.ModelAdmin):
-    list_display = ("id", "title", "author", "is_active", "modified_at")
-    list_filter = ("is_active",)
+    list_display = ("id", "title", "scope", "author", "is_active", "modified_at")
+    list_filter = ("is_active", "project")
     search_fields = ("title",)
-    autocomplete_fields = ("author",)
+    autocomplete_fields = ("author", "project")
+    readonly_fields = ("created_at", "modified_at")
+    fieldsets = (
+        (None, {"fields": ("title", "project", "author", "is_active")}),
+        ("Плейсхолдеры", {"fields": ("placeholders",)}),
+        ("HTML-шаблон", {"fields": ("body",), "classes": ("wide",)}),
+        ("Служебное", {"fields": ("created_at", "modified_at"), "classes": ("collapse",)}),
+    )
+
+    @admin.display(description="Охват")
+    def scope(self, obj):
+        return "Глобальный" if obj.project_id is None else f"ЖК #{obj.project_id}"
 
 
 class PaymentInline(admin.TabularInline):

@@ -83,6 +83,19 @@ class Contract(BaseModel):
         related_name="authored_contracts",
         verbose_name=_("Автор"),
     )
+    template = models.ForeignKey(
+        "contracts.ContractTemplate",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="contracts",
+        verbose_name=_("Шаблон договора"),
+        help_text=_(
+            "Используется сервисом docgen для рендера PDF. Если пусто — "
+            "PDF сгенерировать нельзя; менеджер обязан выбрать шаблон "
+            "(глобальный или для этого ЖК) перед генерацией."
+        ),
+    )
 
     # --- Core data ---
     contract_number = models.CharField(

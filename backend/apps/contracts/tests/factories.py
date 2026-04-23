@@ -43,12 +43,9 @@ class ContractTemplateFactory(DjangoModelFactory):
         model = ContractTemplate
 
     title = factory.Sequence(lambda n: f"Шаблон {n}")
-    # `file` is a required FileField — tests that hit the DB can supply a
-    # SimpleUploadedFile; for factories we leave it as an empty string because
-    # Django's FileField allows empty in the DB layer if `blank=True`. For
-    # full-file tests override explicitly.
-    file = factory.django.FileField(filename="template.docx", data=b"fake")
+    body = "<p>Default test template body</p>"
     placeholders = factory.LazyFunction(list)
+    project = None  # global by default
 
 
 class PaymentScheduleFactory(DjangoModelFactory):

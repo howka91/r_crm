@@ -231,6 +231,3 @@ ESKIZ_EMAIL = env.str("ESKIZ_EMAIL", default="")
 ESKIZ_PASSWORD = env.str("ESKIZ_PASSWORD", default="")
 ESKIZ_BASE_URL = env.str("ESKIZ_BASE_URL", default="https://notify.eskiz.uz/api")
 
-# --- LibreOffice (docx → pdf) ---
-LIBREOFFICE_HOST = env.str("LIBREOFFICE_HOST", default="libreoffice")
-LIBREOFFICE_PORT = env.int("LIBREOFFICE_PORT", default=2002)

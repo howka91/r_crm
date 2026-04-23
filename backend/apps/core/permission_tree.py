@@ -98,6 +98,7 @@ PERMISSION_TREE: list[PermissionNode] = [
                     {"key": "contracts.unsigned.sign", "label": _label("Подписать", "Imzolash", "Имзолаш")},
                     {"key": "contracts.unsigned.request_edit", "label": _label("Вернуть на доработку", "Qaytarib yuborish", "Қайтариб юбориш")},
                     {"key": "contracts.unsigned.generate_schedule", "label": _label("Сгенерировать график", "Jadvalni yaratish", "Жадвални яратиш")},
+                    {"key": "contracts.unsigned.generate_pdf", "label": _label("Сгенерировать PDF", "PDF yaratish", "PDF яратиш")},
                 ],
             },
             {
@@ -215,7 +216,21 @@ PERMISSION_TREE: list[PermissionNode] = [
             {"key": "references.offices", "label": _label("Отделы продаж", "Savdo ofislari", "Савдо офислари"), "children": _crud("references.offices", "офис", "Ofis", "Офис")},
             {"key": "references.developers", "label": _label("Застройщики", "Quruvchilar", "Қурувчилар"), "children": _crud("references.developers", "застройщик", "Quruvchi", "Қурувчи")},
             {"key": "references.currencies", "label": _label("Валюты", "Valyutalar", "Валюталар"), "children": _crud("references.currencies", "валюту", "Valyuta", "Валюта")},
-            {"key": "references.templates", "label": _label("Шаблоны договоров", "Shartnoma shablonlari", "Шартнома шаблонлари"), "children": _crud("references.templates", "шаблон", "Shablon", "Шаблон")},
+            {
+                "key": "references.templates",
+                "label": _label("Шаблоны договоров", "Shartnoma shablonlari", "Шартнома шаблонлари"),
+                "children": [
+                    *_crud("references.templates", "шаблон", "Shablon", "Шаблон"),
+                    {
+                        "key": "references.templates.manage_global",
+                        "label": _label(
+                            "Управлять глобальными шаблонами",
+                            "Global shablonlar boshqaruvi",
+                            "Глобал шаблонлар бошқаруви",
+                        ),
+                    },
+                ],
+            },
             # NB: 13 simple lookups (ApartmentType, RoomType, ConstructionStage,
             # Decoration, PremisesDecoration, HomeMaterial, OutputWindows,
             # OccupiedBy, Badge, PaymentMethod, PaymentInPercent, Region,

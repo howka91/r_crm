@@ -23,6 +23,9 @@ qrcode==8.0
 num2words==0.5.14
 openpyxl==3.1.5
 Pillow==11.0.0
+# HTML → PDF for contract docgen (Phase 5.3). Needs libpango/cairo/gdk-pixbuf
+# system libs — installed in backend/Dockerfile.
+weasyprint==63.1
 
 # --- HTTP client (for Eskiz SMS) ---
 httpx==0.28.1

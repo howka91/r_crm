@@ -42,6 +42,7 @@ from apps.contracts.serializers import (
     PaymentScheduleSerializer,
     PaymentSerializer,
 )
+from apps.contracts.services import docgen as docgen_svc
 from apps.contracts.services import schedule as schedule_svc
 from apps.contracts.services import transitions
 from apps.core.mixins import ProtectedDestroyMixin
@@ -60,6 +61,7 @@ _ACTION_SUFFIX: dict[str, str] = {
     "sign": "sign",
     "request_edit": "request_edit",
     "generate_schedule": "generate_schedule",
+    "generate_pdf": "generate_pdf",
 }
 
 
@@ -181,6 +183,47 @@ class ContractViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
             )
         return self._transition_response(result)
 
+    @action(detail=True, methods=["post"], url_path="generate-pdf")
+    def generate_pdf(self, request: Request, pk=None) -> Response:
+        """Render the contract's template into PDF and attach to Contract.file.
+
+        Requires `contract.template` to be set. Blocked on signed contracts
+        — once signed, the PDF is the legal artefact and re-rendering is
+        a cancel-then-create-new flow.
+        """
+        contract = self.get_object()
+        if contract.is_signed:
+            return Response(
+                {"detail": "Нельзя перегенерировать PDF у подписанного договора."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        try:
+            result = docgen_svc.generate_pdf(contract)
+        except docgen_svc.TemplateNotSet as e:
+            return Response(
+                {"detail": str(e), "code": "template_not_set"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except docgen_svc.UnknownPlaceholder as e:
+            return Response(
+                {
+                    "detail": str(e),
+                    "code": "unknown_placeholder",
+                    "unknown": e.unknown,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        contract.refresh_from_db()
+        return Response(
+            {
+                "contract": self.get_serializer(contract).data,
+                "pdf_url": contract.file.url if contract.file else None,
+                "pdf_size": result.pdf_size,
+                "filled": result.filled,
+            },
+            status=status.HTTP_200_OK,
+        )
+
     @action(detail=True, methods=["post"], url_path="generate-schedule")
     def generate_schedule(self, request: Request, pk=None) -> Response:
         """Rebuild PaymentSchedule rows from the contract's Calculation.
@@ -212,13 +255,69 @@ class ContractViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 class ContractTemplateViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
     schema_tags = ["Договоры"]
-    queryset = ContractTemplate.objects.select_related("author").all()
+    queryset = (
+        ContractTemplate.objects
+        .select_related("author", "project")
+        .all()
+    )
     serializer_class = ContractTemplateSerializer
-    filterset_fields = ("is_active",)
+    filterset_fields = ("is_active", "project")
     search_fields = ("title",)
 
     def get_permissions(self):
         return _permissions_for("references.templates", self.action)
+
+    # --- Extra gate: creating/editing a *global* template (project is null)
+    # requires the `references.templates.manage_global` key on top of the
+    # generic create/edit. Lets us grant project-scoped template authorship
+    # to per-project staff without exposing the global pool.
+
+    def _enforce_global_gate(self, request, project_id) -> Response | None:
+        if project_id:
+            return None  # project-scoped — generic permission suffices
+        if request.user.is_superuser:
+            return None
+        role = getattr(request.user, "role", None)
+        from apps.core.permissions import check as perm_check
+        if perm_check(
+            getattr(role, "permissions", None),
+            "references.templates.manage_global",
+        ):
+            return None
+        return Response(
+            {
+                "detail": (
+                    "Глобальные шаблоны (без проекта) может создавать только "
+                    "роль с разрешением references.templates.manage_global."
+                ),
+                "code": "global_template_forbidden",
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    def create(self, request, *args, **kwargs):
+        blocked = self._enforce_global_gate(request, request.data.get("project"))
+        if blocked is not None:
+            return blocked
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        # Use the incoming payload for the new project_id if present;
+        # otherwise fall back to what the row currently has.
+        existing = self.get_object()
+        project_id = request.data.get("project", existing.project_id)
+        blocked = self._enforce_global_gate(request, project_id)
+        if blocked is not None:
+            return blocked
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        existing = self.get_object()
+        project_id = request.data.get("project", existing.project_id)
+        blocked = self._enforce_global_gate(request, project_id)
+        if blocked is not None:
+            return blocked
+        return super().partial_update(request, *args, **kwargs)
 
 
 class PaymentScheduleViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):

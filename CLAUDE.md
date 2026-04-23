@@ -97,12 +97,12 @@ Floor.price_per_sqm меняется
 
 Вызывается **явно** из ViewSet / management command / миграции. **Не через сигналы.**
 
-## PDF / docx generation
+## PDF generation
 
-- Шаблоны договоров: `.docx` с плейсхолдерами `{{field_name}}` через `python-docx`.
-- Конвертация docx → PDF: `libreoffice --headless --convert-to pdf` (отдельный контейнер).
+- Шаблоны договоров: HTML в `ContractTemplate.body` (Tiptap-редактор на фронте) с плейсхолдерами `{{key}}`. `ContractTemplate.placeholders` хранит admin-декларируемый список `[{key, path, label}]` — `key` это то, что пишут в шаблоне, `path` — дотточный путь резолвинга в контексте контракта (например `client.full_name`, `apartment.number`).
+- Конвертация HTML → PDF: **WeasyPrint** (в том же backend-контейнере, отдельного сервиса нет).
 - ПКО: `reportlab` с встроенным шрифтом `DejaVuSans` (поддержка кириллицы + узбекской латиницы).
-- QR: `qrcode` lib, PNG встраивается в PDF.
+- QR: `qrcode` lib, PNG как base64 data-URI встраивается в HTML перед рендером.
 
 ## i18n на бэке
 

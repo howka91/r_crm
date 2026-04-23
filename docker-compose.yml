@@ -29,17 +29,6 @@ services:
       timeout: 3s
       retries: 10
 
-  libreoffice:
-    build:
-      context: ./docker
-      dockerfile: libreoffice.Dockerfile
-    container_name: rcrm_libreoffice
-    restart: unless-stopped
-    ports:
-      - "2002:2002"
-    volumes:
-      - media_data:/app/media
-
   backend:
     build:
       context: ./backend
@@ -52,7 +41,6 @@ services:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
-      LIBREOFFICE_HOST: libreoffice
     volumes:
       - ./backend:/app
       - media_data:/app/media
@@ -80,7 +68,6 @@ services:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
-      LIBREOFFICE_HOST: libreoffice
     volumes:
       - ./backend:/app
       - media_data:/app/media

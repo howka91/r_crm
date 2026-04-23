@@ -29,19 +29,51 @@ from apps.contracts.models import (
 
 
 class ContractTemplateSerializer(serializers.ModelSerializer):
+    project_title = serializers.SerializerMethodField()
+    is_global = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = ContractTemplate
         fields = (
             "id",
             "title",
-            "file",
-            "author",
+            "body",
             "placeholders",
+            "project",
+            "project_title",
+            "is_global",
+            "author",
             "is_active",
             "created_at",
             "modified_at",
         )
-        read_only_fields = ("id", "created_at", "modified_at")
+        read_only_fields = ("id", "project_title", "is_global", "created_at", "modified_at")
+
+    def get_project_title(self, obj: ContractTemplate):
+        return getattr(obj.project, "title", None) if obj.project_id else None
+
+    def validate_placeholders(self, value):
+        """Every entry must have `key` + `path` as non-empty strings."""
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Должен быть массив объектов.")
+        seen: set[str] = set()
+        for idx, entry in enumerate(value):
+            if not isinstance(entry, dict):
+                raise serializers.ValidationError(
+                    f"Элемент #{idx}: ожидается объект {{key, path, label}}.",
+                )
+            key = (entry.get("key") or "").strip()
+            path = (entry.get("path") or "").strip()
+            if not key or not path:
+                raise serializers.ValidationError(
+                    f"Элемент #{idx}: key и path обязательны.",
+                )
+            if key in seen:
+                raise serializers.ValidationError(
+                    f"Ключ {key!r} указан более одного раза.",
+                )
+            seen.add(key)
+        return value
 
 
 # --- Contract -------------------------------------------------------------
@@ -81,6 +113,7 @@ class ContractSerializer(serializers.ModelSerializer):
             "calculation",
             "signer", "signer_name", "client_id", "client_name",
             "author", "author_name",
+            "template",
             # core data
             "contract_number",
             "date",
