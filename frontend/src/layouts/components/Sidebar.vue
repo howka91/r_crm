@@ -9,7 +9,7 @@
  */
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
-import { RouterLink } from "vue-router"
+import { RouterLink, useRouter } from "vue-router"
 
 import navigation from "@/navigation/vertical"
 import { useAuthStore } from "@/store/auth"
@@ -18,6 +18,14 @@ import { usePermissionStore } from "@/store/permissions"
 const { t } = useI18n()
 const permissions = usePermissionStore()
 const auth = useAuthStore()
+const router = useRouter()
+
+async function handleLogout() {
+  await auth.logout()
+  // SPA redirect — bypasses the router guard's "save ?next=" round-trip
+  // since the user explicitly asked to leave.
+  await router.push("/login")
+}
 
 const visibleGroups = computed(() =>
   navigation
@@ -115,7 +123,7 @@ const userRoleLabel = computed(() => auth.user?.role?.code ?? "")
         type="button"
         class="shrink-0 text-ym-subtle hover:text-ym-text transition-colors"
         :title="t('auth.sign_out')"
-        @click="auth.logout()"
+        @click="handleLogout"
       >
         <i class="pi pi-sign-out text-xs" />
       </button>
