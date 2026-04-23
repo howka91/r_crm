@@ -80,9 +80,11 @@
   .btn-primary:hover {
     @apply bg-ym-primary-h;
   }
-  .btn-primary:disabled,
-  .btn-primary[disabled] {
-    @apply opacity-50 cursor-not-allowed;
+  /* Universal disabled state for every .btn variant — must come after the
+     variant rules so opacity wins over the coloured hover backgrounds. */
+  .btn:disabled,
+  .btn[disabled] {
+    @apply opacity-45 cursor-not-allowed pointer-events-none;
   }
   .btn-ghost {
     @apply bg-transparent text-ym-text border border-ym-line;

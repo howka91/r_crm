@@ -28,6 +28,13 @@ export default defineConfig({
         target: "http://backend:8000",
         changeOrigin: true,
       },
+      // Django serves uploaded files (template logos, contract PDFs,
+      // QR assets) under /media/. Without this proxy the SPA's
+      // <img src="/media/..."> would hit the Vite dev server and 404.
+      "/media": {
+        target: "http://backend:8000",
+        changeOrigin: true,
+      },
     },
   },
 })

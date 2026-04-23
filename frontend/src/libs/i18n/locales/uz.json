@@ -474,6 +474,167 @@
         "region": "Regionlar",
         "location": "Aholi punktlari"
       }
+    },
+    "contract_templates": {
+      "title": "Shartnoma shablonlari",
+      "subtitle": "PDF avtomatik yaratish uchun placeholderli HTML shablonlar",
+      "new": "Yangi shablon",
+      "edit": "Shablonni tahrirlash",
+      "empty": "Hali shablonlar yo'q. Birinchisini yarating.",
+      "confirm_delete": "Shablonni o'chirish",
+      "scope_global": "Umumiy",
+      "scope_project": "Faqat ushbu JK uchun",
+      "fields": {
+        "title": "Nomi",
+        "project": "JK",
+        "project_any": "— Umumiy (barcha JK) —",
+        "body": "Shablon matni",
+        "placeholders": "Placeholder-lar",
+        "placeholder_key": "Kalit",
+        "placeholder_path": "Kontekstdagi yo'l",
+        "placeholder_label": "Izoh"
+      },
+      "body_hint": "Placeholder-larni toolbar tugmasi orqali yoki qo'lda kiriting — `{{kalit}}`.",
+      "body_hint_catalog": "Tahrirlagich A4 varaqni ko'rsatadi. Chiziqli punktirlar — PDF'dagi sahifa chegaralari. Kursorni kerakli joyga qo'ying va o'ngdagi placeholder tugmalarini bosing.",
+      "insert_placeholder": "Placeholder qo'shish",
+      "insert_qr": "Hujjat QR kodini qo'shish",
+      "no_placeholders": "Hali birorta placeholder tanlanmagan.",
+      "add_placeholder": "Placeholder qo'shish",
+      "placeholders_hint": "Kalit — shablondagi `{{kalit}}` kabi. Yo'l — shartnoma kontekstida nuqtali murojaat: contract.*, client.*, signer.*, apartment.*, project.*, developer.*, calculation.*, now, today.",
+      "builtin_qr": "Ichki QR kod: `<img src=\"{{__qr__}}\">`.",
+      "used_placeholders": "Ishlatilgan placeholder-lar",
+      "catalog_title": "Placeholder-lar katalogi",
+      "catalog_hint": "Tugmani bosganda `{{kalit}}` kursor joyiga qo'yiladi va avtomatik ro'yxatga olinadi. Qayta bosish mumkin — o'sha placeholder yana qo'shiladi.",
+      "custom_toggle": "Qo'shimcha",
+      "custom_section": "Foydalanuvchi placeholder-lari",
+      "custom_empty": "Nostandart yo'l kerak bo'lsa — masalan, JSON obyektining maydoni — yozuv qo'shing.",
+      "saved": "Shablon saqlandi",
+      "global_forbidden": "Umumiy shablon yaratish yoki tahrirlash huquqi yo'q.",
+      "duplicate_key": "Kalit shablonda takrorlanmasligi kerak."
+    }
+  },
+  "contracts": {
+    "title": "Shartnomalar",
+    "subtitle": "Qoralamadan imzolashgacha bo'lgan hayot sikli",
+    "new": "Yangi shartnoma",
+    "empty": "Shartnomalar hali yo'q.",
+    "confirm_delete": "Shartnomani o'chirish",
+    "tabs": {
+      "unsigned": "Imzolanmagan",
+      "signed": "Imzolangan",
+      "edit_requests": "Tahrir so'rovlari"
+    },
+    "tabs_titles": {
+      "unsigned": "Imzolanmagan shartnomalar",
+      "signed": "Imzolangan shartnomalar",
+      "edit_requests": "Tahrirlash so'rovi bor shartnomalar"
+    },
+    "tabs_subtitles": {
+      "unsigned": "Qoralamalar, kelishuvda, tasdiqlanganlar — hali imzolanmagan",
+      "signed": "Tugatilgan shartnomalar",
+      "edit_requests": "Menejer tahrirlash so'ragan shartnomalar"
+    },
+    "action": {
+      "request": "Qoralama",
+      "wait": "Kelishuvda",
+      "edit": "Tahrirlashda",
+      "approve": "Tasdiqlangan",
+      "sign_in": "Imzolangan"
+    },
+    "schedule_status": {
+      "pending": "Kutilmoqda",
+      "partial": "Qisman",
+      "paid": "To'langan",
+      "overdue": "Muddati o'tgan"
+    },
+    "payment_type": {
+      "cash": "Naqd",
+      "bank": "Bank o'tkazmasi",
+      "barter": "Barter"
+    },
+    "columns": {
+      "number": "Raqami",
+      "project": "JK",
+      "apartment": "Kvartira",
+      "client": "Mijoz",
+      "signer": "Imzolovchi",
+      "date": "Sana",
+      "total": "Summa",
+      "down": "Birinchi to'lov",
+      "status": "Status",
+      "author": "Muallif",
+      "actions": "Amallar"
+    },
+    "filters": {
+      "search_placeholder": "Raqam, mijoz, kvartira bo'yicha qidiruv…",
+      "project_all": "Barcha JK",
+      "mortgage_all": "Hammasi",
+      "mortgage_yes": "Ipoteka",
+      "mortgage_no": "Ipotekasiz"
+    },
+    "number_draft": "(qoralama)",
+    "fields": {
+      "project": "JK",
+      "apartment": "Kvartira",
+      "signer": "Imzolovchi (mijoz kontakti)",
+      "calculation": "To'lov hisoblamasi",
+      "calculation_none": "— Hisoblamasiz —",
+      "template": "Shartnoma shabloni",
+      "template_none": "— Tanlanmagan —",
+      "date": "Shartnoma sanasi",
+      "send_date": "Jo'natilgan sana",
+      "description": "Ta'rif",
+      "related_person": "Qo'shimcha imzolovchi (erkin matn)",
+      "total_amount": "Shartnoma summasi",
+      "down_payment": "Birinchi to'lov",
+      "payment_methods": "To'lov usullari",
+      "is_mortgage": "Ipoteka"
+    },
+    "wizard": {
+      "title": "Shartnoma yaratish",
+      "step_project": "1-qadam. JK va kvartira",
+      "step_client": "2-qadam. Mijoz va hisoblama",
+      "step_money": "3-qadam. Summa va shablon",
+      "step_review": "4-qadam. Tekshirish",
+      "select_project": "JK-ni tanlang",
+      "select_apartment": "Kvartirani tanlang",
+      "select_signer": "Imzolovchini tanlang",
+      "pick_client_first": "Avval mijozni tanlang",
+      "no_calculations": "Kvartirada hali hisoblamalar yo'q — hisoblamasiz davom eting yoki shaxmatkada yarating.",
+      "next": "Keyingi",
+      "prev": "Orqaga",
+      "create": "Shartnoma yaratish"
+    },
+    "detail": {
+      "back": "Ro'yxatga",
+      "tabs": {
+        "overview": "Umumiy",
+        "schedule": "Jadval",
+        "payments": "To'lovlar",
+        "document": "Hujjat"
+      },
+      "section_workflow": "Ish oqimi",
+      "section_parties": "Tomonlar",
+      "section_money": "Moliya",
+      "section_description": "Ta'rif",
+      "workflow_hint": "O'tishlar qat'iy marshrut bo'yicha. «Imzolangan»-ga o'tish yakuniy.",
+      "action_send_to_wait": "Kelishuvga yuborish",
+      "action_approve": "Tasdiqlash",
+      "action_sign": "Imzolash",
+      "action_request_edit": "Tahrirlashni so'rash",
+      "action_generate_schedule": "Jadvalni qayta tuzish",
+      "action_generate_pdf": "PDF yaratish",
+      "pdf_ready": "PDF tayyor",
+      "pdf_download": "PDF yuklab olish",
+      "no_file": "Fayl hali yaratilmagan",
+      "no_template": "PDF yaratish uchun «Shablon» qismida shablonni tanlang.",
+      "confirm_sign": "Shartnomani imzolaysizmi? Bu o'tish yakuniy.",
+      "confirm_request_edit": "Tahrirlash so'rovi sababini kiriting:",
+      "request_edit_placeholder": "Misol: mijoz rekvizitlarini aniqlashtirish, summani tuzatish…",
+      "schedule_empty": "Jadval hali tuzilmagan. «Jadvalni qayta tuzish»-ga bosing.",
+      "payments_empty": "Bu shartnoma bo'yicha to'lovlar hali yo'q.",
+      "signed_immutable": "Shartnoma imzolangan — biznes tahrirlash bloklangan.",
+      "transition_forbidden": "Joriy statusdan o'tish mumkin emas."
     }
   }
 }

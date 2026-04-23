@@ -2,7 +2,156 @@
 
 > Обновляется в конце каждой рабочей сессии. Следующий Claude (или я сам после паузы) должен прочитать этот файл **первым**, чтобы продолжить работу без повторного проектирования.
 
-## Последняя сессия — 23 апреля 2026 (глубокий вечер)
+## Последняя сессия — 23 апреля 2026 (поздняя ночь → 24 апреля)
+
+### Что сделано
+
+**Этап 5.4 — Contracts frontend (Tiptap-редактор + каталог плейсхолдеров + A4-превью + 3 экрана контрактов).**
+
+Длинная сессия: построили весь фронт под уже готовый бэк из 5.1–5.3, прогнали через несколько итераций UX по обратной связи пользователя (картинки, разрывы страниц, кнопки, модалки).
+
+#### 1. API + типы + i18n
+
+- `frontend/src/api/contracts.ts` — 4 CRUD-бандла (contracts, templates, schedules, payments) + 6 workflow-actions (send-to-wait, approve, sign, request-edit, generate-schedule, generate-pdf) + `uploadImage` для логотипов.
+- Типы в `types/models.ts`: `Contract`, `ContractWrite`, `ContractTemplate`, `TemplatePlaceholder`, `PaymentSchedule`, `Payment` + enum-строки `ContractAction`, `PaymentScheduleStatus`, `PaymentChannel`.
+- i18n во всех трёх локалях (`ru/uz/oz.json`): блоки `contracts.*` и `references.contract_templates.*` — workflow-метки, filtes, wizard, detail-tabs, статусы графика/платежа.
+
+#### 2. Router + nav
+
+- `frontend/src/router/contracts.ts` — 3 list-роута + `/new` (wizard) + `/:id` (detail). Scope задаётся через `route.meta.scope: "unsigned"|"signed"|"edit_requests"` — одна view для трёх списков.
+- В `router/references.ts` добавлены `contract-templates` (list + new + :id) с `permission: references.templates.*`.
+- `navigation/vertical/contracts.ts` — раскласен (ранее все 3 пункта были `disabled: true`), `references.ts` — `contract_templates` тоже.
+
+#### 3. Tiptap v3 + RichTextEditor.vue
+
+Пакеты: `@tiptap/vue-3 @tiptap/pm @tiptap/starter-kit @tiptap/extension-underline @tiptap/extension-text-align @tiptap/extension-text-style @tiptap/extension-link @tiptap/extension-image`. В Tiptap 3 `TextStyle + Color + FontFamily + FontSize` объединены в один пакет `extension-text-style` — отдельные `@tiptap/extension-color` / `-font-family` это реэкспорты. `FontSize` уже есть из коробки, кастомный не потребовался.
+
+**Тулбар** (все кнопки через `.btn .btn-xs`, дизайн-система `ym-*`):
+- Marks — **B** / *I* / U̲ / S̶ как текстовые кнопки в соответствующих стилях. PrimeIcons 7 не содержит `pi-bold`/`pi-italic`/`pi-underline`/`pi-strike`, поэтому именно текст.
+- Headings H1/H2/H3, списки, align left/center/right/justify, font-family, font-size, color, link.
+- **Картинка** (`pi-image`) — триггерит file-input, грузит через `imageUploader` prop (см. §5), вставляется с дефолтным `align: "left"`, так чтобы текст естественно шёл справа от логотипа (как в старых шаблонах).
+- **Контекстная панель над редактором** (`imageSelected`) — Слева/Центр/Справа/Без обтекания/Удалить, обновляет `align` атрибут, который мапится в inline-style `float: left/right` или `display: block; margin: 0 auto`.
+- PageBreak ноду **НЕ используем через кнопку** (она слишком инвазивна), но её регистрация оставлена в extensions (для совместимости со старыми шаблонами, где разрыв был вставлен вручную).
+
+**Кастомные ноды/экстеншены**:
+- `PageBreak` (Node, group: "block", atom: true) — рендерит `<div class="page-break" data-page-break="true">` с inline-стилем (подстраховка от сбоя scoped-CSS). Бэк в docgen `_BASE_CSS` маппит `.page-break` в `break-before: page`.
+- `AlignedImage` — расширение стокового `Image` атрибутом `align: "left"|"right"|"center"|"none"`, сериализация в `data-align="left"` + inline-style.
+
+**A4 multi-page preview** (главный UX):
+- Редактор выглядит как стопка настоящих A4-листов (Google Docs / Word), серый canvas фон, белый лист с тенью.
+- Константы: `A4_WIDTH_PX=794`, `A4_HEIGHT_PX=1123`, `A4_CONTENT_HEIGHT_PX=987` (261mm×3.78), `PAGE_MARGIN_TOP_PX=68` (18mm), `PAGE_MARGIN_SIDE_PX=57` (15mm), `PAGE_GAP_PX=24`.
+- `pageCount` считается как `ceil((offsetHeight - TOLERANCE_PX)/987)`. **TOLERANCE_PX=24** критичен: без него пустой ProseMirror с `<p>` и margin'ами 0.4em измеряется как ~1000px → ceil(1000/987)=2, показывает две страницы при старте. С запасом 24 → 1 страница.
+- `ProseMirror` получает `min-height: 920px` (меньше одной полной A4_CONTENT, чтобы пустой редактор точно умещался на первом листе).
+- Пересчёт через `ResizeObserver` на стеке + `editor.onUpdate` + `window resize`, всё обёрнуто в `requestAnimationFrame`.
+- Между листами — метка «— разрыв страницы —» шрифтом JetBrains Mono.
+
+**Интеграция с родителем**:
+- `defineExpose({ insertPlaceholder, insertPageBreak })` — родитель (edit.vue) дёргает вставку в каретку из своего каталога.
+
+#### 4. Каталог плейсхолдеров (главный UX-пивот)
+
+Первая итерация была «таблица key/path/label, админ вписывает руками». Пользователь забраковал: «это кнопки должны быть, а не код». Посмотрел в легаси `clients_contracttemplatefield` (39 строк, модели `Calculation/Employee/Flat/FlatAdditionalCalculation`), переложил на новые пути в `build_context`.
+
+- `frontend/src/utils/placeholderCatalog.ts` — **45 записей** в 8 категориях (Договор / Клиент / Подписант / Квартира / ЖК / Застройщик / Расчёт / Даты). У каждой: короткий `key`, готовый `path` (например `signer.passport.series`), тройной label `{ru, uz, oz}`.
+- Категории-хедеры `CATEGORY_LABELS` тоже тройные.
+- Helpers `groupCatalog()`, `findCatalogEntry(key)`.
+- `__qr__` не в каталоге — это built-in бэка, вставляется через отдельную кнопку QR над редактором.
+
+**Экран редактирования шаблона** (`views/modules/References/contractTemplates/edit.vue`):
+- **Правая колонка** — каталог как грид клик-плиток. Клик = insert `{{key}}` в каретку + регистрация entry в `form.placeholders` если ещё нет. Повторный клик на уже зарегистрированный = просто ещё одна вставка (подсветка зелёным + галочка).
+- **Левая колонка** — редактор + под ним «Использованные плейсхолдеры» как chips с `×` для удаления.
+- **«Расширенные»** (collapsed by default) — ручная таблица key/path/label для нестандартных путей (e.g. JSON-ключи). Сохраняется как часть `placeholders[]`.
+- Валидация: дубликаты ключей блокируются на клиенте, бэк всё равно проверяет.
+- **Правая колонка sticky** (`lg:sticky lg:top-2`) с `max-h: calc(100vh - 6rem)`, каталог внутри `flex-1 min-h-0 overflow-auto` — не уходит за экран.
+
+**Список шаблонов** (`contractTemplates/index.vue`) — стандартный CRUD-list по образцу references/developers. Chip-scope «Глобальный / Только для ЖК» на каждой строке.
+
+#### 5. Загрузка изображений
+
+- Бэк: `POST /api/v1/contract-templates/upload-image/` — новый action на `ContractTemplateViewSet`. Multipart, `file` field. Сохраняет под `media/contract_templates/images/YYYY/MM/<uuid>.ext`. Разрешены PNG/JPG/WebP/GIF/SVG (whitelisted MIME), лимит 5MB. Гейт: superuser OR `references.templates.create` OR `references.templates.edit`.
+- Frontend: `contractTemplatesApi.uploadImage(file) → {url, filename, size, content_type}`, подписан в `RichTextEditor.vue` как prop `imageUploader`.
+- **Критично**: добавлен proxy `/media → backend:8000` в `vite.config.ts`. Без него `<img src="/media/...">` получал 404 от Vite dev-сервера.
+
+#### 6. Docgen: базовый CSS для page-break и img-align
+
+`apps/contracts/services/docgen.py` — префиксит фильтрованный HTML блоком `_BASE_CSS`:
+
+```css
+@page { size: A4; margin: 18mm 15mm; }
+body { font-family: "DejaVu Sans", "Noto Sans", sans-serif; font-size: 11pt; line-height: 1.45; }
+.page-break { break-before: page; page-break-before: always; clear: both; ... }
+img { max-width: 100%; }
+img[data-align="left"] { float: left; margin: 0 14px 6px 0; max-width: 50%; }
+img[data-align="right"] { float: right; margin: 0 0 6px 14px; max-width: 50%; }
+img[data-align="center"] { display: block; margin: 4px auto; float: none; }
+.template-logo, img.logo { max-height: 110px; }
+```
+
+Это гарантирует, что PDF рендерится **точно так же**, как редактор — `data-align` и `page-break` работают одинаково.
+
+#### 7. Три экрана под /contracts/
+
+**`list.vue`** — 3-в-1 (`contracts-unsigned/signed/edit-requests`):
+- Scope из `route.meta.scope`, маппится в backend-фильтр: `unsigned → is_signed=false`, `signed → is_signed=true`, `edit_requests → action=edit`.
+- Фильтры: search (по номеру / клиенту / подписанту / квартире) с 300ms debounce, project dropdown, mortgage chip.
+- Колонки: номер (mono), ЖК, квартира, клиент, дата, сумма (formatted), action-chip, «Открыть».
+
+**`detail.vue`** — 4 таба (Обзор / График / Платежи / Документ):
+- **Обзор**: workflow-секция с кнопками только для легальных переходов (см. `allowedTransitions` — зеркало бэкового `_ALLOWED`), секции «Стороны» / «Финансы» / «Шаблон» / «Описание».
+- **График**: таблица `PaymentSchedule` с chip-статусами. `generateSchedule` **НЕ** обновляет `contract.value` (endpoint возвращает `{count, schedule}`, не Contract — ранний баг: перезапись затирала весь UI до F5).
+- **Платежи**: таблица `Payment`. Fan-out запросов по schedule-id (backend `PaymentViewSet.filterset_fields` только `schedule=exact`, не `__in`).
+- **Документ**: кнопка «Сгенерировать PDF» (блокируется без выбранного шаблона), ссылка на готовый файл.
+
+**`wizard.vue`** — 4-шаговый wizard:
+- Шаг 1: ЖК → квартира (загрузка всех apartments проекта через `buildings → sections → floors → apartments` — fan-out, такой же тех-долг как в shaxmatka).
+- Шаг 2: клиент (search debounce 300ms) → подписант (ClientContact), автовыбор `is_chief`.
+- Шаг 3: расчёт (опционально) → шаблон → сумма/первый взнос/ипотека/описание.
+- Шаг 4: review.
+- Submit → `POST /contracts/` в статусе `request`, без номера (номер минтится на первый `send-to-wait`).
+
+#### 8. Общие UI-улучшения
+
+- **`MoneyInput.vue`** — числовой инпут с разделителями тысяч (`1 250 000,50`), в модели чистый decimal (`1250000.50`). Инпутмод `decimal`. Парсер принимает и `.`, и `,` как десятичный. Подключён в wizard (total_amount, down_payment).
+- **Workflow-кнопки в detail** — показываются **только легальные переходы** (v-if, не :disabled). Primary зарезервирован под «следующий шаг вперёд», soft — под «request edit».
+- **Универсальный `.btn:disabled`** в main.css — раньше только `.btn-primary` имел disabled-стили, остальные варианты выглядели активными. Теперь все получают `opacity-45 pointer-events-none`.
+- **Save в шапке** — на edit.vue шаблона «Сохранить» в правом верхнем углу (sticky-bar снизу был неудобен).
+
+#### 9. PromptDialog (замена window.prompt)
+
+Везде, где был `window.prompt`, сделан кастомный дизайн-системный диалог:
+- `store/prompt.ts` — `usePromptStore().ask({title, message, placeholder, defaultValue, required, multiline})` → `Promise<string | null>`. API зеркало `useConfirmStore`.
+- `components/PromptDialog.vue` — Teleport в body, autofocus, Esc → cancel, Enter → submit (в multiline — Ctrl/Cmd+Enter), блокировка body scroll.
+- Смонтирован в `App.vue` рядом с `ConfirmDialog`.
+- Заменены 4 места: contract detail → «Запросить правку» (multiline, required), RichTextEditor → «Вставить ссылку», Objects/projects/detail.vue + shaxmatka.vue → «Снять бронь» (опциональный комментарий).
+
+#### 10. Диагностированные баги и затычки
+
+- **`generate-schedule` API type mismatch**: endpoint отдаёт `{count, schedule}`, не Contract. Через `runTransition` клал в `contract.value` — всё исчезало до F5. Исправлено: отдельная `genSchedule()`, перегружает только `loadSchedules()` + `loadPayments()`, не трогает `contract.value`.
+- **`pi-bold/italic/underline/strike`** не существуют в PrimeIcons 7 — заменил на текстовые B/I/U/S со стилями.
+- **Page-break не виден в редакторе** (исправлено, но позже убрали как фичу в пользу A4-превью) — оказывалась коллапс `height:0` + scoped-CSS запаздывал при HMR. Запасной вариант: inline-style прямо в `renderHTML` ноды.
+- **Image показывается с alt'ом вместо картинки** — отсутствовал прокси `/media/` в Vite. Добавлен.
+- **A4-превью показывал 2 страницы на пустом редакторе** — margin у `<p>` раздувал `offsetHeight` на ~15px. Исправлено TOLERANCE_PX=24 и min-height ProseMirror=920.
+
+### Не сделано в 5.4
+
+- **Редактирование полей договора** прямо в `detail.vue` (дата, описание, сумма, ипотека-флаг) — PATCH через ModelViewSet уже работает, но UI-inputs отсутствуют. Сейчас только view + workflow + генерация.
+- **Wizard из шахматки** — «создать договор для этой квартиры» через кнопку в side-drawer. Сейчас в wizard надо ручками выбрать ЖК → квартиру заново.
+- **Backend-тесты на upload-image и A4 CSS** — не добавлены. Существующие 288/288 зелёные, но новый endpoint и `_BASE_CSS` без coverage.
+- **Многократные N+1 на wizard** — fan-out загрузки апартаментов проекта. Работает до 5k квартир, для реального объёма (8k+ в легаси) нужен единый endpoint `GET /projects/:id/apartments/` или ленивая подгрузка.
+
+### Что дальше — Фаза 6 (Finance)
+
+- `finance.FinanceRecord` модель: `type` (income/expense), `payment_type` (cash/bank/barter), amount, FK Contract, FK Payment, receipt_number, description, date, FK Cashbox (новая модель).
+- Миграция permissions: `PaymentViewSet` переехать с `contracts.unsigned.*` на `finance.*` (в permission-tree добавить CRUD-подветку).
+- `services/pko.py` — ПКО-генерация через ReportLab + шрифт DejaVuSans + `num2words` (ru/uz).
+- Excel export/import через `openpyxl`.
+- Дашборд по ЖК × месяцам (Chart.js).
+
+---
+
+## Предыдущие сессии
+
+## Предыдущая сессия — 23 апреля 2026 (глубокий вечер)
 
 ### Что сделано
 
@@ -86,8 +235,6 @@
 После 5.4. Перевести `Payment` permissions с `contracts.unsigned` на `finance.*`, добавить `FinanceRecord`, ПКО-генерацию через ReportLab, cashbox.
 
 ---
-
-## Предыдущие сессии
 
 ## Предыдущая сессия — 23 апреля 2026 (вечер)
 

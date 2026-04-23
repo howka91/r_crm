@@ -474,6 +474,167 @@
         "region": "Регионлар",
         "location": "Аҳоли пунктлари"
       }
+    },
+    "contract_templates": {
+      "title": "Шартнома шаблонлари",
+      "subtitle": "PDF автоматик яратиш учун placeholderли HTML шаблонлар",
+      "new": "Янги шаблон",
+      "edit": "Шаблонни таҳрирлаш",
+      "empty": "Ҳали шаблонлар йўқ. Биринчисини яратинг.",
+      "confirm_delete": "Шаблонни ўчириш",
+      "scope_global": "Умумий",
+      "scope_project": "Фақат ушбу ЖК учун",
+      "fields": {
+        "title": "Номи",
+        "project": "ЖК",
+        "project_any": "— Умумий (барча ЖК) —",
+        "body": "Шаблон матни",
+        "placeholders": "Placeholder-лар",
+        "placeholder_key": "Калит",
+        "placeholder_path": "Контекстдаги йўл",
+        "placeholder_label": "Изоҳ"
+      },
+      "body_hint": "Placeholder-ларни toolbar тугмаси орқали ёки қўлда киритинг — `{{калит}}`.",
+      "body_hint_catalog": "Таҳрирлагич А4 варақни кўрсатади. Чизиқли пунктирлар — PDFдаги саҳифа чегаралари. Курсорни керакли жойга қўйинг ва ўнгдаги placeholder тугмаларини босинг.",
+      "insert_placeholder": "Placeholder қўшиш",
+      "insert_qr": "Ҳужжат QR кодини қўшиш",
+      "no_placeholders": "Ҳали бирорта placeholder танланмаган.",
+      "add_placeholder": "Placeholder қўшиш",
+      "placeholders_hint": "Калит — шаблондаги `{{калит}}` каби. Йўл — шартнома контекстида нуқтали мурожаат: contract.*, client.*, signer.*, apartment.*, project.*, developer.*, calculation.*, now, today.",
+      "builtin_qr": "Ички QR код: `<img src=\"{{__qr__}}\">`.",
+      "used_placeholders": "Ишлатилган placeholder-лар",
+      "catalog_title": "Placeholder-лар каталоги",
+      "catalog_hint": "Тугмани босганда `{{калит}}` курсор жойига қўйилади ва автоматик рўйхатга олинади. Қайта босиш мумкин — ўша placeholder яна қўшилади.",
+      "custom_toggle": "Қўшимча",
+      "custom_section": "Фойдаланувчи placeholder-лари",
+      "custom_empty": "Ностандарт йўл керак бўлса — масалан, JSON объектининг майдони — ёзув қўшинг.",
+      "saved": "Шаблон сақланди",
+      "global_forbidden": "Умумий шаблон яратиш ёки таҳрирлаш ҳуқуқи йўқ.",
+      "duplicate_key": "Калит шаблонда такрорланмаслиги керак."
+    }
+  },
+  "contracts": {
+    "title": "Шартномалар",
+    "subtitle": "Қораламадан имзолашгача бўлган ҳаёт цикли",
+    "new": "Янги шартнома",
+    "empty": "Шартномалар ҳали йўқ.",
+    "confirm_delete": "Шартномани ўчириш",
+    "tabs": {
+      "unsigned": "Имзоланмаган",
+      "signed": "Имзоланган",
+      "edit_requests": "Таҳрир сўровлари"
+    },
+    "tabs_titles": {
+      "unsigned": "Имзоланмаган шартномалар",
+      "signed": "Имзоланган шартномалар",
+      "edit_requests": "Таҳрирлаш сўрови бор шартномалар"
+    },
+    "tabs_subtitles": {
+      "unsigned": "Қораламалар, келишувда, тасдиқланганлар — ҳали имзоланмаган",
+      "signed": "Тугатилган шартномалар",
+      "edit_requests": "Менежер таҳрирлаш сўраган шартномалар"
+    },
+    "action": {
+      "request": "Қоралама",
+      "wait": "Келишувда",
+      "edit": "Таҳрирлашда",
+      "approve": "Тасдиқланган",
+      "sign_in": "Имзоланган"
+    },
+    "schedule_status": {
+      "pending": "Кутилмоқда",
+      "partial": "Қисман",
+      "paid": "Тўланган",
+      "overdue": "Муддати ўтган"
+    },
+    "payment_type": {
+      "cash": "Нақд",
+      "bank": "Банк ўтказмаси",
+      "barter": "Бартер"
+    },
+    "columns": {
+      "number": "Рақами",
+      "project": "ЖК",
+      "apartment": "Квартира",
+      "client": "Мижоз",
+      "signer": "Имзоловчи",
+      "date": "Сана",
+      "total": "Сумма",
+      "down": "Биринчи тўлов",
+      "status": "Статус",
+      "author": "Муаллиф",
+      "actions": "Амаллар"
+    },
+    "filters": {
+      "search_placeholder": "Рақам, мижоз, квартира бўйича қидирув…",
+      "project_all": "Барча ЖК",
+      "mortgage_all": "Ҳаммаси",
+      "mortgage_yes": "Ипотека",
+      "mortgage_no": "Ипотекасиз"
+    },
+    "number_draft": "(қоралама)",
+    "fields": {
+      "project": "ЖК",
+      "apartment": "Квартира",
+      "signer": "Имзоловчи (мижоз контакти)",
+      "calculation": "Тўлов ҳисобламаси",
+      "calculation_none": "— Ҳисобламасиз —",
+      "template": "Шартнома шаблони",
+      "template_none": "— Танланмаган —",
+      "date": "Шартнома санаси",
+      "send_date": "Жўнатилган сана",
+      "description": "Таъриф",
+      "related_person": "Қўшимча имзоловчи (эркин матн)",
+      "total_amount": "Шартнома суммаси",
+      "down_payment": "Биринчи тўлов",
+      "payment_methods": "Тўлов усуллари",
+      "is_mortgage": "Ипотека"
+    },
+    "wizard": {
+      "title": "Шартнома яратиш",
+      "step_project": "1-қадам. ЖК ва квартира",
+      "step_client": "2-қадам. Мижоз ва ҳисоблама",
+      "step_money": "3-қадам. Сумма ва шаблон",
+      "step_review": "4-қадам. Текшириш",
+      "select_project": "ЖК-ни танланг",
+      "select_apartment": "Квартирани танланг",
+      "select_signer": "Имзоловчини танланг",
+      "pick_client_first": "Аввал мижозни танланг",
+      "no_calculations": "Квартирада ҳали ҳисобламалар йўқ — ҳисобламасиз давом этинг ёки шахматкада яратинг.",
+      "next": "Кейинги",
+      "prev": "Орқага",
+      "create": "Шартнома яратиш"
+    },
+    "detail": {
+      "back": "Рўйхатга",
+      "tabs": {
+        "overview": "Умумий",
+        "schedule": "Жадвал",
+        "payments": "Тўловлар",
+        "document": "Ҳужжат"
+      },
+      "section_workflow": "Иш оқими",
+      "section_parties": "Томонлар",
+      "section_money": "Молия",
+      "section_description": "Таъриф",
+      "workflow_hint": "Ўтишлар қатъий маршрут бўйича. «Имзоланган»-га ўтиш якуний.",
+      "action_send_to_wait": "Келишувга юбориш",
+      "action_approve": "Тасдиқлаш",
+      "action_sign": "Имзолаш",
+      "action_request_edit": "Таҳрирлашни сўраш",
+      "action_generate_schedule": "Жадвални қайта тузиш",
+      "action_generate_pdf": "PDF яратиш",
+      "pdf_ready": "PDF тайёр",
+      "pdf_download": "PDF юклаб олиш",
+      "no_file": "Файл ҳали яратилмаган",
+      "no_template": "PDF яратиш учун «Шаблон» қисмида шаблонни танланг.",
+      "confirm_sign": "Шартномани имзолайсизми? Бу ўтиш якуний.",
+      "confirm_request_edit": "Таҳрирлаш сўрови сабабини киритинг:",
+      "request_edit_placeholder": "Мисол: мижоз реквизитларини аниқлаштириш, суммани тузатиш…",
+      "schedule_empty": "Жадвал ҳали тузилмаган. «Жадвални қайта тузиш»-га босинг.",
+      "payments_empty": "Бу шартнома бўйича тўловлар ҳали йўқ.",
+      "signed_immutable": "Шартнома имзоланган — бизнес таҳрирлаш блокланган.",
+      "transition_forbidden": "Жорий статусдан ўтиш мумкин эмас."
     }
   }
 }

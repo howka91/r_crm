@@ -445,3 +445,162 @@ export type LookupTypeSlug =
   | "payment-in-percent"
   | "region"
   | "location"
+
+// --- Contracts ------------------------------------------------------------
+// Mirrors backend models in apps.contracts.models.
+
+/** Declared placeholder on a ContractTemplate. `key` is written as `{{key}}`
+ * inside the HTML body; `path` is a dotted lookup resolved against the
+ * Contract context tree (e.g. "client.full_name", "apartment.number"). */
+export interface TemplatePlaceholder {
+  key: string
+  path: string
+  label?: string
+}
+
+export interface ContractTemplate extends TimeStamped {
+  id: number
+  title: string
+  /** HTML body saved by Tiptap — placeholders as `{{key}}`. */
+  body: string
+  placeholders: TemplatePlaceholder[]
+  /** FK Project.id, or null for a global template. */
+  project: number | null
+  /** Read-only — Project.title i18n text joined by the serializer. */
+  project_title: I18nText | null
+  is_global: boolean
+  author: string | null
+  is_active: boolean
+}
+
+export type ContractTemplateWrite = Omit<
+  ContractTemplate,
+  "id" | "created_at" | "modified_at" | "project_title" | "is_global"
+>
+
+/** Stable string enum mirroring `Contract.Action.values`. */
+export type ContractAction =
+  | "request"
+  | "wait"
+  | "edit"
+  | "approve"
+  | "sign_in"
+
+export interface Contract extends TimeStamped {
+  id: number
+
+  // Links.
+  project: number
+  /** Read-only — `project.title` joined in. */
+  project_title: I18nText | null
+  apartment: number
+  /** Read-only — `apartment.number` joined in. */
+  apartment_number: string | null
+  calculation: number | null
+  /** FK ClientContact — actual client is reached via `signer.client`. */
+  signer: number
+  /** Read-only — `signer.full_name` joined in. */
+  signer_name: string | null
+  /** Read-only — `signer.client_id` joined in. */
+  client_id: number | null
+  /** Read-only — `signer.client.full_name` joined in. */
+  client_name: string | null
+  author: string | null
+  /** Read-only — `author.full_name` joined in. */
+  author_name: string | null
+  template: number | null
+
+  // Core data.
+  contract_number: string
+  date: string
+  send_date: string | null
+  related_person: string
+  description: string
+
+  // Money (Decimal strings from DRF).
+  total_amount: string
+  down_payment: string
+
+  // Array of PaymentMethod IDs.
+  payment_methods: number[]
+
+  // Workflow (read-only; transitions go through dedicated endpoints).
+  action: ContractAction
+  is_signed: boolean
+  is_paid: boolean
+  is_mortgage: boolean
+
+  // Snapshots — JSON payloads captured at docgen-time.
+  requisite: Record<string, unknown>
+  document: Record<string, unknown>
+  old: Array<Record<string, unknown>>
+  file: string | null
+  qr: string | null
+
+  is_active: boolean
+}
+
+export type ContractWrite = Omit<
+  Contract,
+  | "id"
+  | "created_at"
+  | "modified_at"
+  | "project_title"
+  | "apartment_number"
+  | "signer_name"
+  | "client_id"
+  | "client_name"
+  | "author_name"
+  | "action"
+  | "is_signed"
+  | "is_paid"
+  | "file"
+  | "qr"
+  | "old"
+>
+
+export type PaymentScheduleStatus =
+  | "pending"
+  | "partial"
+  | "paid"
+  | "overdue"
+
+export interface PaymentSchedule extends TimeStamped {
+  id: number
+  contract: number
+  due_date: string
+  amount: string
+  paid_amount: string
+  /** Read-only — computed `max(0, amount - paid_amount)`. */
+  debt: string
+  status: PaymentScheduleStatus
+  is_active: boolean
+}
+
+export type PaymentScheduleWrite = Omit<
+  PaymentSchedule,
+  "id" | "created_at" | "modified_at" | "paid_amount" | "debt"
+>
+
+export type PaymentChannel = "cash" | "bank" | "barter"
+
+export interface Payment extends TimeStamped {
+  id: number
+  schedule: number
+  /** Read-only — schedule.contract_id joined in. */
+  contract_id: number | null
+  amount: string
+  payment_type: PaymentChannel
+  paid_at: string
+  recorded_by: string | null
+  /** Read-only — recorded_by.full_name joined in. */
+  recorded_by_name: string | null
+  receipt_number: string
+  comment: string
+  is_active: boolean
+}
+
+export type PaymentWrite = Omit<
+  Payment,
+  "id" | "created_at" | "modified_at" | "contract_id" | "recorded_by_name"
+>

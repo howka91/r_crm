@@ -24,8 +24,16 @@ path.
 """
 from __future__ import annotations
 
+import os
+import uuid
+from datetime import date as _date_today
+
+from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -318,6 +326,101 @@ class ContractTemplateViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
         if blocked is not None:
             return blocked
         return super().partial_update(request, *args, **kwargs)
+
+    # --- Image upload for logos / inline pictures ------------------------
+    #
+    # Returns a URL the Tiptap editor drops into an <img src="...">. Files
+    # live under MEDIA_ROOT/contract_templates/images/YYYY/MM/ with a uuid
+    # name to avoid collisions and make purging predictable. Permitted
+    # content types are locked to a small image whitelist — SVG is allowed
+    # (WeasyPrint renders it natively and <img src> in the editor treats
+    # it as a picture, no script execution).
+
+    _IMAGE_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+    _IMAGE_ALLOWED_MIMES = {
+        "image/png": ".png",
+        "image/jpeg": ".jpg",
+        "image/webp": ".webp",
+        "image/svg+xml": ".svg",
+        "image/gif": ".gif",
+    }
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="upload-image",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def upload_image(self, request: Request) -> Response:
+        # Permission: anyone who may create *or* edit templates. Gating via
+        # get_permissions + _ACTION_SUFFIX would fit only one of the two;
+        # checking both explicitly is simpler and accurate.
+        from apps.core.permissions import check as perm_check
+
+        role = getattr(request.user, "role", None)
+        perms = getattr(role, "permissions", None)
+        allowed = (
+            request.user.is_superuser
+            or perm_check(perms, "references.templates.create")
+            or perm_check(perms, "references.templates.edit")
+        )
+        if not allowed:
+            return Response(
+                {"detail": "Недостаточно прав для загрузки изображений."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        upload = request.FILES.get("file")
+        if upload is None:
+            return Response(
+                {"detail": "Ожидался файл в поле `file`."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        mime = (getattr(upload, "content_type", "") or "").lower()
+        ext = self._IMAGE_ALLOWED_MIMES.get(mime)
+        if ext is None:
+            return Response(
+                {
+                    "detail": (
+                        f"Неподдерживаемый тип файла: {mime or 'unknown'}. "
+                        "Допустимы PNG, JPG, WebP, GIF, SVG."
+                    ),
+                    "code": "unsupported_media_type",
+                },
+                status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            )
+
+        if upload.size > self._IMAGE_MAX_BYTES:
+            return Response(
+                {
+                    "detail": "Файл слишком большой (лимит 5 МБ).",
+                    "code": "file_too_large",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        today = _date_today.today()
+        rel_dir = os.path.join(
+            "contract_templates", "images",
+            f"{today.year:04d}", f"{today.month:02d}",
+        )
+        filename = f"{uuid.uuid4().hex}{ext}"
+        rel_path = os.path.join(rel_dir, filename)
+
+        saved_path = default_storage.save(
+            rel_path, ContentFile(upload.read()),
+        )
+        url = settings.MEDIA_URL.rstrip("/") + "/" + saved_path.replace(os.sep, "/")
+        return Response(
+            {
+                "url": url,
+                "filename": filename,
+                "size": upload.size,
+                "content_type": mime,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class PaymentScheduleViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):

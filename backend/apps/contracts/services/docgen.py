@@ -135,6 +135,45 @@ def _substitute(body: str, values: dict[str, str]) -> tuple[str, list[str]]:
     return _PLACEHOLDER_RE.sub(_repl, body), unknown
 
 
+# Base CSS injected before the template body so every template renders
+# consistently — regardless of what the admin typed. Keeps page-break
+# semantics in one place (editor + PDF must agree) and caps images so a
+# giant logo can't push layout off the page.
+_BASE_CSS = """
+<style>
+  @page { size: A4; margin: 18mm 15mm; }
+  body { font-family: "DejaVu Sans", "Noto Sans", sans-serif; font-size: 11pt; line-height: 1.45; }
+  .page-break {
+    break-before: page;
+    page-break-before: always;
+    clear: both;
+    height: 0;
+    border: 0;
+    margin: 0;
+    padding: 0;
+  }
+  img { max-width: 100%; }
+  img[data-align="left"] {
+    float: left;
+    margin: 0 14px 6px 0;
+    max-width: 50%;
+  }
+  img[data-align="right"] {
+    float: right;
+    margin: 0 0 6px 14px;
+    max-width: 50%;
+  }
+  img[data-align="center"] {
+    display: block;
+    margin: 4px auto;
+    float: none;
+  }
+  .template-logo, img.logo { max-height: 110px; }
+  table { border-collapse: collapse; }
+</style>
+"""
+
+
 def _render_pdf(html: str) -> bytes:
     """Run HTML through WeasyPrint, return PDF bytes.
 
@@ -146,7 +185,9 @@ def _render_pdf(html: str) -> bytes:
     # Local import on purpose — see docstring.
     from weasyprint import HTML  # type: ignore[import-not-found]
 
-    return HTML(string=html).write_pdf()
+    # Prepend the shared base stylesheet so .page-break / image sizing
+    # work in every template without the admin adding boilerplate CSS.
+    return HTML(string=_BASE_CSS + html).write_pdf()
 
 
 # --- Public entry point -------------------------------------------------

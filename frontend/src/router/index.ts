@@ -12,6 +12,7 @@ import { usePermissionStore } from "@/store/permissions"
 
 import administrationRoutes from "./administration"
 import clientsRoutes from "./clients"
+import contractsRoutes from "./contracts"
 import objectsRoutes from "./objects"
 import referencesRoutes from "./references"
 
@@ -49,6 +50,7 @@ const routes: RouteRecordRaw[] = [
       },
       ...objectsRoutes,
       ...clientsRoutes,
+      ...contractsRoutes,
       ...referencesRoutes,
       ...administrationRoutes,
     ],

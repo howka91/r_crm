@@ -27,6 +27,7 @@ import {
 } from "@/api/objects"
 import { lookupsApi } from "@/api/references"
 import { usePermissionStore } from "@/store/permissions"
+import { usePromptStore } from "@/store/prompt"
 import type {
   Apartment,
   ApartmentStatus,
@@ -44,6 +45,7 @@ const props = defineProps<{ id: string | number }>()
 
 const { t, locale } = useI18n()
 const permissions = usePermissionStore()
+const promptStore = usePromptStore()
 const router = useRouter()
 
 const projectId = computed(() => Number(props.id))
@@ -234,8 +236,13 @@ async function doBook() {
 
 async function doRelease() {
   if (!drawerApt.value) return
-  const comment =
-    prompt(t("objects.apartments.comment") + " (опц.)", "") || ""
+  const comment = await promptStore.ask({
+    title: t("objects.apartments.release"),
+    message: t("objects.apartments.comment") + " (опц.)",
+    multiline: true,
+    required: false,
+  })
+  if (comment === null) return
   try {
     await apartmentsApi.release(drawerApt.value.id, comment)
     await reloadDrawer()

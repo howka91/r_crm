@@ -36,6 +36,27 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/views/modules/References/lookups/index.vue"),
     meta: { permission: "references.lookups.view" },
   },
+  {
+    path: "references/contract-templates",
+    name: "references-contract-templates",
+    component: () =>
+      import("@/views/modules/References/contractTemplates/index.vue"),
+    meta: { permission: "references.templates.view" },
+  },
+  {
+    path: "references/contract-templates/new",
+    name: "references-contract-templates-new",
+    component: () =>
+      import("@/views/modules/References/contractTemplates/edit.vue"),
+    meta: { permission: "references.templates.create" },
+  },
+  {
+    path: "references/contract-templates/:id(\\d+)",
+    name: "references-contract-templates-edit",
+    component: () =>
+      import("@/views/modules/References/contractTemplates/edit.vue"),
+    meta: { permission: "references.templates.edit" },
+  },
 ]
 
 export default routes

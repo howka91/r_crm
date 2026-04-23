@@ -35,7 +35,8 @@ const references: NavGroup = {
     {
       titleKey: "nav.references_contract_templates",
       icon: "pi-clipboard",
-      disabled: true,
+      to: "/references/contract-templates",
+      permission: "references.templates.view",
     },
   ],
 }

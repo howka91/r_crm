@@ -25,6 +25,7 @@ import {
   sectionsApi,
 } from "@/api/objects"
 import { useConfirmStore } from "@/store/confirm"
+import { usePromptStore } from "@/store/prompt"
 import { usePermissionStore } from "@/store/permissions"
 import { useToastStore } from "@/store/toast"
 import type {
@@ -48,6 +49,7 @@ const { t, locale } = useI18n()
 const permissions = usePermissionStore()
 const toast = useToastStore()
 const confirmStore = useConfirmStore()
+const promptStore = usePromptStore()
 const router = useRouter()
 
 /** Formats an Axios/network error into a compact toast body. */
@@ -432,7 +434,13 @@ function openBookModal(a: Apartment) {
 }
 
 async function doRelease(a: Apartment) {
-  const comment = prompt(t("objects.apartments.comment") + " (опц.)", "") || ""
+  const comment = await promptStore.ask({
+    title: t("objects.apartments.release"),
+    message: t("objects.apartments.comment") + " (опц.)",
+    multiline: true,
+    required: false,
+  })
+  if (comment === null) return
   try {
     await apartmentsApi.release(a.id, comment)
     toast.success(t("objects.apartments.release"))
