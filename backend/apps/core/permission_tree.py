@@ -95,6 +95,9 @@ PERMISSION_TREE: list[PermissionNode] = [
                     {"key": "contracts.unsigned.delete", "label": _label("Удалить", "O'chirish", "Ўчириш")},
                     {"key": "contracts.unsigned.send_to_wait", "label": _label("Отправить на согласование", "Kelishuvga yuborish", "Келишувга юбориш")},
                     {"key": "contracts.unsigned.approve", "label": _label("Утвердить", "Tasdiqlash", "Тасдиқлаш")},
+                    {"key": "contracts.unsigned.sign", "label": _label("Подписать", "Imzolash", "Имзолаш")},
+                    {"key": "contracts.unsigned.request_edit", "label": _label("Вернуть на доработку", "Qaytarib yuborish", "Қайтариб юбориш")},
+                    {"key": "contracts.unsigned.generate_schedule", "label": _label("Сгенерировать график", "Jadvalni yaratish", "Жадвални яратиш")},
                 ],
             },
             {

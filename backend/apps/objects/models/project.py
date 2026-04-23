@@ -36,6 +36,15 @@ class Project(BaseModel):
         default=0,
         help_text=_("Последний выданный порядковый номер договора в рамках ЖК."),
     )
+    contract_number_prefix = models.CharField(
+        _("Префикс номера договора"),
+        max_length=10,
+        blank=True,
+        default="",
+        help_text=_(
+            "Пример: «ЯМ» → ЯМ-00001. Пусто — выдаём только номер без префикса."
+        ),
+    )
 
     sort = models.PositiveSmallIntegerField(
         _("Порядок"), default=0, db_index=True,
