@@ -15,9 +15,15 @@ const smsReportsAdmin: NavGroup = {
     { titleKey: "nav.reports", icon: "pi-file-pdf", disabled: true },
     {
       titleKey: "nav.admin_users",
-      icon: "pi-cog",
+      icon: "pi-users",
       to: "/admin/users",
       permission: "administration.users.view",
+    },
+    {
+      titleKey: "nav.admin_permissions",
+      icon: "pi-shield",
+      to: "/admin/roles",
+      permission: "administration.roles.view",
     },
   ],
 }

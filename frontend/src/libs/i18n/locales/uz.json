@@ -32,8 +32,8 @@
     "sms_manual": "SMS yuborish",
     "sms_auto": "Avtomatik yuborish",
     "administration": "Boshqaruv",
-    "admin_users": "Foydalanuvchilar va huquqlar",
-    "admin_permissions": "Huquqlar",
+    "admin_users": "Foydalanuvchilar",
+    "admin_permissions": "Rollar va huquqlar",
     "reports": "Hisobotlar"
   },
   "topbar": {

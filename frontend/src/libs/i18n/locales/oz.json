@@ -32,8 +32,8 @@
     "sms_manual": "СМС юбориш",
     "sms_auto": "Автоматик юбориш",
     "administration": "Бошқарув",
-    "admin_users": "Фойдаланувчилар ва ҳуқуқлар",
-    "admin_permissions": "Ҳуқуқлар",
+    "admin_users": "Фойдаланувчилар",
+    "admin_permissions": "Роллар ва ҳуқуқлар",
     "reports": "Ҳисоботлар"
   },
   "topbar": {

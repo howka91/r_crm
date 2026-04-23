@@ -32,8 +32,8 @@
     "sms_manual": "Отправка SMS",
     "sms_auto": "Авто отправка",
     "administration": "Администрация",
-    "admin_users": "Пользователи и права",
-    "admin_permissions": "Разрешения",
+    "admin_users": "Пользователи",
+    "admin_permissions": "Роли и разрешения",
     "reports": "Отчёты"
   },
   "topbar": {
