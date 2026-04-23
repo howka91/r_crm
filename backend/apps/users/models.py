@@ -24,32 +24,24 @@ phone_validator = RegexValidator(
 # --- Role ------------------------------------------------------------------
 
 
-class PaymentType(models.TextChoices):
-    """Mirror of old `Role.is_payment_bank/cash/barter`, now as an enum list
-    stored inside `Role.allowed_payment_types` JSON."""
-
-    BANK = "bank", _("Банк")
-    CASH = "cash", _("Наличные")
-    BARTER = "barter", _("Бартер")
-
-
 class Role(models.Model):
     """A named bundle of permissions that can be assigned to one or more Staff.
 
     `permissions` is a flat `{dotted_key: bool}` dict whose keys must all appear
     in `apps.core.permission_tree.PERMISSION_TREE`. See `apps.core.permissions`
     for check semantics (parent-off-disables-children).
+
+    Previously we carried a separate `allowed_payment_types: list[str]` field
+    for the bank/cash/barter toggles used by finance. That introduced dual
+    modeling (two sources of truth on one role). They're now plain nodes in
+    the permission tree under `finance.payment_types.*` — one JSON dict,
+    one UI treatment, one semantics.
     """
 
     name = I18nField(verbose_name=_("Название"))
     # Short, unique, latin-only code for the role (used in logs, URLs).
     code = models.SlugField(_("Код"), max_length=64, unique=True)
     permissions = models.JSONField(_("Разрешения"), default=dict)
-    allowed_payment_types = models.JSONField(
-        _("Разрешённые типы оплаты"),
-        default=list,
-        help_text=_("Список: bank / cash / barter"),
-    )
     is_active = models.BooleanField(_("Активна"), default=True, db_index=True)
     created_at = models.DateTimeField(_("Создано"), auto_now_add=True)
     modified_at = models.DateTimeField(_("Изменено"), auto_now=True)

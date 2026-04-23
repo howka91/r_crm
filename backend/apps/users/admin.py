@@ -13,7 +13,7 @@ class RoleAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "modified_at")
     fieldsets = (
         (None, {"fields": ("code", "name", "is_active")}),
-        ("Права", {"fields": ("permissions", "allowed_payment_types")}),
+        ("Права", {"fields": ("permissions",)}),
         ("Метаданные", {"fields": ("created_at", "modified_at")}),
     )
 

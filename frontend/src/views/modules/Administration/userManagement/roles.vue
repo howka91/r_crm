@@ -29,7 +29,6 @@ const form = reactive<RoleWritePayload>({
   code: "",
   name: { ru: "", uz: "", oz: "" },
   permissions: {},
-  allowed_payment_types: [],
   is_active: true,
 })
 
@@ -47,7 +46,6 @@ function resetForm() {
   form.code = ""
   form.name = { ru: "", uz: "", oz: "" }
   form.permissions = {}
-  form.allowed_payment_types = []
   form.is_active = true
 }
 

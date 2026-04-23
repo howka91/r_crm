@@ -1,7 +1,11 @@
 <script setup lang="ts">
 /**
- * Role detail — edit permission tree + allowed payment types.
- * Mirrors `yangi-mahalla-main/src/views/modules/Administration/userManagement/roleView.vue`.
+ * Role detail — edit the full permission tree.
+ *
+ * The tree is the single source of truth for what a role can do; the
+ * previous separate "Разрешённые типы оплаты" card was folded into
+ * `finance.payment_types.{bank,cash,barter}` tree nodes (see migration
+ * users/0005).
  */
 import { AxiosError } from "axios"
 import { computed, onMounted, provide, ref } from "vue"
@@ -21,7 +25,6 @@ const permissions = usePermissionStore()
 
 const role = ref<Role | null>(null)
 const perms = ref<Record<string, boolean>>({})
-const paymentTypes = ref<string[]>([])
 const saving = ref(false)
 const saveError = ref<string | null>(null)
 
@@ -49,19 +52,12 @@ function collapseAll() {
   expandedKeys.value = new Set()
 }
 
-const paymentTypeOptions = [
-  { value: "bank", label: "Банк" },
-  { value: "cash", label: "Наличные" },
-  { value: "barter", label: "Бартер" },
-]
-
 const roleId = computed(() => Number(route.params.id))
 
 async function load() {
   const r = await roleApi.retrieve(roleId.value)
   role.value = r
   perms.value = { ...r.permissions }
-  paymentTypes.value = [...r.allowed_payment_types]
 
   // Permission tree comes from the shared store.
   await permissions.loadTree()
@@ -74,7 +70,6 @@ async function save() {
   try {
     const updated = await roleApi.update(role.value.id, {
       permissions: perms.value,
-      allowed_payment_types: paymentTypes.value as ("bank" | "cash" | "barter")[],
     })
     role.value = updated
     perms.value = { ...updated.permissions }
@@ -90,15 +85,6 @@ async function save() {
         : t("errors.unknown")
   } finally {
     saving.value = false
-  }
-}
-
-function togglePaymentType(value: string, event: Event) {
-  const checked = (event.target as HTMLInputElement).checked
-  if (checked) {
-    if (!paymentTypes.value.includes(value)) paymentTypes.value.push(value)
-  } else {
-    paymentTypes.value = paymentTypes.value.filter((v) => v !== value)
   }
 }
 
@@ -121,25 +107,6 @@ onMounted(load)
         </button>
       </div>
     </div>
-
-    <!-- Payment types -->
-    <section class="card p-5">
-      <h2 class="font-semibold mb-3">Разрешённые типы оплаты</h2>
-      <div class="flex gap-4">
-        <label
-          v-for="pt in paymentTypeOptions"
-          :key="pt.value"
-          class="inline-flex items-center gap-2 text-sm"
-        >
-          <input
-            type="checkbox"
-            :checked="paymentTypes.includes(pt.value)"
-            @change="togglePaymentType(pt.value, $event)"
-          />
-          {{ pt.label }}
-        </label>
-      </div>
-    </section>
 
     <!-- Permission tree -->
     <section class="card p-5">

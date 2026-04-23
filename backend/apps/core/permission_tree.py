@@ -131,6 +131,15 @@ PERMISSION_TREE: list[PermissionNode] = [
             {"key": "finance.export", "label": _label("Экспорт", "Eksport", "Экспорт")},
             {"key": "finance.import", "label": _label("Импорт", "Import", "Импорт")},
             {"key": "finance.charts", "label": _label("Показатели / графики", "Ko'rsatkichlar", "Кўрсаткичлар")},
+            {
+                "key": "finance.payment_types",
+                "label": _label("Разрешённые типы оплаты", "Ruxsat etilgan to'lov turlari", "Рухсат этилган тўлов турлари"),
+                "children": [
+                    {"key": "finance.payment_types.bank", "label": _label("Банк", "Bank", "Банк")},
+                    {"key": "finance.payment_types.cash", "label": _label("Наличные", "Naqd", "Нақд")},
+                    {"key": "finance.payment_types.barter", "label": _label("Бартер", "Barter", "Бартер")},
+                ],
+            },
         ],
     },
     # --- ОБЪЕКТЫ (УЧЁТ) ---

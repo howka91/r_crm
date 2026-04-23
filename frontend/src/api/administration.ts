@@ -51,7 +51,6 @@ export interface RoleWritePayload {
   code: string
   name: { ru: string; uz: string; oz: string }
   permissions: Record<string, boolean>
-  allowed_payment_types: string[]
   is_active?: boolean
 }
 

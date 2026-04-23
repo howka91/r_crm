@@ -13,7 +13,6 @@ class RoleFactory(DjangoModelFactory):
     code = factory.Sequence(lambda n: f"role-{n}")
     name = {"ru": "Тест", "uz": "Test", "oz": "Тест"}
     permissions = factory.LazyFunction(lambda: default_permissions(False))
-    allowed_payment_types = factory.LazyFunction(list)
 
 
 class StaffFactory(DjangoModelFactory):

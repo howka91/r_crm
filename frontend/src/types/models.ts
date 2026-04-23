@@ -11,8 +11,6 @@ export type I18nText = Record<Locale, string>
 
 export type Theme = "light" | "dark"
 
-export type PaymentType = "bank" | "cash" | "barter"
-
 // --- Permission tree (from /permissions/tree/) ----------------------------
 
 export interface PermissionNode {
@@ -28,7 +26,6 @@ export interface Role {
   code: string
   name: I18nText
   permissions: Record<string, boolean>
-  allowed_payment_types: PaymentType[]
   is_active: boolean
   created_at: string
   modified_at: string
@@ -39,7 +36,6 @@ export interface RoleBrief {
   code: string
   name: I18nText
   permissions: Record<string, boolean>
-  allowed_payment_types: PaymentType[]
 }
 
 // --- Staff ----------------------------------------------------------------

@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.core.permission_tree import all_permission_keys
-from apps.users.models import PaymentType, Role, Staff
+from apps.users.models import Role, Staff
 
 
 # --- Role -------------------------------------------------------------------
@@ -20,23 +20,11 @@ class RoleSerializer(serializers.ModelSerializer):
             "code",
             "name",
             "permissions",
-            "allowed_payment_types",
             "is_active",
             "created_at",
             "modified_at",
         ]
         read_only_fields = ("id", "created_at", "modified_at")
-
-    def validate_allowed_payment_types(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Должен быть список.")
-        valid = {t.value for t in PaymentType}
-        invalid = [v for v in value if v not in valid]
-        if invalid:
-            raise serializers.ValidationError(
-                f"Недопустимые значения: {invalid}. Разрешены: {sorted(valid)}."
-            )
-        return value
 
     def validate_permissions(self, value):
         if not isinstance(value, dict):
@@ -61,7 +49,7 @@ class RoleBriefSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Role
-        fields = ("id", "code", "name", "permissions", "allowed_payment_types")
+        fields = ("id", "code", "name", "permissions")
 
 
 # --- Staff ------------------------------------------------------------------
