@@ -45,6 +45,7 @@ def _permissions_for(base: str, action: str | None) -> list:
 
 
 class DeveloperViewSet(viewsets.ModelViewSet):
+    schema_tags = ["Справочники"]
     queryset = Developer.objects.all()
     serializer_class = DeveloperSerializer
     filterset_fields = ("is_active",)
@@ -55,6 +56,7 @@ class DeveloperViewSet(viewsets.ModelViewSet):
 
 
 class SalesOfficeViewSet(viewsets.ModelViewSet):
+    schema_tags = ["Справочники"]
     queryset = SalesOffice.objects.all()
     serializer_class = SalesOfficeSerializer
     filterset_fields = ("is_active",)
@@ -65,6 +67,7 @@ class SalesOfficeViewSet(viewsets.ModelViewSet):
 
 
 class CurrencyViewSet(viewsets.ModelViewSet):
+    schema_tags = ["Справочники"]
     queryset = Currency.objects.all()
     serializer_class = CurrencySerializer
     filterset_fields = ("is_active",)
@@ -96,6 +99,7 @@ def make_lookup_viewset(model_cls: type) -> type[viewsets.ModelViewSet]:
             "serializer_class": serializer_cls,
             "filterset_fields": ("is_active",),
             "get_permissions": get_permissions,
+            "schema_tags": ["Справочники"],
         },
     )
 

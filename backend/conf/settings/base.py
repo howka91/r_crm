@@ -148,7 +148,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 25,
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "apps.core.schema.TaggedAutoSchema",
 }
 
 # --- JWT ---
@@ -171,6 +171,18 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
+    # Swagger UI group order. Tags referenced by views but missing from this
+    # list still render — just at the bottom, alphabetical.
+    "TAGS": [
+        {"name": "Авторизация", "description": "Вход, обновление токена, выход, текущий пользователь."},
+        {"name": "Разрешения", "description": "Дерево permission-ключей для role-editor."},
+        {"name": "Сотрудники", "description": "Staff и Role: CRUD + reset-password."},
+        {"name": "Справочники", "description": "Developer / SalesOffice / Currency + 13 классификаторов."},
+        {"name": "Объекты", "description": "Project → Building → Section → Floor → Apartment и ценообразование."},
+        {"name": "Клиенты", "description": "Client, ClientContact, Requisite, статусы и группы."},
+        {"name": "Договоры", "description": "Contract, ContractTemplate, PaymentSchedule, Payment + workflow."},
+        {"name": "Служебное", "description": "Health-check и прочие вспомогательные endpoints."},
+    ],
 }
 
 # --- CORS ---

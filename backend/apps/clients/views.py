@@ -44,6 +44,7 @@ def _permissions_for(base: str, action: str | None) -> list:
 
 
 class ClientStatusViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Клиенты"]
     queryset = ClientStatus.objects.all()
     serializer_class = ClientStatusSerializer
     filterset_fields = ("is_active",)
@@ -53,6 +54,7 @@ class ClientStatusViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 
 class ClientGroupViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Клиенты"]
     queryset = ClientGroup.objects.all()
     serializer_class = ClientGroupSerializer
     filterset_fields = ("is_active",)
@@ -62,6 +64,7 @@ class ClientGroupViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 
 class ClientViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Клиенты"]
     queryset = (
         Client.objects
         .select_related("manager", "status")
@@ -77,6 +80,7 @@ class ClientViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 
 class ClientContactViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Клиенты"]
     queryset = ClientContact.objects.select_related("client").all()
     serializer_class = ClientContactSerializer
     filterset_fields = ("is_active", "client", "is_chief")
@@ -87,6 +91,7 @@ class ClientContactViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 
 class RequisiteViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Клиенты"]
     queryset = Requisite.objects.select_related("client").all()
     serializer_class = RequisiteSerializer
     filterset_fields = ("is_active", "client", "type")

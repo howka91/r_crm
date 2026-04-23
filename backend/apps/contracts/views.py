@@ -79,6 +79,7 @@ class ContractViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
     5.2 the signed-view will get its own filtered endpoint.
     """
 
+    schema_tags = ["Договоры"]
     queryset = (
         Contract.objects
         .select_related(
@@ -210,6 +211,7 @@ class ContractViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 
 class ContractTemplateViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Договоры"]
     queryset = ContractTemplate.objects.select_related("author").all()
     serializer_class = ContractTemplateSerializer
     filterset_fields = ("is_active",)
@@ -220,6 +222,7 @@ class ContractTemplateViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 
 class PaymentScheduleViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Договоры"]
     queryset = PaymentSchedule.objects.select_related("contract").all()
     serializer_class = PaymentScheduleSerializer
     filterset_fields = ("is_active", "contract", "status")
@@ -230,6 +233,7 @@ class PaymentScheduleViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 
 class PaymentViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Договоры"]
     queryset = Payment.objects.select_related(
         "schedule", "schedule__contract", "recorded_by",
     ).all()

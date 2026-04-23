@@ -29,6 +29,7 @@ Staff = get_user_model()
 
 
 class LoginView(APIView):
+    schema_tags = ["Авторизация"]
     permission_classes = (AllowAny,)
     authentication_classes = ()
 
@@ -45,6 +46,7 @@ class LoginView(APIView):
 class RefreshView(TokenRefreshView):
     """Re-export simplejwt's refresh view under our URL."""
 
+    schema_tags = ["Авторизация"]
     permission_classes = (AllowAny,)
     authentication_classes = ()
 
@@ -52,6 +54,7 @@ class RefreshView(TokenRefreshView):
 class LogoutView(APIView):
     """Blacklist the caller's refresh token so it can't be used again."""
 
+    schema_tags = ["Авторизация"]
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(
@@ -77,6 +80,7 @@ class LogoutView(APIView):
 class MeView(APIView):
     """Return the current authenticated staff profile."""
 
+    schema_tags = ["Авторизация"]
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(responses=StaffSerializer)
@@ -90,6 +94,7 @@ class MeView(APIView):
 class PermissionTreeView(APIView):
     """Return the full hardcoded permission tree (for role-editor UI)."""
 
+    schema_tags = ["Разрешения"]
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(responses={200: OpenApiResponse(description="Permission tree")})
@@ -101,6 +106,7 @@ class PermissionTreeView(APIView):
 
 
 class RoleViewSet(viewsets.ModelViewSet):
+    schema_tags = ["Сотрудники"]
     queryset = Role.objects.all().order_by("code")
     serializer_class = RoleSerializer
     filterset_fields = ("is_active",)
@@ -122,6 +128,7 @@ class RoleViewSet(viewsets.ModelViewSet):
 
 
 class StaffViewSet(viewsets.ModelViewSet):
+    schema_tags = ["Сотрудники"]
     queryset = Staff.objects.all().select_related("role")
     serializer_class = StaffSerializer
     filterset_fields = ("is_active", "role", "language")

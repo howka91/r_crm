@@ -80,6 +80,7 @@ def _permissions_for(base: str, action: str | None) -> list:
 
 
 class ProjectViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Объекты"]
     queryset = Project.objects.select_related("developer").all()
     serializer_class = ProjectSerializer
     filterset_fields = ("is_active", "developer")
@@ -90,6 +91,7 @@ class ProjectViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 
 class BuildingViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Объекты"]
     queryset = Building.objects.select_related("project").all()
     serializer_class = BuildingSerializer
     filterset_fields = ("is_active", "project")
@@ -100,6 +102,7 @@ class BuildingViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 
 class SectionViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Объекты"]
     queryset = Section.objects.select_related("building", "building__project").all()
     serializer_class = SectionSerializer
     filterset_fields = ("is_active", "building")
@@ -171,6 +174,7 @@ class SectionViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 
 class FloorViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Объекты"]
     queryset = Floor.objects.select_related("section", "section__building").all()
     serializer_class = FloorSerializer
     filterset_fields = ("is_active", "section")
@@ -231,6 +235,7 @@ class FloorViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 
 class ApartmentViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Объекты"]
     queryset = (
         Apartment.objects
         .select_related("floor", "floor__section", "floor__section__building")
@@ -386,6 +391,7 @@ class ApartmentStatusLogViewSet(viewsets.ReadOnlyModelViewSet):
     """Read-only log access. Scoped under the apartment view permission —
     if you can see an apartment, you can see its log."""
 
+    schema_tags = ["Объекты"]
     queryset = (
         ApartmentStatusLog.objects
         .select_related("apartment", "changed_by")
@@ -402,6 +408,7 @@ class ApartmentStatusLogViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class PaymentPlanViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Объекты"]
     queryset = PaymentPlan.objects.select_related("project").all()
     serializer_class = PaymentPlanSerializer
     filterset_fields = ("is_active", "project")
@@ -411,6 +418,7 @@ class PaymentPlanViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 
 class DiscountRuleViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Объекты"]
     queryset = (
         DiscountRule.objects
         .select_related("project", "payment_percent")
@@ -424,6 +432,7 @@ class DiscountRuleViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 
 class CalculationViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    schema_tags = ["Объекты"]
     queryset = (
         Calculation.objects
         .select_related("apartment", "payment_percent")
@@ -439,6 +448,7 @@ class CalculationViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 class PriceHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     """Read-only log — write access belongs to services.pricing (phase 3.4)."""
 
+    schema_tags = ["Объекты"]
     queryset = (
         PriceHistory.objects
         .select_related("floor", "changed_by")

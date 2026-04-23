@@ -14,6 +14,7 @@ class HealthView(APIView):
     Used by docker-compose healthchecks and external monitoring.
     """
 
+    schema_tags = ["Служебное"]
     permission_classes = (AllowAny,)
     authentication_classes = ()
 
