@@ -4,13 +4,13 @@
  * Mirrors `yangi-mahalla-main/src/views/modules/Administration/userManagement/roleView.vue`.
  */
 import { AxiosError } from "axios"
-import { computed, onMounted, ref } from "vue"
+import { computed, onMounted, provide, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
 import { roleApi } from "@/api/administration"
 import { usePermissionStore } from "@/store/permissions"
-import type { Role } from "@/types/models"
+import type { PermissionNode, Role } from "@/types/models"
 
 import PermissionTreeEditor from "./components/PermissionTreeEditor.vue"
 
@@ -24,6 +24,30 @@ const perms = ref<Record<string, boolean>>({})
 const paymentTypes = ref<string[]>([])
 const saving = ref(false)
 const saveError = ref<string | null>(null)
+
+// Shared expansion state for the permission tree. Exposed to the recursive
+// editor via provide so "Expand all / Collapse all" can reach every level.
+const expandedKeys = ref<Set<string>>(new Set())
+provide("permTreeExpanded", expandedKeys)
+
+function walkTree(nodes: PermissionNode[], cb: (n: PermissionNode) => void) {
+  for (const n of nodes) {
+    cb(n)
+    if (n.children) walkTree(n.children, cb)
+  }
+}
+
+function expandAll() {
+  const s = new Set<string>()
+  walkTree(permissions.tree, (n) => {
+    if (n.children && n.children.length) s.add(n.key)
+  })
+  expandedKeys.value = s
+}
+
+function collapseAll() {
+  expandedKeys.value = new Set()
+}
 
 const paymentTypeOptions = [
   { value: "bank", label: "Банк" },
@@ -119,7 +143,19 @@ onMounted(load)
 
     <!-- Permission tree -->
     <section class="card p-5">
-      <h2 class="font-semibold mb-3">Разрешения</h2>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-semibold">Разрешения</h2>
+        <div class="flex gap-2">
+          <button type="button" class="btn btn-ghost btn-xs" @click="expandAll">
+            <i class="pi pi-angle-double-down text-[10px]" />
+            Развернуть всё
+          </button>
+          <button type="button" class="btn btn-ghost btn-xs" @click="collapseAll">
+            <i class="pi pi-angle-double-up text-[10px]" />
+            Свернуть всё
+          </button>
+        </div>
+      </div>
       <div v-if="permissions.tree.length === 0" class="text-sm text-ym-muted">
         {{ t("common.loading") }}
       </div>
