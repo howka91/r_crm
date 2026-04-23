@@ -48,9 +48,12 @@ export const staffApi = {
 // --- Role -----------------------------------------------------------------
 
 export interface RoleWritePayload {
-  code: string
-  name: { ru: string; uz: string; oz: string }
-  permissions: Record<string, boolean>
+  // `code` is optional on create — backend auto-generates a slug from
+  // `name.ru` when missing. `name` accepts any subset of {ru, uz, oz};
+  // missing translations are backfilled from `ru` server-side.
+  code?: string
+  name: { ru: string; uz?: string; oz?: string }
+  permissions?: Record<string, boolean>
   is_active?: boolean
 }
 

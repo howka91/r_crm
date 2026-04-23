@@ -13,6 +13,12 @@ from apps.users.models import Role, Staff
 
 
 class RoleSerializer(serializers.ModelSerializer):
+    # Both `code` and `name` are relaxed on input: `code` can be omitted and
+    # we'll auto-generate from the Russian name; `name` accepts any subset
+    # of {ru, uz, oz} and we fill missing translations from the ru value.
+    code = serializers.SlugField(max_length=64, required=False, allow_blank=True)
+    name = serializers.JSONField(required=False)
+
     class Meta:
         model = Role
         fields = [
@@ -25,6 +31,55 @@ class RoleSerializer(serializers.ModelSerializer):
             "modified_at",
         ]
         read_only_fields = ("id", "created_at", "modified_at")
+
+    # --- Helpers ---
+
+    _CYRILLIC_MAP = {
+        "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "yo",
+        "ж": "zh", "з": "z", "и": "i", "й": "y", "к": "k", "л": "l", "м": "m",
+        "н": "n", "о": "o", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u",
+        "ф": "f", "х": "kh", "ц": "ts", "ч": "ch", "ш": "sh", "щ": "sch",
+        "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya",
+    }
+
+    @classmethod
+    def _slugify_cyrillic(cls, text: str) -> str:
+        import re
+        s = (text or "").strip().lower()
+        out = []
+        for ch in s:
+            out.append(cls._CYRILLIC_MAP.get(ch, ch))
+        slug = re.sub(r"[^a-z0-9]+", "-", "".join(out)).strip("-")
+        return slug or "role"
+
+    @classmethod
+    def _next_free_code(cls, base: str, *, exclude_id: int | None = None) -> str:
+        from apps.users.models import Role as _Role
+        candidate = base
+        suffix = 2
+        qs = _Role.objects.all()
+        if exclude_id is not None:
+            qs = qs.exclude(pk=exclude_id)
+        while qs.filter(code=candidate).exists():
+            candidate = f"{base}-{suffix}"
+            suffix += 1
+        return candidate
+
+    # --- Validation ---
+
+    def validate_name(self, value):
+        """Accept partial i18n dicts; require at least a non-empty `ru`."""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Должен быть объект {ru, uz, oz}.")
+        ru = (value.get("ru") or "").strip()
+        if not ru:
+            raise serializers.ValidationError({"ru": "Название (RU) обязательно."})
+        # Backfill uz/oz from ru when omitted — matches the UI simplification.
+        return {
+            "ru": ru,
+            "uz": (value.get("uz") or "").strip() or ru,
+            "oz": (value.get("oz") or "").strip() or ru,
+        }
 
     def validate_permissions(self, value):
         if not isinstance(value, dict):
@@ -42,6 +97,28 @@ class RoleSerializer(serializers.ModelSerializer):
                 f"Значения должны быть bool: {non_bool[:5]}"
             )
         return value
+
+    # --- Create / Update hooks (auto-slugify code) ---
+
+    def create(self, validated_data):
+        code = (validated_data.get("code") or "").strip()
+        if not code:
+            base = self._slugify_cyrillic(validated_data["name"]["ru"])
+            code = self._next_free_code(base)
+        else:
+            code = self._next_free_code(code)
+        validated_data["code"] = code
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # If caller sends code="", treat as "keep current" — don't blank it.
+        if "code" in validated_data and not (validated_data.get("code") or "").strip():
+            validated_data.pop("code")
+        elif "code" in validated_data:
+            validated_data["code"] = self._next_free_code(
+                validated_data["code"], exclude_id=instance.pk,
+            )
+        return super().update(instance, validated_data)
 
 
 class RoleBriefSerializer(serializers.ModelSerializer):

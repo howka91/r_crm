@@ -25,10 +25,13 @@ const loading = ref(false)
 const showCreate = ref(false)
 const createError = ref<string | null>(null)
 
+// Create form — only the Russian name is required. `code` is optional
+// (auto-slugified server-side); uz/oz labels backfill from `ru` unless
+// the user expands the "advanced" section.
+const showAdvanced = ref(false)
 const form = reactive<RoleWritePayload>({
   code: "",
   name: { ru: "", uz: "", oz: "" },
-  permissions: {},
   is_active: true,
 })
 
@@ -45,8 +48,8 @@ async function load() {
 function resetForm() {
   form.code = ""
   form.name = { ru: "", uz: "", oz: "" }
-  form.permissions = {}
   form.is_active = true
+  showAdvanced.value = false
 }
 
 function openCreate() {
@@ -57,8 +60,18 @@ function openCreate() {
 
 async function create() {
   createError.value = null
+  // Strip empty optional fields — backend auto-fills them.
+  const payload: RoleWritePayload = {
+    name: { ru: form.name.ru.trim() },
+    is_active: form.is_active,
+  }
+  if (form.code?.trim()) payload.code = form.code.trim()
+  if (showAdvanced.value) {
+    if (form.name.uz?.trim()) payload.name.uz = form.name.uz.trim()
+    if (form.name.oz?.trim()) payload.name.oz = form.name.oz.trim()
+  }
   try {
-    const created = await roleApi.create(form)
+    const created = await roleApi.create(payload)
     showCreate.value = false
     await load()
     router.push({ name: "admin-role-edit", params: { id: created.id } })
@@ -174,20 +187,55 @@ onMounted(load)
         <h2 class="text-lg font-semibold mb-4">{{ t("common.create") }}</h2>
         <div class="space-y-3 text-sm">
           <div>
-            <label class="block mb-1.5 font-medium">Код (slug, латиница)</label>
-            <input v-model="form.code" placeholder="sales-manager" class="inp" />
+            <label class="block mb-1.5 font-medium">Название</label>
+            <input
+              v-model="form.name.ru"
+              placeholder="Например, Менеджер по продажам"
+              class="inp"
+              autofocus
+            />
           </div>
-          <div>
-            <label class="block mb-1.5 font-medium">Название (RU)</label>
-            <input v-model="form.name.ru" class="inp" />
-          </div>
-          <div>
-            <label class="block mb-1.5 font-medium">Nomi (UZ)</label>
-            <input v-model="form.name.uz" class="inp" />
-          </div>
-          <div>
-            <label class="block mb-1.5 font-medium">Номи (OZ)</label>
-            <input v-model="form.name.oz" class="inp" />
+
+          <!-- Advanced: slug + uz/oz translations. Hidden by default. -->
+          <button
+            type="button"
+            class="text-[12px] text-ym-subtle hover:text-ym-text inline-flex items-center gap-1"
+            @click="showAdvanced = !showAdvanced"
+          >
+            <i
+              :class="[
+                'pi text-[9px]',
+                showAdvanced ? 'pi-chevron-down' : 'pi-chevron-right',
+              ]"
+            />
+            Дополнительно
+          </button>
+
+          <div v-if="showAdvanced" class="space-y-3 pl-3 border-l border-ym-line-soft">
+            <div>
+              <label class="block mb-1.5 font-medium">Код (slug, латиница)</label>
+              <input
+                v-model="form.code"
+                placeholder="оставьте пустым — будет сгенерирован"
+                class="inp font-mono"
+              />
+            </div>
+            <div>
+              <label class="block mb-1.5 font-medium">Nomi (UZ)</label>
+              <input
+                v-model="form.name.uz"
+                placeholder="по умолчанию = название RU"
+                class="inp"
+              />
+            </div>
+            <div>
+              <label class="block mb-1.5 font-medium">Номи (OZ)</label>
+              <input
+                v-model="form.name.oz"
+                placeholder="по умолчанию = название RU"
+                class="inp"
+              />
+            </div>
           </div>
         </div>
         <div v-if="createError" class="mt-3 text-sm text-ym-danger">{{ createError }}</div>
@@ -195,7 +243,7 @@ onMounted(load)
           <button class="btn btn-ghost" @click="showCreate = false">
             {{ t("common.cancel") }}
           </button>
-          <button class="btn btn-primary" @click="create">
+          <button class="btn btn-primary" :disabled="!form.name.ru.trim()" @click="create">
             {{ t("common.save") }}
           </button>
         </div>

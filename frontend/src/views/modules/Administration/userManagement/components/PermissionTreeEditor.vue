@@ -1,18 +1,23 @@
 <script setup lang="ts">
 /**
- * Recursive tree-of-toggles editor with collapsible parent nodes.
+ * Recursive tree-of-toggles editor with tri-state parent checkboxes and
+ * collapsible subtrees.
  *
- * `modelValue` is a flat `{dotted_key: boolean}` dict. Flipping a parent
- * checkbox cascades to every descendant (select-all ergonomics). Clicking
- * a chevron expands/collapses the subtree — leaf rows have no chevron.
+ * Checkbox state for each node:
+ *   * leaf              → plain checked / unchecked
+ *   * parent, all descendant leaves on       → checked
+ *   * parent, all descendant leaves off      → unchecked
+ *   * parent, mixed descendants              → indeterminate (HTML
+ *     `input.indeterminate = true`, no attribute exists for it)
  *
- * Expansion state is shared across the whole recursion via provide/inject.
- * The top-level caller (`roleView.vue`) provides `permTreeExpanded` as a
- * `Ref<Set<string>>`, so it can implement "expand-all / collapse-all"
- * buttons by mutating the same Set. If nothing is provided, the component
- * still works — it just creates its own local Set via provide().
+ * Click on any node cascades to every descendant — standard "select all"
+ * ergonomics. Clicking an indeterminate parent enables every descendant.
+ *
+ * Expansion state is shared across recursive levels via provide/inject
+ * (`permTreeExpanded`). Root caller (roleView.vue) provides a Ref<Set>
+ * so "Expand all / Collapse all" reaches every level.
  */
-import { inject, provide, ref, type Ref } from "vue"
+import { inject, onMounted, provide, ref, watch, type Ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 import type { PermissionNode } from "@/types/models"
@@ -30,8 +35,7 @@ const emit = defineEmits<{
 const { locale } = useI18n()
 const currentDepth = props.depth ?? 0
 
-// Shared expansion state. First instance in the tree creates the Set and
-// provides it; recursive children inherit the same reference via inject.
+// --- Shared expansion state -------------------------------------------
 const EXPANDED_KEY = "permTreeExpanded"
 const injected = inject<Ref<Set<string>> | null>(EXPANDED_KEY, null)
 const expanded: Ref<Set<string>> = injected ?? ref<Set<string>>(new Set())
@@ -52,20 +56,47 @@ function toggleExpand(key: string) {
   expanded.value = next
 }
 
-function isChecked(key: string): boolean {
-  return !!props.modelValue[key]
-}
+// --- Tri-state logic --------------------------------------------------
 
+/** Collect every descendant key (including the node itself). */
 function collectDescendants(node: PermissionNode): string[] {
   const out = [node.key]
   for (const child of node.children ?? []) out.push(...collectDescendants(child))
   return out
 }
 
-function toggleCheck(node: PermissionNode, event: Event) {
-  const checked = (event.target as HTMLInputElement).checked
+/** Collect only leaf-descendant keys — used to decide parent tri-state. */
+function collectLeafDescendants(node: PermissionNode): string[] {
+  if (!hasChildren(node)) return [node.key]
+  const out: string[] = []
+  for (const child of node.children ?? []) out.push(...collectLeafDescendants(child))
+  return out
+}
+
+type TriState = "checked" | "unchecked" | "mixed"
+
+function nodeState(node: PermissionNode): TriState {
+  if (!hasChildren(node)) {
+    return props.modelValue[node.key] ? "checked" : "unchecked"
+  }
+  const leaves = collectLeafDescendants(node)
+  let on = 0
+  let off = 0
+  for (const key of leaves) {
+    if (props.modelValue[key]) on++
+    else off++
+    // Early exit once we've seen both states.
+    if (on > 0 && off > 0) return "mixed"
+  }
+  return on > 0 ? "checked" : "unchecked"
+}
+
+function toggleCheck(node: PermissionNode) {
+  // Flip to the opposite of the majority: mixed or unchecked → enable all,
+  // fully-checked → disable all. Matches every tri-state UI I've seen.
+  const target = nodeState(node) !== "checked"
   const next = { ...props.modelValue }
-  for (const key of collectDescendants(node)) next[key] = checked
+  for (const key of collectDescendants(node)) next[key] = target
   emit("update:modelValue", next)
 }
 
@@ -73,10 +104,35 @@ function label(node: PermissionNode): string {
   const loc = locale.value as "ru" | "uz" | "oz"
   return node.label[loc] || node.label.ru
 }
+
+// --- Applying `indeterminate` -----------------------------------------
+// HTML has no `indeterminate` attribute — it's a DOM property only. After
+// the checkbox renders (and on every state change), imperatively set it.
+
+const rootRef = ref<HTMLElement | null>(null)
+
+function applyIndeterminate() {
+  const root = rootRef.value
+  if (!root) return
+  for (const node of props.nodes) {
+    const el = root.querySelector<HTMLInputElement>(
+      `input[data-perm-key="${CSS.escape(node.key)}"]`,
+    )
+    if (!el) continue
+    const state = nodeState(node)
+    el.indeterminate = state === "mixed"
+    el.checked = state === "checked"
+  }
+}
+
+onMounted(applyIndeterminate)
+watch(() => props.modelValue, applyIndeterminate, { deep: true })
+watch(() => props.nodes, applyIndeterminate)
 </script>
 
 <template>
   <ul
+    ref="rootRef"
     :class="
       currentDepth === 0
         ? 'space-y-1'
@@ -106,8 +162,8 @@ function label(node: PermissionNode): string {
         <label class="inline-flex items-center gap-2 text-sm cursor-pointer select-none">
           <input
             type="checkbox"
-            :checked="isChecked(node.key)"
-            @change="toggleCheck(node, $event)"
+            :data-perm-key="node.key"
+            @click.prevent="toggleCheck(node)"
           />
           <span :class="{ 'font-medium': currentDepth <= 1 }">
             {{ label(node) }}

@@ -18,6 +18,9 @@ import type { PermissionNode, Role } from "@/types/models"
 
 import PermissionTreeEditor from "./components/PermissionTreeEditor.vue"
 
+// Single toggle: if anything is expanded, we're in "some-open" mode and the
+// button offers to collapse everything. Otherwise it offers to expand all.
+
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
@@ -40,16 +43,18 @@ function walkTree(nodes: PermissionNode[], cb: (n: PermissionNode) => void) {
   }
 }
 
-function expandAll() {
+const allExpanded = computed(() => expandedKeys.value.size > 0)
+
+function toggleAll() {
+  if (allExpanded.value) {
+    expandedKeys.value = new Set()
+    return
+  }
   const s = new Set<string>()
   walkTree(permissions.tree, (n) => {
     if (n.children && n.children.length) s.add(n.key)
   })
   expandedKeys.value = s
-}
-
-function collapseAll() {
-  expandedKeys.value = new Set()
 }
 
 const roleId = computed(() => Number(route.params.id))
@@ -100,7 +105,7 @@ onMounted(load)
       </div>
       <div class="flex gap-2">
         <button class="btn btn-ghost" @click="router.push({ name: 'admin-roles' })">
-          {{ t("common.back") }}
+          {{ t("common.cancel") }}
         </button>
         <button :disabled="saving" class="btn btn-primary" @click="save">
           {{ t("common.save") }}
@@ -112,16 +117,15 @@ onMounted(load)
     <section class="card p-5">
       <div class="flex items-center justify-between mb-3">
         <h2 class="font-semibold">Разрешения</h2>
-        <div class="flex gap-2">
-          <button type="button" class="btn btn-ghost btn-xs" @click="expandAll">
-            <i class="pi pi-angle-double-down text-[10px]" />
-            Развернуть всё
-          </button>
-          <button type="button" class="btn btn-ghost btn-xs" @click="collapseAll">
-            <i class="pi pi-angle-double-up text-[10px]" />
-            Свернуть всё
-          </button>
-        </div>
+        <button type="button" class="btn btn-ghost btn-xs" @click="toggleAll">
+          <i
+            :class="[
+              'pi text-[10px]',
+              allExpanded ? 'pi-angle-double-up' : 'pi-angle-double-down',
+            ]"
+          />
+          {{ allExpanded ? "Свернуть всё" : "Развернуть всё" }}
+        </button>
       </div>
       <div v-if="permissions.tree.length === 0" class="text-sm text-ym-muted">
         {{ t("common.loading") }}
