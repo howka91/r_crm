@@ -1,14 +1,14 @@
 <script setup lang="ts">
 /**
- * ShaxmatkaPicker — modal that lets the user pick an apartment from a
+ * InventoryPicker — modal that lets the user pick an apartment from a
  * visual floor × apartment grid.
  *
  * Used by the contract wizard in place of the native <select>. Managers
- * work off the shaxmatka every day, so the same layout is used here
+ * work off the inventory grid every day, so the same layout is used here
  * (building / section tabs, highest floor on top, status-tinted cells).
  *
  * Usage:
- *   <ShaxmatkaPicker
+ *   <InventoryPicker
  *     v-model="open"
  *     :project-id="projectId"
  *     @pick="onApartmentPicked"
@@ -22,12 +22,7 @@
 import { computed, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
-import {
-  apartmentsApi,
-  buildingsApi,
-  floorsApi,
-  sectionsApi,
-} from "@/api/objects"
+import { projectsApi } from "@/api/objects"
 import type {
   Apartment,
   ApartmentStatus,
@@ -64,28 +59,13 @@ async function load() {
   if (!props.projectId) return
   loading.value = true
   try {
-    const bs = await buildingsApi.list({
-      project: props.projectId,
-      limit: 200,
-    })
-    buildings.value = bs.results
-    if (!buildings.value.length) {
-      sections.value = []
-      floors.value = []
-      apartments.value = []
-      return
-    }
-    const [ss, fs, apts] = await Promise.all([
-      sectionsApi.list({ limit: 500 }),
-      floorsApi.list({ limit: 1000 }),
-      apartmentsApi.list({ limit: 5000 }),
-    ])
-    const bIds = new Set(buildings.value.map((b) => b.id))
-    sections.value = ss.results.filter((s) => bIds.has(s.building))
-    const sIds = new Set(sections.value.map((s) => s.id))
-    floors.value = fs.results.filter((f) => sIds.has(f.section))
-    const fIds = new Set(floors.value.map((f) => f.id))
-    apartments.value = apts.results.filter((a) => fIds.has(a.floor))
+    const tree = await projectsApi.inventory(props.projectId)
+    buildings.value = tree.buildings
+    sections.value = tree.sections
+    floors.value = tree.floors
+    apartments.value = tree.apartments
+
+    if (!buildings.value.length) return
 
     // Pre-select tab: if an apartment is already chosen, navigate to
     // its building/section so its cell is visible on open. Otherwise
@@ -206,7 +186,6 @@ function close() {
       <div
         v-if="modelValue"
         class="fixed inset-0 z-[180] bg-black/40 flex items-center justify-center p-4"
-        @click.self="close"
       >
         <div
           class="card w-full max-w-6xl max-h-[92vh] flex flex-col shadow-ym-modal"
@@ -219,7 +198,7 @@ function close() {
               <div
                 class="text-[11px] uppercase tracking-[0.12em] font-mono text-ym-subtle mb-0.5"
               >
-                {{ t("objects.tabs.shaxmatka") }}
+                {{ t("objects.tabs.inventory") }}
               </div>
               <h2 class="text-[17px] font-semibold leading-none">
                 Выберите квартиру
@@ -249,7 +228,7 @@ function close() {
               v-else-if="!buildings.length"
               class="card p-8 text-center text-ym-muted"
             >
-              {{ t("objects.shaxmatka.no_data") }}
+              {{ t("objects.inventory.no_data") }}
             </div>
 
             <template v-else>
@@ -259,7 +238,7 @@ function close() {
                   <span
                     class="text-[12px] uppercase tracking-wider font-mono text-ym-subtle"
                   >
-                    {{ t("objects.shaxmatka.select_building") }}
+                    {{ t("objects.inventory.select_building") }}
                   </span>
                   <div class="flex gap-1">
                     <button
@@ -285,7 +264,7 @@ function close() {
                   <span
                     class="text-[12px] uppercase tracking-wider font-mono text-ym-subtle"
                   >
-                    {{ t("objects.shaxmatka.select_section") }}
+                    {{ t("objects.inventory.select_section") }}
                   </span>
                   <div class="flex gap-1 flex-wrap">
                     <button
@@ -311,7 +290,7 @@ function close() {
                   <span
                     class="text-[12px] uppercase tracking-wider font-mono text-ym-subtle"
                   >
-                    {{ t("objects.shaxmatka.filter_rooms") }}
+                    {{ t("objects.inventory.filter_rooms") }}
                   </span>
                   <div class="flex gap-1">
                     <button
@@ -322,7 +301,7 @@ function close() {
                       "
                       @click="roomsFilter = null"
                     >
-                      {{ t("objects.shaxmatka.filter_all") }}
+                      {{ t("objects.inventory.filter_all") }}
                     </button>
                     <button
                       v-for="r in roomsOptions"
@@ -362,7 +341,7 @@ function close() {
                 v-if="!selectedSectionId"
                 class="card p-8 text-center text-ym-muted"
               >
-                {{ t("objects.shaxmatka.no_data") }}
+                {{ t("objects.inventory.no_data") }}
               </div>
               <div v-else class="card overflow-x-auto art-scroll">
                 <div class="min-w-fit">
@@ -380,7 +359,7 @@ function close() {
                       v-if="!apartmentsOfFloor(f.id).length"
                       class="flex-1 flex items-center px-3 text-[11.5px] text-ym-muted italic py-2"
                     >
-                      {{ t("objects.shaxmatka.empty_floor") }}
+                      {{ t("objects.inventory.empty_floor") }}
                     </div>
                     <div v-else class="flex flex-wrap gap-1.5 p-2">
                       <button

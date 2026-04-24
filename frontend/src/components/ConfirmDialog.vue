@@ -4,7 +4,8 @@
  * One instance is mounted in App.vue; components never import this file
  * directly. See `store/confirm.ts` for the API.
  *
- * Keyboard: Escape → cancel, Enter → confirm. Backdrop click cancels.
+ * Keyboard: Escape → cancel, Enter → confirm. Backdrop click is a no-op —
+ * closing requires an explicit choice via the buttons or Esc.
  */
 import { onMounted, onUnmounted, watch } from "vue"
 import { useI18n } from "vue-i18n"
@@ -43,7 +44,6 @@ watch(
       <div
         v-if="store.isOpen && store.options"
         class="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center p-4"
-        @click.self="store.resolve(false)"
       >
         <div class="card w-full max-w-md p-6 shadow-ym-modal">
           <h2

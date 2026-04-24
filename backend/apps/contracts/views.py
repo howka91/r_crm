@@ -263,8 +263,12 @@ class ContractViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
 
 class ContractTemplateViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
     schema_tags = ["Договоры"]
+    # `.all_objects` (not the default SoftDeleteManager) so archived
+    # templates stay visible in the catalog with an "Inactive" chip —
+    # managers flip is_active to retire a template without losing it.
+    # Matches the policy established for other reference ViewSets.
     queryset = (
-        ContractTemplate.objects
+        ContractTemplate.all_objects
         .select_related("author", "project")
         .all()
     )
@@ -421,6 +425,82 @@ class ContractTemplateViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
             },
             status=status.HTTP_201_CREATED,
         )
+
+    # --- DOCX template validation ---------------------------------------
+    #
+    # Called from the frontend during .docx upload before persisting the
+    # template. Returns the list of Jinja2 tags found in the file split
+    # into known / unknown roots so the UI can warn the author about
+    # typos (e.g. `{{ clinet.name }}`) before saving.
+
+    _DOCX_MAX_BYTES = 10 * 1024 * 1024  # 10 MB — generous for lawyer files
+    _DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="validate-docx",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def validate_docx(self, request: Request) -> Response:
+        from apps.core.permissions import check as perm_check
+        from apps.contracts.services import docx_validator
+
+        role = getattr(request.user, "role", None)
+        perms = getattr(role, "permissions", None)
+        if not (
+            request.user.is_superuser
+            or perm_check(perms, "references.templates.create")
+            or perm_check(perms, "references.templates.edit")
+        ):
+            return Response(
+                {"detail": "Недостаточно прав для валидации шаблонов."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        upload = request.FILES.get("file")
+        if upload is None:
+            return Response(
+                {"detail": "Ожидался .docx-файл в поле `file`."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        mime = (getattr(upload, "content_type", "") or "").lower()
+        name = (upload.name or "").lower()
+        if mime != self._DOCX_MIME and not name.endswith(".docx"):
+            return Response(
+                {
+                    "detail": "Поддерживается только .docx (Word 2007+).",
+                    "code": "unsupported_media_type",
+                },
+                status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            )
+
+        if upload.size > self._DOCX_MAX_BYTES:
+            return Response(
+                {
+                    "detail": "Файл слишком большой (лимит 10 МБ).",
+                    "code": "file_too_large",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            # docxtpl needs a real file-like with seek() — SimpleUploadedFile
+            # supports that, but chain through a bytes buffer for safety.
+            import io as _io
+            buf = _io.BytesIO(upload.read())
+            result = docx_validator.validate(buf)
+        except Exception as e:  # pragma: no cover — docxtpl may raise on malformed files
+            return Response(
+                {
+                    "detail": f"Не удалось разобрать файл как .docx: {e!s}",
+                    "code": "docx_parse_failed",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(result.as_dict(), status=status.HTTP_200_OK)
 
 
 class PaymentScheduleViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):

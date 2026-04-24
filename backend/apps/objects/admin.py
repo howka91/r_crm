@@ -7,14 +7,28 @@ from apps.objects.models import (
     Apartment,
     ApartmentStatusLog,
     Building,
+    BuildingPhoto,
     Calculation,
     DiscountRule,
     Floor,
     PaymentPlan,
     PriceHistory,
     Project,
+    ProjectPhoto,
     Section,
 )
+
+
+class ProjectPhotoInline(admin.TabularInline):
+    model = ProjectPhoto
+    extra = 0
+    fields = ("file", "caption", "sort", "is_active")
+
+
+class BuildingPhotoInline(admin.TabularInline):
+    model = BuildingPhoto
+    extra = 0
+    fields = ("file", "caption", "sort", "is_active")
 
 
 @admin.register(Project)
@@ -23,6 +37,7 @@ class ProjectAdmin(admin.ModelAdmin):
     list_filter = ("is_active", "developer")
     search_fields = ("address",)
     ordering = ("sort", "id")
+    inlines = [ProjectPhotoInline]
 
 
 @admin.register(Building)
@@ -31,6 +46,23 @@ class BuildingAdmin(admin.ModelAdmin):
     list_filter = ("is_active", "project")
     search_fields = ("number", "cadastral_number")
     ordering = ("project_id", "sort", "id")
+    inlines = [BuildingPhotoInline]
+
+
+@admin.register(ProjectPhoto)
+class ProjectPhotoAdmin(admin.ModelAdmin):
+    list_display = ("id", "project", "caption", "sort", "is_active")
+    list_filter = ("project", "is_active")
+    list_select_related = ("project",)
+    ordering = ("project_id", "sort", "id")
+
+
+@admin.register(BuildingPhoto)
+class BuildingPhotoAdmin(admin.ModelAdmin):
+    list_display = ("id", "building", "caption", "sort", "is_active")
+    list_filter = ("building", "is_active")
+    list_select_related = ("building",)
+    ordering = ("building_id", "sort", "id")
 
 
 @admin.register(Section)

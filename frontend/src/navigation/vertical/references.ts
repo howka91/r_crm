@@ -38,6 +38,12 @@ const references: NavGroup = {
       to: "/references/contract-templates",
       permission: "references.templates.view",
     },
+    {
+      titleKey: "nav.references_plannings",
+      icon: "pi-image",
+      to: "/references/plannings",
+      permission: "references.plannings.view",
+    },
   ],
 }
 

@@ -14,6 +14,7 @@ import { computed, onMounted, reactive, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { RouterLink } from "vue-router"
 
+import ToggleSwitch from "@/components/ToggleSwitch.vue"
 import { projectsApi } from "@/api/objects"
 import { developersApi } from "@/api/references"
 import { useConfirmStore } from "@/store/confirm"
@@ -181,39 +182,64 @@ onMounted(load)
       <div
         v-for="i in items"
         :key="i.id"
-        class="card card-hover p-5 flex flex-col gap-3"
+        class="card card-hover overflow-hidden flex flex-col"
       >
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex-1 min-w-0">
-            <div class="text-[15px] font-semibold truncate">{{ localizedTitle(i) }}</div>
-            <div class="text-[12.5px] text-ym-muted mt-1 truncate">{{ i.address || "—" }}</div>
-          </div>
-          <span class="chip chip-ghost whitespace-nowrap">
-            <i class="pi pi-wrench text-[10px] mr-1" />
-            {{ developerName(i) }}
-          </span>
-        </div>
-
-        <div class="flex items-center gap-2 text-[12px] text-ym-muted">
-          <i class="pi pi-building text-[11px]" />
-          <span>{{ t("objects.columns.buildings_count") }}: <strong class="text-ym-text">{{ i.buildings_count }}</strong></span>
-        </div>
-
-        <div class="mt-auto pt-2 flex items-center justify-between gap-2">
-          <RouterLink
-            :to="`/objects/projects/${i.id}`"
-            class="text-[12px] text-ym-primary font-medium flex items-center gap-1 no-underline"
+        <!-- Cover — 16:9 top banner. Falls back to a placeholder tile
+             when the ЖК has no photos. -->
+        <div
+          class="aspect-[16/9] border-b border-ym-line-soft flex items-center justify-center overflow-hidden"
+          :class="i.cover?.url ? 'bg-ym-sunken' : 'bg-gradient-to-br from-ym-sunken to-ym-surface'"
+        >
+          <img
+            v-if="i.cover?.url"
+            :src="i.cover.url"
+            :alt="localizedTitle(i)"
+            class="w-full h-full object-cover"
+          />
+          <div
+            v-else
+            class="flex flex-col items-center gap-2 text-ym-subtle"
           >
-            <span>{{ t("objects.projects.open") }}</span>
-            <i class="pi pi-arrow-right text-[10px]" />
-          </RouterLink>
-          <div class="flex items-center gap-1">
-            <button v-if="canEdit" class="btn btn-ghost btn-xs" @click="openEdit(i)">
-              {{ t("common.edit") }}
-            </button>
-            <button v-if="canDelete" class="btn btn-danger btn-xs" @click="remove(i)">
-              {{ t("common.delete") }}
-            </button>
+            <i class="pi pi-image text-[40px] opacity-70" />
+            <span class="text-[11px] uppercase tracking-[0.12em] font-mono">
+              {{ t("objects.overview.no_cover") }}
+            </span>
+          </div>
+        </div>
+
+        <div class="p-5 flex flex-col gap-3 flex-1">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1 min-w-0">
+              <div class="text-[15px] font-semibold truncate">{{ localizedTitle(i) }}</div>
+              <div class="text-[12.5px] text-ym-muted mt-1 truncate">{{ i.address || "—" }}</div>
+            </div>
+            <span class="chip chip-ghost whitespace-nowrap">
+              <i class="pi pi-wrench text-[10px] mr-1" />
+              {{ developerName(i) }}
+            </span>
+          </div>
+
+          <div class="flex items-center gap-2 text-[12px] text-ym-muted">
+            <i class="pi pi-building text-[11px]" />
+            <span>{{ t("objects.columns.buildings_count") }}: <strong class="text-ym-text">{{ i.buildings_count }}</strong></span>
+          </div>
+
+          <div class="mt-auto pt-2 flex items-center justify-between gap-2">
+            <RouterLink
+              :to="`/objects/projects/${i.id}`"
+              class="text-[12px] text-ym-primary font-medium flex items-center gap-1 no-underline"
+            >
+              <span>{{ t("objects.projects.open") }}</span>
+              <i class="pi pi-arrow-right text-[10px]" />
+            </RouterLink>
+            <div class="flex items-center gap-1">
+              <button v-if="canEdit" class="btn btn-ghost btn-xs" @click="openEdit(i)">
+                {{ t("common.edit") }}
+              </button>
+              <button v-if="canDelete" class="btn btn-danger btn-xs" @click="remove(i)">
+                {{ t("common.delete") }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -223,7 +249,6 @@ onMounted(load)
     <div
       v-if="showModal"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      @click.self="showModal = false"
     >
       <div class="card w-full max-w-2xl p-6 shadow-ym-modal max-h-[90vh] overflow-auto art-scroll">
         <h2 class="text-lg font-semibold mb-4">
@@ -270,10 +295,13 @@ onMounted(load)
           </div>
         </div>
 
-        <label class="flex items-center gap-2 text-sm mt-4">
-          <input v-model="form.is_active" type="checkbox" />
-          <span>{{ t("common.yes") }} / {{ t("common.no") }}</span>
-        </label>
+        <div class="mt-4">
+          <ToggleSwitch
+            v-model="form.is_active"
+            :active-label="t('common.active')"
+            :inactive-label="t('common.inactive')"
+          />
+        </div>
 
         <div v-if="saveError" class="mt-3 text-sm text-ym-danger break-all">
           {{ saveError }}

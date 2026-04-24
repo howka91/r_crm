@@ -10,10 +10,11 @@
  * message as a toast.
  */
 import { AxiosError } from "axios"
-import { computed, onMounted, ref } from "vue"
+import { computed, onMounted, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
+import MoneyInput from "@/components/MoneyInput.vue"
 import {
   contractTemplatesApi,
   contractsApi,
@@ -29,6 +30,7 @@ import type {
   Contract,
   ContractAction,
   ContractTemplate,
+  ContractWrite,
   Payment,
   PaymentSchedule,
   PaymentScheduleStatus,
@@ -54,6 +56,25 @@ const templates = ref<ContractTemplate[]>([])
 const projects = ref<Project[]>([])
 const activeTab = ref<Tab>("overview")
 const busy = ref(false)
+
+// Local drafts for text/money inputs — bound to <input> v-model so
+// keystrokes don't trigger PATCH on every character. Synced from
+// `contract.value` whenever it reloads. Committed on blur via
+// `commitField`, which PATCHes only when the draft differs.
+const totalAmountDraft = ref("")
+const downPaymentDraft = ref("")
+const descriptionDraft = ref("")
+
+watch(
+  contract,
+  (c) => {
+    if (!c) return
+    totalAmountDraft.value = c.total_amount || ""
+    downPaymentDraft.value = c.down_payment || ""
+    descriptionDraft.value = c.description || ""
+  },
+  { immediate: true },
+)
 
 // --- Permissions ---------------------------------------------------------
 
@@ -300,6 +321,72 @@ async function genPdf() {
   }
 }
 
+// --- Inline field editing ------------------------------------------------
+//
+// Signed contracts are immutable (backend also enforces this — 409 on any
+// write). Otherwise users with `contracts.unsigned.edit` can change
+// date / description / sum / down_payment / is_mortgage without a full
+// round-trip to the wizard. Each field saves optimistically on commit
+// (blur for text/money, change for date/checkbox); on server error we
+// roll back and toast the reason.
+
+const editable = computed(
+  () => !!contract.value && !contract.value.is_signed && canEdit.value,
+)
+
+async function savePatch(patch: Partial<ContractWrite>, revert: () => void) {
+  if (!contract.value) return
+  try {
+    const updated = await contractsApi.update(contract.value.id, patch)
+    contract.value = updated
+  } catch (e) {
+    revert()
+    toastStore.error(
+      e instanceof AxiosError && e.response?.data
+        ? (e.response.data as { detail?: string }).detail ||
+            JSON.stringify(e.response.data)
+        : t("errors.unknown"),
+    )
+  }
+}
+
+/** Commit a field only if the input actually changed — avoids a PATCH
+ *  request on every tab-out. Rolls back the optimistic write on failure. */
+function commitField<K extends keyof Contract>(field: K, value: Contract[K]) {
+  if (!contract.value) return
+  const prev = contract.value[field]
+  if (prev === value) return
+  contract.value[field] = value
+  void savePatch({ [field]: value } as unknown as Partial<ContractWrite>, () => {
+    if (contract.value) contract.value[field] = prev
+  })
+}
+
+function onDateChange(e: Event) {
+  const v = (e.target as HTMLInputElement).value
+  commitField("date", v)
+}
+
+function onMortgageChange(e: Event) {
+  const v = (e.target as HTMLInputElement).checked
+  commitField("is_mortgage", v)
+}
+
+function onTotalAmountBlur() {
+  if (!contract.value) return
+  commitField("total_amount", totalAmountDraft.value)
+}
+
+function onDownPaymentBlur() {
+  if (!contract.value) return
+  commitField("down_payment", downPaymentDraft.value)
+}
+
+function onDescriptionBlur() {
+  if (!contract.value) return
+  commitField("description", descriptionDraft.value)
+}
+
 // --- Template assignment -------------------------------------------------
 
 async function setTemplate(value: string) {
@@ -477,7 +564,35 @@ onMounted(async () => {
         >
           {{ t("contracts.detail.section_money") }}
         </div>
-        <div class="space-y-2 text-[13px]">
+        <div v-if="editable" class="space-y-3 text-[13px]">
+          <div>
+            <label class="block text-[12px] text-ym-muted mb-1">
+              {{ t("contracts.fields.total_amount") }}
+            </label>
+            <MoneyInput
+              v-model="totalAmountDraft"
+              @blur="onTotalAmountBlur"
+            />
+          </div>
+          <div>
+            <label class="block text-[12px] text-ym-muted mb-1">
+              {{ t("contracts.fields.down_payment") }}
+            </label>
+            <MoneyInput
+              v-model="downPaymentDraft"
+              @blur="onDownPaymentBlur"
+            />
+          </div>
+          <label class="flex items-center gap-2 text-[12.5px] pt-1">
+            <input
+              type="checkbox"
+              :checked="contract.is_mortgage"
+              @change="onMortgageChange"
+            />
+            <span>{{ t("contracts.fields.is_mortgage") }}</span>
+          </label>
+        </div>
+        <div v-else class="space-y-2 text-[13px]">
           <div class="flex justify-between">
             <span class="text-ym-muted">{{
               t("contracts.fields.total_amount")
@@ -527,7 +642,16 @@ onMounted(async () => {
           </div>
           <div>
             <dt class="text-ym-muted">{{ t("contracts.fields.date") }}</dt>
-            <dd class="mt-0.5 font-mono">{{ contract.date }}</dd>
+            <dd class="mt-0.5 font-mono">
+              <input
+                v-if="editable"
+                type="date"
+                class="inp inp-sm font-mono"
+                :value="contract.date"
+                @change="onDateChange"
+              />
+              <template v-else>{{ contract.date }}</template>
+            </dd>
           </div>
           <div>
             <dt class="text-ym-muted">{{ t("contracts.columns.author") }}</dt>
@@ -560,13 +684,26 @@ onMounted(async () => {
       </div>
 
       <!-- Description -->
-      <div v-if="contract.description" class="col-span-12 card p-5">
+      <div
+        v-if="contract.description || editable"
+        class="col-span-12 card p-5"
+      >
         <div
           class="text-[11px] uppercase tracking-wider font-mono text-ym-subtle mb-2"
         >
           {{ t("contracts.detail.section_description") }}
         </div>
-        <p class="text-[13px] whitespace-pre-line">{{ contract.description }}</p>
+        <textarea
+          v-if="editable"
+          v-model="descriptionDraft"
+          class="inp"
+          rows="3"
+          :placeholder="t('contracts.fields.description')"
+          @blur="onDescriptionBlur"
+        />
+        <p v-else class="text-[13px] whitespace-pre-line">
+          {{ contract.description }}
+        </p>
       </div>
     </section>
 

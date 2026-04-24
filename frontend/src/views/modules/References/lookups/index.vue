@@ -14,6 +14,7 @@ import { computed, onMounted, reactive, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
+import ToggleSwitch from "@/components/ToggleSwitch.vue"
 import { lookupsApi, lookupTypes } from "@/api/references"
 import { useConfirmStore } from "@/store/confirm"
 import { usePermissionStore } from "@/store/permissions"
@@ -277,7 +278,7 @@ watch(selectedType, load)
                 <td class="font-mono text-ym-subtle">{{ i.sort }}</td>
                 <td>
                   <span :class="i.is_active ? 'chip chip-success' : 'chip chip-ghost'">
-                    {{ i.is_active ? t("common.yes") : t("common.no") }}
+                    {{ i.is_active ? t("common.active") : t("common.inactive") }}
                   </span>
                 </td>
                 <td class="text-right whitespace-nowrap">
@@ -299,7 +300,6 @@ watch(selectedType, load)
     <div
       v-if="showModal"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      @click.self="showModal = false"
     >
       <div class="card w-full max-w-md p-6 shadow-ym-modal">
         <h2 class="text-lg font-semibold mb-4">
@@ -361,10 +361,11 @@ watch(selectedType, load)
             <input v-model.number="form.sort" type="number" class="inp font-mono w-32" />
           </div>
 
-          <label class="flex items-center gap-2">
-            <input v-model="form.is_active" type="checkbox" />
-            <span>{{ t("common.yes") }} / {{ t("common.no") }}</span>
-          </label>
+          <ToggleSwitch
+            v-model="form.is_active"
+            :active-label="t('common.active')"
+            :inactive-label="t('common.inactive')"
+          />
         </div>
 
         <div v-if="saveError" class="mt-3 text-sm text-ym-danger break-all">

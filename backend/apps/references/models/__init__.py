@@ -30,6 +30,7 @@ from apps.references.models.lookups import (
     Region,
     RoomType,
 )
+from apps.references.models.planning import Planning
 from apps.references.models.sales_office import SalesOffice
 
 # The ordered list of LookupModel subclasses. Used by serializers.py /
@@ -55,6 +56,7 @@ __all__ = [
     "Developer",
     "SalesOffice",
     "Currency",
+    "Planning",
     # Lookups
     "ApartmentType",
     "RoomType",

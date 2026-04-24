@@ -240,7 +240,7 @@ function firstPhone(c: Client): string {
           :class="filters.entity === '' ? 'chip-primary' : 'chip-ghost'"
           @click="filters.entity = ''"
         >
-          {{ t("objects.shaxmatka.filter_all") }}
+          {{ t("objects.inventory.filter_all") }}
         </button>
         <button
           class="chip"
@@ -258,13 +258,13 @@ function firstPhone(c: Client): string {
         </button>
       </div>
       <select v-model.number="filters.status" class="inp inp-sm w-auto">
-        <option :value="null">{{ t("clients.fields.status") }}: {{ t("objects.shaxmatka.filter_all") }}</option>
+        <option :value="null">{{ t("clients.fields.status") }}: {{ t("objects.inventory.filter_all") }}</option>
         <option v-for="s in statuses" :key="s.id" :value="s.id">
           {{ s.name[locale as keyof I18nText] || `#${s.id}` }}
         </option>
       </select>
       <select v-model="filters.manager" class="inp inp-sm w-auto">
-        <option value="">{{ t("clients.fields.manager") }}: {{ t("objects.shaxmatka.filter_all") }}</option>
+        <option value="">{{ t("clients.fields.manager") }}: {{ t("objects.inventory.filter_all") }}</option>
         <option v-for="m in managers" :key="m.id" :value="m.id">
           {{ m.full_name || m.email }}
         </option>
@@ -342,7 +342,6 @@ function firstPhone(c: Client): string {
     <div
       v-if="showCreate"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      @click.self="showCreate = false"
     >
       <div class="card w-full max-w-xl p-6 shadow-ym-modal max-h-[90vh] overflow-auto art-scroll">
         <h2 class="text-lg font-semibold mb-4">{{ t("clients.new") }}</h2>

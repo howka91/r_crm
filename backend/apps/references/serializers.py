@@ -15,6 +15,7 @@ from apps.references.models import (
     Location,
     LOOKUP_MODELS,
     PaymentInPercent,
+    Planning,
     SalesOffice,
 )
 
@@ -64,6 +65,58 @@ class SalesOfficeSerializer(serializers.ModelSerializer):
             "modified_at",
         )
         read_only_fields = ("id", "created_at", "modified_at")
+
+
+class PlanningSerializer(serializers.ModelSerializer):
+    # `project_title` — resolve the ЖК name inline so the frontend can
+    # render a human label in pickers without a join/fan-out.
+    project_title = serializers.SerializerMethodField()
+    image_2d = serializers.ImageField(required=False, allow_null=True)
+    image_3d = serializers.ImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = Planning
+        fields = (
+            "id",
+            "project",
+            "project_title",
+            "code",
+            "name",
+            "rooms_count",
+            "area",
+            "image_2d",
+            "image_3d",
+            "sort",
+            "is_active",
+            "created_at",
+            "modified_at",
+        )
+        read_only_fields = ("id", "project_title", "created_at", "modified_at")
+        # Disable DRF's auto-generated UniqueTogetherValidator — it doesn't
+        # understand the `condition=Q(code__gt="")` on our UniqueConstraint
+        # and would reject every empty-code duplicate. `validate()` below
+        # handles the real (project, code) uniqueness with a field-level
+        # error, and the DB partial index is the final safety net.
+        validators = []
+
+    def get_project_title(self, obj: Planning) -> dict | None:
+        project = obj.project
+        return project.title if project else None
+
+    def validate(self, attrs: dict) -> dict:
+        # Enforce (project, code) uniqueness proactively so the DB partial
+        # index returns a clean 400 instead of a 500 on concurrent writes.
+        code = attrs.get("code") or (self.instance and self.instance.code) or ""
+        project = attrs.get("project") or (self.instance and self.instance.project)
+        if code and project:
+            qs = Planning.objects.filter(project=project, code=code)
+            if self.instance is not None:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError(
+                    {"code": "Этот код уже используется в этом ЖК."},
+                )
+        return attrs
 
 
 class CurrencySerializer(serializers.ModelSerializer):

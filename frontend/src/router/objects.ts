@@ -2,8 +2,9 @@
  * Objects module routes — mounted under LayoutVertical.
  *
  * Hub at `/objects` (ЖК grid). Drill-down `/objects/projects/:id` shows a
- * single project with its building tree and (phase 3.5) the shaxmatka.
- * Permission meta is enforced by the global router guard in `router/index.ts`.
+ * single project with its building tree and (phase 3.5) the inventory
+ * grid. Permission meta is enforced by the global router guard in
+ * `router/index.ts`.
  */
 import type { RouteRecordRaw } from "vue-router"
 
@@ -14,10 +15,29 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/views/modules/Objects/index.vue"),
     meta: { permission: "objects.projects.view" },
   },
+  // The bare project URL lands on the inventory tab — that's the first
+  // tab visually and the screen managers use daily. Structure moved to
+  // its own `/structure` path so the "Структура" tab still has somewhere
+  // to go.
   {
     path: "objects/projects/:id",
     name: "objects-project-detail",
-    component: () => import("@/views/modules/Objects/projects/detail.vue"),
+    redirect: (to) => ({
+      name: "objects-project-inventory",
+      params: { id: to.params.id },
+    }),
+  },
+  {
+    path: "objects/projects/:id/inventory",
+    name: "objects-project-inventory",
+    component: () => import("@/views/modules/Objects/projects/inventory.vue"),
+    meta: { permission: "objects.apartments.view" },
+    props: true,
+  },
+  {
+    path: "objects/projects/:id/overview",
+    name: "objects-project-overview",
+    component: () => import("@/views/modules/Objects/projects/overview.vue"),
     meta: { permission: "objects.projects.view" },
     props: true,
   },
@@ -29,10 +49,10 @@ const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
-    path: "objects/projects/:id/shaxmatka",
-    name: "objects-project-shaxmatka",
-    component: () => import("@/views/modules/Objects/projects/shaxmatka.vue"),
-    meta: { permission: "objects.apartments.view" },
+    path: "objects/projects/:id/structure",
+    name: "objects-project-structure",
+    component: () => import("@/views/modules/Objects/projects/detail.vue"),
+    meta: { permission: "objects.projects.view" },
     props: true,
   },
 ]

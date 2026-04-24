@@ -31,13 +31,18 @@ from apps.contracts.models import (
 class ContractTemplateSerializer(serializers.ModelSerializer):
     project_title = serializers.SerializerMethodField()
     is_global = serializers.BooleanField(read_only=True)
+    # DOCX file (only populated when source="docx"). DRF serializes as
+    # absolute URL when a request is in context.
+    file = serializers.FileField(required=False, allow_null=True)
 
     class Meta:
         model = ContractTemplate
         fields = (
             "id",
             "title",
+            "source",
             "body",
+            "file",
             "placeholders",
             "project",
             "project_title",
@@ -51,6 +56,38 @@ class ContractTemplateSerializer(serializers.ModelSerializer):
 
     def get_project_title(self, obj: ContractTemplate):
         return getattr(obj.project, "title", None) if obj.project_id else None
+
+    def validate(self, attrs):
+        """Cross-field checks that depend on `source`.
+
+        For html-sourced templates, `body` is the authoring surface and
+        must carry content; `file` must stay empty. For docx-sourced
+        templates it is reversed: `file` is required, `body` unused.
+
+        On partial_update we fall back to the instance values when the
+        field isn't in attrs — so flipping only `title` doesn't require
+        re-posting the whole bundle.
+        """
+        source = attrs.get("source") or (
+            self.instance.source if self.instance else ContractTemplate.Source.HTML
+        )
+        body = attrs.get("body") if "body" in attrs else (
+            self.instance.body if self.instance else ""
+        )
+        file = attrs.get("file") if "file" in attrs else (
+            self.instance.file if self.instance else None
+        )
+        if source == ContractTemplate.Source.HTML:
+            if not (body or "").strip():
+                raise serializers.ValidationError(
+                    {"body": "HTML-шаблон не может быть пустым."},
+                )
+        elif source == ContractTemplate.Source.DOCX:
+            if not file:
+                raise serializers.ValidationError(
+                    {"file": "DOCX-файл обязателен для шаблонов этого типа."},
+                )
+        return attrs
 
     def validate_placeholders(self, value):
         """Every entry must have `key` + `path` as non-empty strings."""

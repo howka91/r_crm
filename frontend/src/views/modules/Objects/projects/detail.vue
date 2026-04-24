@@ -18,12 +18,16 @@ import { useRouter } from "vue-router"
 
 import {
   apartmentsApi,
+  buildingPhotosApi,
   buildingsApi,
   floorsApi,
   priceHistoryApi,
   projectsApi,
   sectionsApi,
 } from "@/api/objects"
+import PhotoGallery from "@/components/PhotoGallery.vue"
+import ToggleSwitch from "@/components/ToggleSwitch.vue"
+import { planningsApi } from "@/api/references"
 import { useConfirmStore } from "@/store/confirm"
 import { usePromptStore } from "@/store/prompt"
 import { usePermissionStore } from "@/store/permissions"
@@ -33,10 +37,12 @@ import type {
   ApartmentStatus,
   ApartmentWrite,
   Building,
+  BuildingPhoto,
   BuildingWrite,
   Floor,
   FloorWrite,
   I18nText,
+  Planning,
   PriceHistory,
   Project,
   Section,
@@ -72,6 +78,7 @@ const buildings = ref<Building[]>([])
 const sections = ref<Section[]>([])
 const floors = ref<Floor[]>([])
 const apartments = ref<Apartment[]>([])
+const plannings = ref<Planning[]>([])
 const loading = ref(false)
 const expanded = ref<{ buildings: Set<number>; sections: Set<number>; floors: Set<number> }>({
   buildings: new Set(),
@@ -113,9 +120,23 @@ function emptyI18n(): I18nText {
 async function load() {
   loading.value = true
   try {
-    project.value = await projectsApi.retrieve(projectId.value)
-    const bs = await buildingsApi.list({ project: projectId.value, limit: 200 })
+    // Plannings scoped to this ЖК — drives the picker inside the
+    // apartment edit modal. `is_active: "true"` hides archived
+    // layouts; legacy apartments that still reference an archived
+    // planning keep their FK, it just isn't selectable anew.
+    const [proj, bs, plans] = await Promise.all([
+      projectsApi.retrieve(projectId.value),
+      buildingsApi.list({ project: projectId.value, limit: 200 }),
+      planningsApi.list({
+        project: projectId.value,
+        is_active: "true",
+        limit: 500,
+        ordering: "sort,id",
+      }),
+    ])
+    project.value = proj
     buildings.value = bs.results
+    plannings.value = plans.results
     if (buildings.value.length) {
       const [ss, fs, apts] = await Promise.all([
         sectionsApi.list({ limit: 500 }),
@@ -136,6 +157,14 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+function planningLabel(p: Planning): string {
+  const loc = p.name[locale.value as keyof I18nText] || `#${p.id}`
+  const parts = [p.code, loc]
+  if (p.rooms_count !== null) parts.push(`${p.rooms_count}к`)
+  if (p.area) parts.push(`${p.area} м²`)
+  return parts.filter(Boolean).join(" · ")
 }
 
 // --- Derived groupings ----------------------------------------------------
@@ -227,6 +256,7 @@ const apartmentForm = reactive<ApartmentWrite>({
   is_duplex: false,
   is_studio: false,
   is_euro_planning: false,
+  planning: null,
   decoration: null,
   output_window: null,
   occupied_by: null,
@@ -269,6 +299,86 @@ const duplicateForm = reactive<{
   source_section_id: null,
 })
 
+// --- Building photos inside the edit modal -------------------------------
+// Loaded on openBuildingEdit; reset on openBuildingCreate. The gallery
+// component only renders when `buildingForm` is the current modal state
+// and the building has an id (edit flow, not create).
+
+const buildingPhotos = ref<BuildingPhoto[]>([])
+
+async function loadBuildingPhotos(buildingId: number) {
+  const resp = await buildingPhotosApi.list({
+    building: buildingId,
+    is_active: "true",
+    limit: 100,
+    ordering: "sort,id",
+  })
+  buildingPhotos.value = resp.results
+}
+
+async function uploadBuildingPhoto(file: File) {
+  const bid = modalState.value?.editingId
+  if (!bid) return
+  const fd = new FormData()
+  fd.append("building", String(bid))
+  fd.append("file", file)
+  try {
+    const created = await buildingPhotosApi.upload(fd)
+    buildingPhotos.value = [...buildingPhotos.value, created].sort(
+      (a, b) => a.sort - b.sort || a.id - b.id,
+    )
+    // Also refresh the building row so the tree thumbnail updates.
+    const updated = await buildingsApi.retrieve(bid)
+    const idx = buildings.value.findIndex((x) => x.id === bid)
+    if (idx >= 0) buildings.value[idx] = updated
+  } catch (e) {
+    toastApiError(e)
+  }
+}
+
+async function deleteBuildingPhoto(id: number) {
+  try {
+    await buildingPhotosApi.destroy(id)
+    buildingPhotos.value = buildingPhotos.value.filter((p) => p.id !== id)
+    const bid = modalState.value?.editingId
+    if (bid) {
+      const updated = await buildingsApi.retrieve(bid)
+      const idx = buildings.value.findIndex((x) => x.id === bid)
+      if (idx >= 0) buildings.value[idx] = updated
+    }
+  } catch (e) {
+    toastApiError(e)
+  }
+}
+
+async function makeBuildingCover(id: number) {
+  try {
+    await buildingPhotosApi.makeCover(id)
+    buildingPhotos.value = buildingPhotos.value
+      .map((p, idx) => (p.id === id ? { ...p, sort: 0 } : { ...p, sort: idx + 1 }))
+      .sort((a, b) => a.sort - b.sort || a.id - b.id)
+    const bid = modalState.value?.editingId
+    if (bid) {
+      const updated = await buildingsApi.retrieve(bid)
+      const idx = buildings.value.findIndex((x) => x.id === bid)
+      if (idx >= 0) buildings.value[idx] = updated
+    }
+  } catch (e) {
+    toastApiError(e)
+  }
+}
+
+async function editBuildingCaption(id: number, caption: string) {
+  try {
+    const updated = await buildingPhotosApi.updateJson(id, { caption })
+    buildingPhotos.value = buildingPhotos.value.map((p) =>
+      p.id === id ? updated : p,
+    )
+  } catch (e) {
+    toastApiError(e)
+  }
+}
+
 function openBuildingCreate() {
   modalState.value = { kind: "building", parentId: projectId.value, editingId: null }
   Object.assign(buildingForm, {
@@ -280,6 +390,7 @@ function openBuildingCreate() {
     sort: 0,
     is_active: true,
   })
+  buildingPhotos.value = []
   saveError.value = null
   showModal.value = true
 }
@@ -294,6 +405,8 @@ function openBuildingEdit(b: Building) {
     sort: b.sort,
     is_active: b.is_active,
   })
+  buildingPhotos.value = []
+  void loadBuildingPhotos(b.id)
   saveError.value = null
   showModal.value = true
 }
@@ -368,6 +481,7 @@ function openApartmentCreate(floorId: number) {
     is_duplex: false,
     is_studio: false,
     is_euro_planning: false,
+    planning: null,
     decoration: null,
     output_window: null,
     occupied_by: null,
@@ -392,6 +506,7 @@ function openApartmentEdit(a: Apartment) {
     is_duplex: a.is_duplex,
     is_studio: a.is_studio,
     is_euro_planning: a.is_euro_planning,
+    planning: a.planning,
     decoration: a.decoration,
     output_window: a.output_window,
     occupied_by: a.occupied_by,
@@ -791,9 +906,16 @@ onMounted(load)
 
     <div class="flex gap-1 mb-5 border-b border-ym-line-soft">
       <button
-        class="px-3 py-2 text-[13px] border-b-2 border-ym-primary text-ym-primary font-medium"
+        class="px-3 py-2 text-[13px] border-b-2 border-transparent text-ym-muted hover:text-ym-text"
+        @click="router.push(`/objects/projects/${projectId}/inventory`)"
       >
-        {{ t("objects.tabs.structure") }}
+        {{ t("objects.tabs.inventory") }}
+      </button>
+      <button
+        class="px-3 py-2 text-[13px] border-b-2 border-transparent text-ym-muted hover:text-ym-text"
+        @click="router.push(`/objects/projects/${projectId}/overview`)"
+      >
+        {{ t("objects.tabs.overview") }}
       </button>
       <button
         class="px-3 py-2 text-[13px] border-b-2 border-transparent text-ym-muted hover:text-ym-text"
@@ -802,10 +924,9 @@ onMounted(load)
         {{ t("objects.tabs.pricing") }}
       </button>
       <button
-        class="px-3 py-2 text-[13px] border-b-2 border-transparent text-ym-muted hover:text-ym-text"
-        @click="router.push(`/objects/projects/${projectId}/shaxmatka`)"
+        class="px-3 py-2 text-[13px] border-b-2 border-ym-primary text-ym-primary font-medium"
       >
-        {{ t("objects.tabs.shaxmatka") }}
+        {{ t("objects.tabs.structure") }}
       </button>
     </div>
 
@@ -828,6 +949,18 @@ onMounted(load)
               ]"
             />
           </button>
+          <!-- Cover thumbnail — helps managers eyeball 5+ buildings
+               without expanding each. Placeholder when no photos. -->
+          <div
+            class="w-10 h-10 rounded-sm overflow-hidden bg-ym-sunken/60 border border-ym-line-soft flex-shrink-0 flex items-center justify-center"
+          >
+            <img
+              v-if="b.cover?.url"
+              :src="b.cover.url"
+              class="w-full h-full object-cover"
+            />
+            <i v-else class="pi pi-building text-[12px] text-ym-subtle" />
+          </div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
               <span class="font-medium">{{ localized(b) || `#${b.id}` }}</span>
@@ -1054,7 +1187,6 @@ onMounted(load)
     <div
       v-if="showModal && modalState"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      @click.self="showModal = false"
     >
       <div class="card w-full max-w-2xl p-6 shadow-ym-modal max-h-[90vh] overflow-auto art-scroll">
         <h2 class="text-lg font-semibold mb-4">
@@ -1114,6 +1246,29 @@ onMounted(load)
                 {{ t("objects.buildings.fields.date_of_issue") }}
               </label>
               <input v-model="buildingForm.date_of_issue" type="date" class="inp" />
+            </div>
+          </div>
+
+          <!-- Photo gallery — only on edit (needs building.id for FK).
+               On create we show a hint so the author knows to save
+               first and return to load pictures. -->
+          <div class="mt-5 border-t border-ym-line-soft pt-4">
+            <div
+              class="text-[11px] uppercase tracking-wider font-mono text-ym-subtle mb-2"
+            >
+              {{ t("objects.buildings.photos_section") }}
+            </div>
+            <PhotoGallery
+              v-if="modalState.editingId !== null"
+              :photos="buildingPhotos"
+              :can-edit="canEditBuilding"
+              :on-upload="uploadBuildingPhoto"
+              :on-delete="deleteBuildingPhoto"
+              :on-make-cover="makeBuildingCover"
+              :on-edit-caption="editBuildingCaption"
+            />
+            <div v-else class="text-[12px] text-ym-muted">
+              {{ t("objects.buildings.photos_save_first") }}
             </div>
           </div>
         </template>
@@ -1195,6 +1350,42 @@ onMounted(load)
               <input v-model="apartmentForm.surcharge" class="inp font-mono" placeholder="0.00" />
             </div>
           </div>
+
+          <!-- Planning picker — scoped to this ЖК. Options list is
+               empty until a manager has added layouts in the catalog. -->
+          <div class="mt-4">
+            <label class="block text-[12px] font-medium mb-1.5">
+              {{ t("objects.apartments.fields.planning") }}
+            </label>
+            <div class="flex items-start gap-3">
+              <select
+                v-model.number="apartmentForm.planning"
+                class="inp flex-1"
+              >
+                <option :value="null">—</option>
+                <option v-for="p in plannings" :key="p.id" :value="p.id">
+                  {{ planningLabel(p) }}
+                </option>
+              </select>
+              <!-- Inline thumbnail of the currently picked planning's 2D
+                   so the manager sees what they selected at a glance. -->
+              <div
+                v-if="apartmentForm.planning"
+                class="w-16 h-16 rounded-md border border-ym-line-soft overflow-hidden bg-ym-sunken/40 flex-shrink-0 flex items-center justify-center"
+              >
+                <img
+                  v-if="plannings.find((p) => p.id === apartmentForm.planning)?.image_2d"
+                  :src="plannings.find((p) => p.id === apartmentForm.planning)!.image_2d as string"
+                  class="w-full h-full object-cover"
+                />
+                <span v-else class="text-[10px] text-ym-subtle font-mono">2D</span>
+              </div>
+            </div>
+            <div v-if="!plannings.length" class="mt-2 text-[11px] text-ym-subtle">
+              {{ t("objects.apartments.planning_empty_hint") }}
+            </div>
+          </div>
+
           <div class="mt-4 flex gap-4 text-sm">
             <label class="flex items-center gap-2">
               <input v-model="apartmentForm.is_studio" type="checkbox" />
@@ -1394,28 +1585,35 @@ onMounted(load)
           </div>
         </template>
 
-        <label
+        <div
           v-if="!['status', 'book', 'price', 'duplicate_section'].includes(modalState.kind)"
-          class="flex items-center gap-2 text-sm mt-5"
+          class="mt-5"
         >
-          <input
+          <ToggleSwitch
             v-if="modalState.kind === 'building'"
             v-model="buildingForm.is_active"
-            type="checkbox"
+            :active-label="t('common.active')"
+            :inactive-label="t('common.inactive')"
           />
-          <input
+          <ToggleSwitch
             v-else-if="modalState.kind === 'section'"
             v-model="sectionForm.is_active"
-            type="checkbox"
+            :active-label="t('common.active')"
+            :inactive-label="t('common.inactive')"
           />
-          <input
+          <ToggleSwitch
             v-else-if="modalState.kind === 'floor'"
             v-model="floorForm.is_active"
-            type="checkbox"
+            :active-label="t('common.active')"
+            :inactive-label="t('common.inactive')"
           />
-          <input v-else v-model="apartmentForm.is_active" type="checkbox" />
-          <span>{{ t("common.yes") }} / {{ t("common.no") }}</span>
-        </label>
+          <ToggleSwitch
+            v-else
+            v-model="apartmentForm.is_active"
+            :active-label="t('common.active')"
+            :inactive-label="t('common.inactive')"
+          />
+        </div>
 
         <div v-if="saveError" class="mt-3 text-sm text-ym-danger break-all">
           {{ saveError }}

@@ -20,6 +20,7 @@ from apps.references.views import (
     LOOKUP_VIEWSETS,
     CurrencyViewSet,
     DeveloperViewSet,
+    PlanningViewSet,
     SalesOfficeViewSet,
 )
 
@@ -33,6 +34,7 @@ router = DefaultRouter()
 router.register("developers", DeveloperViewSet, basename="developer")
 router.register("sales-offices", SalesOfficeViewSet, basename="sales-office")
 router.register("currencies", CurrencyViewSet, basename="currency")
+router.register("plannings", PlanningViewSet, basename="planning")
 
 # Register each lookup under its kebab-cased class name.
 for model in LOOKUP_MODELS:

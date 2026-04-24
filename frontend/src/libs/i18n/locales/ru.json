@@ -13,7 +13,7 @@
     "group_references": "Справочники",
     "group_sms_reports_admin": "SMS · Отчёты · Админ.",
     "dashboard": "Дашборд",
-    "objects": "Объекты / Шахматка",
+    "objects": "Объекты",
     "clients": "Клиенты",
     "contracts_unsigned": "Неподписанные",
     "contracts_signed": "Подписанные",
@@ -27,6 +27,7 @@
     "references_currencies": "Валюты",
     "references_lookups": "Классификаторы",
     "references_contract_templates": "Шаблоны договоров",
+    "references_plannings": "Планировки квартир",
     "sms": "SMS рассылка",
     "sms_templates": "SMS шаблоны",
     "sms_manual": "Отправка SMS",
@@ -78,25 +79,29 @@
     "eyebrow": "Авторизация",
     "welcome_back": "С возвращением",
     "enter_credentials": "Введите корпоративные логин и пароль.",
-    "forgot": "Забыли?",
     "language": "Язык",
     "brand_eyebrow": "CRM · Real estate",
     "brand_heading_line1": "Управляйте продажами",
     "brand_heading_line2": "ЖК в одном окне.",
-    "brand_description": "Шахматка, клиенты, договоры, финансы, отчёты — от первого лида до подписанного ДДУ без переключений.",
+    "brand_description": "Каталог квартир, клиенты, договоры, финансы, отчёты — от первого лида до подписанного ДДУ без переключений.",
     "copyright": "© 2026 Yangi Mahalla"
   },
   "common": {
     "save": "Сохранить",
+    "saved": "Сохранено",
     "cancel": "Отмена",
     "delete": "Удалить",
+    "deleted": "Удалено",
     "edit": "Редактировать",
     "create": "Создать",
+    "created": "Создано",
     "search": "Поиск",
     "loading": "Загрузка…",
     "no_data": "Нет данных",
     "yes": "Да",
     "no": "Нет",
+    "active": "Активен",
+    "inactive": "Неактивен",
     "confirm": "Подтвердить",
     "back": "Назад",
     "retry": "Повторить",
@@ -106,7 +111,11 @@
     "network": "Ошибка сети. Проверьте подключение.",
     "unknown": "Что-то пошло не так.",
     "forbidden": "Недостаточно прав",
-    "not_found": "Страница не найдена"
+    "not_found": "Страница не найдена",
+    "photo": {
+      "bad_mime": "Допустимы PNG, JPEG, WebP, GIF.",
+      "too_large": "Файл больше 10 МБ — уменьшите и попробуйте снова."
+    }
   },
   "objects": {
     "title": "Объекты",
@@ -137,6 +146,8 @@
         "cadastral_number": "Кадастровый номер",
         "date_of_issue": "Ввод в эксплуатацию"
       },
+      "photos_section": "Фото корпуса",
+      "photos_save_first": "Сохраните корпус, чтобы загрузить фото.",
       "confirm_delete": "Удалить корпус"
     },
     "sections": {
@@ -191,8 +202,11 @@
         "surcharge": "Наценка",
         "is_duplex": "Дуплекс",
         "is_studio": "Студия",
-        "is_euro_planning": "Европлан"
+        "is_euro_planning": "Европлан",
+        "planning": "Планировка"
       },
+      "planning_empty_hint": "Добавьте планировки в справочнике: Справочники → Планировки квартир.",
+      "planning_section": "Планировка",
       "confirm_delete": "Удалить квартиру",
       "change_status": "Сменить статус",
       "new_status": "Новый статус",
@@ -229,10 +243,31 @@
     "tabs": {
       "structure": "Структура",
       "pricing": "Прайсинг",
-      "shaxmatka": "Шахматка"
+      "inventory": "Каталог квартир",
+      "overview": "Обзор"
     },
-    "shaxmatka": {
-      "title": "Шахматка",
+    "overview": {
+      "title": "Обзор",
+      "subtitle": "Фото, описание и общая информация по ЖК",
+      "no_cover": "Обложка не загружена",
+      "address": "Адрес",
+      "description": "Описание",
+      "buildings_count": "Корпусов",
+      "photos_count": "Фото",
+      "gallery": "Галерея фото",
+      "gallery_hint": "Первая фото — обложка ЖК. Наведите курсор, чтобы сменить обложку."
+    },
+    "photos": {
+      "empty": "Пока нет ни одного фото.",
+      "add": "Добавить фото",
+      "cover_badge": "Обложка",
+      "make_cover": "Сделать обложкой",
+      "edit_caption": "Изменить подпись",
+      "caption_placeholder": "Подпись к фото",
+      "confirm_delete": "Удалить фото"
+    },
+    "inventory": {
+      "title": "Каталог квартир",
       "subtitle": "Визуальная карта фонда ЖК",
       "select_building": "Корпус",
       "select_section": "Подъезд",
@@ -385,6 +420,36 @@
     "card_sales_offices_desc": "Физические точки встречи с клиентами, координаты на карте",
     "card_currencies_desc": "ISO 4217 коды и курсы к UZS",
     "card_lookups_desc": "Типы квартир, отделка, этапы строительства и другие классификаторы",
+    "card_plannings_desc": "Каталог «вид сверху» и 3D-рендеров — одна планировка на сотни одинаковых квартир",
+    "plannings": {
+      "title": "Планировки",
+      "subtitle": "Каталог планировок квартир в рамках ЖК — 2D-чертёж + 3D-рендер",
+      "hub_title": "Планировки квартир",
+      "hub_empty": "Сначала создайте ЖК, потом сюда можно будет добавить планировки.",
+      "new": "Добавить планировку",
+      "edit": "Редактирование планировки",
+      "empty": "В этом ЖК ещё нет планировок.",
+      "no_image": "Нет изображения",
+      "confirm_delete": "Удалить планировку",
+      "count_label": "{n} планировок",
+      "columns": {
+        "preview": "Превью"
+      },
+      "fields": {
+        "code": "Код",
+        "name": "Название",
+        "rooms_count": "Комнат",
+        "area": "Площадь, м²",
+        "image_2d": "2D (вид сверху)",
+        "image_3d": "3D-рендер",
+        "project": "ЖК",
+        "sort": "Порядок"
+      },
+      "errors": {
+        "bad_mime": "Допустимы PNG, JPG, WebP, GIF, SVG.",
+        "too_large": "Файл больше 5 МБ — уменьшите и попробуйте снова."
+      }
+    },
     "columns": {
       "name": "Название",
       "director": "Директор",
@@ -489,6 +554,7 @@
         "project": "ЖК",
         "project_any": "— Глобальный (все ЖК) —",
         "body": "Содержимое шаблона",
+        "docx_file": "Файл .docx",
         "placeholders": "Плейсхолдеры",
         "placeholder_key": "Ключ",
         "placeholder_path": "Путь в контексте",
@@ -510,13 +576,34 @@
       "custom_empty": "Добавьте запись, если нужен нестандартный путь — например, к полю JSON-объекта.",
       "saved": "Шаблон сохранён",
       "global_forbidden": "У вас нет права создавать/редактировать глобальные шаблоны.",
-      "duplicate_key": "Ключ должен быть уникален в рамках шаблона."
+      "duplicate_key": "Ключ должен быть уникален в рамках шаблона.",
+      "source_label": "Источник шаблона",
+      "source_html": "Редактор в браузере",
+      "source_html_hint": "Tiptap WYSIWYG — подходит для контент-менеджеров.",
+      "source_docx": "Word-файл (.docx)",
+      "source_docx_hint": "Юрист верстает договор в Word, загружает сюда.",
+      "source_locked_hint": "Тип нельзя сменить после создания — создайте новый шаблон.",
+      "fields_docx_file": "Файл .docx",
+      "current_docx": "Текущий файл",
+      "validating": "Проверяю теги в файле…",
+      "validation_ok": "Найдено {n} корректных тегов.",
+      "validation_warn": "Найдено {n} неизвестных тегов — исправьте перед сохранением.",
+      "validation_unknown_hint": "Корни допустимых путей: contract.*, client.*, signer.*, apartment.*, project.*, developer.*, calculation.*, now, today, qr.",
+      "catalog_hint_docx": "Клик копирует `{{ путь }}` в буфер — вставьте в Word.",
+      "docx_hint": "В .docx пишите Jinja2-теги: `{{ client.full_name }}`, условия `{% if contract.is_mortgage %}…{% endif %}`, циклы `{% for row in contract.schedule %}…{% endfor %}`.",
+      "tag_copied": "Скопировано: {tag}",
+      "errors": {
+        "bad_docx": "Ожидался .docx (Word 2007+).",
+        "docx_required": "Загрузите .docx-файл перед сохранением.",
+        "docx_unknown_tags": "В файле есть неизвестные теги — исправьте их в Word и загрузите заново."
+      }
     }
   },
   "contracts": {
     "title": "Договоры",
     "subtitle": "Жизненный цикл договоров от черновика до подписания",
     "new": "Новый договор",
+    "inventory_cta": "Оформить договор",
     "empty": "Договоров пока нет.",
     "confirm_delete": "Удалить договор",
     "tabs": {
@@ -600,7 +687,7 @@
       "select_apartment": "Выберите квартиру",
       "select_signer": "Выберите подписанта",
       "pick_client_first": "Сначала выберите клиента",
-      "no_calculations": "У квартиры пока нет расчётов — продолжайте без расчёта или создайте в шахматке.",
+      "no_calculations": "У квартиры пока нет расчётов — продолжайте без расчёта или создайте в каталоге квартир.",
       "next": "Далее",
       "prev": "Назад",
       "create": "Создать договор"

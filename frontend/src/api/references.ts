@@ -19,6 +19,7 @@ import type {
   LookupItem,
   LookupTypeSlug,
   PaymentInPercentItem,
+  Planning,
   SalesOffice,
   SalesOfficeWrite,
 } from "@/types/models"
@@ -68,6 +69,34 @@ export const currenciesApi = {
   update: (id: number, payload: Partial<CurrencyWrite>) =>
     http.patch<Currency>(`/currencies/${id}/`, payload).then((r) => r.data),
   destroy: (id: number) => http.delete(`/currencies/${id}/`).then((r) => r.data),
+}
+
+/**
+ * Planning catalog — create/update take a FormData payload so image_2d
+ * and image_3d can be uploaded alongside the scalar fields in a single
+ * multipart request. For lightweight PATCHes without files (toggling
+ * is_active, renaming), use `updateJson` which sends a JSON body.
+ */
+export const planningsApi = {
+  list: (params?: Record<string, unknown>) =>
+    http.get<Paginated<Planning>>("/plannings/", { params }).then((r) => r.data),
+  retrieve: (id: number) =>
+    http.get<Planning>(`/plannings/${id}/`).then((r) => r.data),
+  create: (payload: FormData) =>
+    http
+      .post<Planning>("/plannings/", payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data),
+  update: (id: number, payload: FormData) =>
+    http
+      .patch<Planning>(`/plannings/${id}/`, payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data),
+  updateJson: (id: number, payload: Record<string, unknown>) =>
+    http.patch<Planning>(`/plannings/${id}/`, payload).then((r) => r.data),
+  destroy: (id: number) => http.delete(`/plannings/${id}/`).then((r) => r.data),
 }
 
 // --- Lookups (generic) -----------------------------------------------------

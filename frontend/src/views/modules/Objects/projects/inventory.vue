@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Shaxmatka — visual floor × apartment grid.
+ * Inventory — visual floor × apartment grid.
  *
  * One row per floor (highest at the top); each cell is an apartment tinted
  * by status. Click a cell → side drawer with full apartment detail,
@@ -16,14 +16,12 @@ import { computed, onMounted, reactive, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
+import PhotoLightbox from "@/components/PhotoLightbox.vue"
 import {
   apartmentsApi,
   apartmentStatusLogsApi,
-  buildingsApi,
   calculationsApi,
-  floorsApi,
   projectsApi,
-  sectionsApi,
 } from "@/api/objects"
 import { lookupsApi } from "@/api/references"
 import { usePermissionStore } from "@/store/permissions"
@@ -65,32 +63,26 @@ const roomsFilter = ref<number | null>(null)
 const canBook = computed(() => permissions.check("objects.apartments.book"))
 const canChangeStatus = computed(() => permissions.check("objects.apartments.change_status"))
 const canRecalc = computed(() => permissions.check("objects.apartments.edit"))
+const canCreateContract = computed(() =>
+  permissions.check("contracts.unsigned.create"),
+)
 
 async function load() {
   loading.value = true
   try {
-    project.value = await projectsApi.retrieve(projectId.value)
-    const bs = await buildingsApi.list({ project: projectId.value, limit: 200 })
-    buildings.value = bs.results
-    if (!buildings.value.length) {
-      sections.value = []
-      floors.value = []
-      apartments.value = []
-      return
-    }
-    const [ss, fs, apts, pps] = await Promise.all([
-      sectionsApi.list({ limit: 500 }),
-      floorsApi.list({ limit: 1000 }),
-      apartmentsApi.list({ limit: 5000 }),
+    const [proj, tree, pps] = await Promise.all([
+      projectsApi.retrieve(projectId.value),
+      projectsApi.inventory(projectId.value),
       lookupsApi["payment-in-percent"].list({ limit: 200 }),
     ])
-    const buildingIds = new Set(buildings.value.map((b) => b.id))
-    sections.value = ss.results.filter((s) => buildingIds.has(s.building))
-    const sectionIds = new Set(sections.value.map((s) => s.id))
-    floors.value = fs.results.filter((f) => sectionIds.has(f.section))
-    const floorIds = new Set(floors.value.map((f) => f.id))
-    apartments.value = apts.results.filter((a) => floorIds.has(a.floor))
+    project.value = proj
+    buildings.value = tree.buildings
+    sections.value = tree.sections
+    floors.value = tree.floors
+    apartments.value = tree.apartments
     paymentPercents.value = pps.results as PaymentInPercentItem[]
+
+    if (!buildings.value.length) return
 
     if (selectedBuildingId.value == null) {
       selectedBuildingId.value = buildings.value[0]?.id ?? null
@@ -161,6 +153,31 @@ const drawerCalcs = ref<Calculation[]>([])
 const drawerLogs = ref<ApartmentStatusLog[]>([])
 const drawerLoading = ref(false)
 const drawerError = ref<string | null>(null)
+
+const lightboxOpen = ref(false)
+const lightboxIndex = ref(0)
+
+const planningPhotos = computed(() => {
+  const p = drawerApt.value?.planning_preview
+  if (!p) return []
+  const photos: Array<{ id: number; file: string; caption: string }> = []
+  if (p.image_2d) {
+    photos.push({ id: 1, file: p.image_2d, caption: t("references.plannings.fields.image_2d") })
+  }
+  if (p.image_3d) {
+    photos.push({ id: 2, file: p.image_3d, caption: t("references.plannings.fields.image_3d") })
+  }
+  return photos
+})
+
+function openPlanningPhoto(kind: "2d" | "3d") {
+  const idx = planningPhotos.value.findIndex((ph) =>
+    kind === "2d" ? ph.id === 1 : ph.id === 2,
+  )
+  if (idx < 0) return
+  lightboxIndex.value = idx
+  lightboxOpen.value = true
+}
 
 async function openApartment(a: Apartment) {
   drawerApt.value = a
@@ -268,6 +285,21 @@ async function doRecalc() {
   }
 }
 
+/** Jump into the contract wizard with this apartment pre-selected. The
+ *  wizard reads `project` and `apartment` from the route query and skips
+ *  straight to step 2 (client). Selling already-sold flats is blocked
+ *  by the backend on submit, but hide the CTA to keep the UI honest. */
+function goCreateContract() {
+  if (!drawerApt.value) return
+  router.push({
+    name: "contracts-new",
+    query: {
+      project: String(projectId.value),
+      apartment: String(drawerApt.value.id),
+    },
+  })
+}
+
 // --- Formatting / helpers ------------------------------------------------
 
 function projectTitle(): string {
@@ -337,20 +369,25 @@ onMounted(load)
           </button>
         </div>
         <h1 class="text-[28px] font-semibold leading-none tracking-[-0.025em]">
-          {{ t("objects.shaxmatka.title") }}
+          {{ t("objects.inventory.title") }}
         </h1>
         <div class="text-[13px] mt-2 text-ym-muted">
-          {{ t("objects.shaxmatka.subtitle") }}
+          {{ t("objects.inventory.subtitle") }}
         </div>
       </div>
     </div>
 
     <div class="flex gap-1 mb-5 border-b border-ym-line-soft">
       <button
-        class="px-3 py-2 text-[13px] border-b-2 border-transparent text-ym-muted hover:text-ym-text"
-        @click="router.push(`/objects/projects/${projectId}`)"
+        class="px-3 py-2 text-[13px] border-b-2 border-ym-primary text-ym-primary font-medium"
       >
-        {{ t("objects.tabs.structure") }}
+        {{ t("objects.tabs.inventory") }}
+      </button>
+      <button
+        class="px-3 py-2 text-[13px] border-b-2 border-transparent text-ym-muted hover:text-ym-text"
+        @click="router.push(`/objects/projects/${projectId}/overview`)"
+      >
+        {{ t("objects.tabs.overview") }}
       </button>
       <button
         class="px-3 py-2 text-[13px] border-b-2 border-transparent text-ym-muted hover:text-ym-text"
@@ -359,9 +396,10 @@ onMounted(load)
         {{ t("objects.tabs.pricing") }}
       </button>
       <button
-        class="px-3 py-2 text-[13px] border-b-2 border-ym-primary text-ym-primary font-medium"
+        class="px-3 py-2 text-[13px] border-b-2 border-transparent text-ym-muted hover:text-ym-text"
+        @click="router.push(`/objects/projects/${projectId}/structure`)"
       >
-        {{ t("objects.tabs.shaxmatka") }}
+        {{ t("objects.tabs.structure") }}
       </button>
     </div>
 
@@ -377,7 +415,7 @@ onMounted(load)
         <!-- Building -->
         <div class="flex items-center gap-2">
           <span class="text-[12px] uppercase tracking-wider font-mono text-ym-subtle">
-            {{ t("objects.shaxmatka.select_building") }}
+            {{ t("objects.inventory.select_building") }}
           </span>
           <div class="flex gap-1">
             <button
@@ -394,7 +432,7 @@ onMounted(load)
         <!-- Section -->
         <div v-if="sectionsOfCurrentBuilding.length" class="flex items-center gap-2">
           <span class="text-[12px] uppercase tracking-wider font-mono text-ym-subtle">
-            {{ t("objects.shaxmatka.select_section") }}
+            {{ t("objects.inventory.select_section") }}
           </span>
           <div class="flex gap-1">
             <button
@@ -411,14 +449,14 @@ onMounted(load)
         <!-- Rooms filter -->
         <div v-if="roomsOptions.length > 1" class="flex items-center gap-2 ml-auto">
           <span class="text-[12px] uppercase tracking-wider font-mono text-ym-subtle">
-            {{ t("objects.shaxmatka.filter_rooms") }}
+            {{ t("objects.inventory.filter_rooms") }}
           </span>
           <button
             class="chip"
             :class="roomsFilter === null ? 'chip-primary' : 'chip-ghost'"
             @click="roomsFilter = null"
           >
-            {{ t("objects.shaxmatka.filter_all") }}
+            {{ t("objects.inventory.filter_all") }}
           </button>
           <button
             v-for="r in roomsOptions"
@@ -435,7 +473,7 @@ onMounted(load)
       <!-- Legend -->
       <div class="card p-3 mb-4 flex flex-wrap items-center gap-4">
         <span class="text-[12px] uppercase tracking-wider font-mono text-ym-subtle mr-2">
-          {{ t("objects.shaxmatka.legend") }}
+          {{ t("objects.inventory.legend") }}
         </span>
         <div v-for="s in legendStatuses" :key="s" class="flex items-center gap-2 text-[12.5px]">
           <span :class="['inline-block w-4 h-4 rounded-sm', cellClass(s)]" />
@@ -448,7 +486,7 @@ onMounted(load)
         v-if="!currentSection"
         class="card p-8 text-center text-ym-muted"
       >
-        {{ t("objects.shaxmatka.no_data") }}
+        {{ t("objects.inventory.no_data") }}
       </div>
       <div v-else class="card overflow-x-auto art-scroll">
         <div class="min-w-fit">
@@ -468,7 +506,7 @@ onMounted(load)
               v-if="!apartmentsOfFloor(f.id).length"
               class="flex-1 flex items-center px-3 text-[11.5px] text-ym-muted italic py-2"
             >
-              {{ t("objects.shaxmatka.empty_floor") }}
+              {{ t("objects.inventory.empty_floor") }}
             </div>
             <div v-else class="flex flex-wrap gap-1.5 p-2">
               <button
@@ -507,7 +545,7 @@ onMounted(load)
         <div class="p-5 border-b border-ym-line-soft flex items-start justify-between">
           <div>
             <div class="text-[11px] uppercase tracking-[0.12em] font-mono text-ym-subtle">
-              {{ t("objects.shaxmatka.apt_details") }}
+              {{ t("objects.inventory.apt_details") }}
             </div>
             <h2 class="text-[20px] font-semibold leading-none tracking-[-0.02em] mt-1">
               #{{ drawerApt.number }}
@@ -532,25 +570,25 @@ onMounted(load)
           <div class="grid grid-cols-2 gap-3 text-[13px]">
             <div>
               <div class="text-[11px] uppercase tracking-wider font-mono text-ym-subtle">
-                {{ t("objects.shaxmatka.apt_rooms") }}
+                {{ t("objects.inventory.apt_rooms") }}
               </div>
               <div class="font-mono">{{ drawerApt.rooms_count }}</div>
             </div>
             <div>
               <div class="text-[11px] uppercase tracking-wider font-mono text-ym-subtle">
-                {{ t("objects.shaxmatka.apt_area") }}
+                {{ t("objects.inventory.apt_area") }}
               </div>
               <div class="font-mono">{{ drawerApt.area }} м²</div>
             </div>
             <div>
               <div class="text-[11px] uppercase tracking-wider font-mono text-ym-subtle">
-                {{ t("objects.shaxmatka.apt_total_price") }}
+                {{ t("objects.inventory.apt_total_price") }}
               </div>
               <div class="font-mono">{{ fmtPrice(drawerApt.total_price) }} UZS</div>
             </div>
             <div v-if="Number(drawerApt.surcharge) > 0">
               <div class="text-[11px] uppercase tracking-wider font-mono text-ym-subtle">
-                {{ t("objects.shaxmatka.apt_surcharge") }}
+                {{ t("objects.inventory.apt_surcharge") }}
               </div>
               <div class="font-mono">{{ fmtPrice(drawerApt.surcharge) }} UZS</div>
             </div>
@@ -568,11 +606,72 @@ onMounted(load)
             </span>
           </div>
 
+          <!-- Planning preview (2D + 3D) — visible when the apartment
+               is linked to a Planning in the catalog. -->
+          <div
+            v-if="drawerApt.planning_preview"
+            class="border border-ym-line-soft rounded-md p-3"
+          >
+            <div
+              class="text-[11px] uppercase tracking-wider font-mono text-ym-subtle mb-2"
+            >
+              {{ t("objects.apartments.planning_section") }}
+            </div>
+            <div class="text-[13px] font-medium mb-2">
+              <span
+                v-if="drawerApt.planning_preview.code"
+                class="font-mono mr-2 text-ym-muted"
+              >{{ drawerApt.planning_preview.code }}</span>
+              {{
+                drawerApt.planning_preview.name[locale as keyof I18nText]
+                  || t("references.plannings.title")
+              }}
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                v-if="drawerApt.planning_preview.image_2d"
+                type="button"
+                class="block rounded-sm overflow-hidden border border-ym-line-soft cursor-zoom-in p-0 bg-transparent"
+                :title="t('references.plannings.fields.image_2d')"
+                @click="openPlanningPhoto('2d')"
+              >
+                <img
+                  :src="drawerApt.planning_preview.image_2d"
+                  class="w-full h-28 object-contain bg-ym-sunken/40"
+                />
+              </button>
+              <div
+                v-else
+                class="h-28 rounded-sm bg-ym-sunken/40 flex items-center justify-center text-[11px] text-ym-subtle font-mono"
+              >
+                {{ t("references.plannings.fields.image_2d") }} — —
+              </div>
+              <button
+                v-if="drawerApt.planning_preview.image_3d"
+                type="button"
+                class="block rounded-sm overflow-hidden border border-ym-line-soft cursor-zoom-in p-0 bg-transparent"
+                :title="t('references.plannings.fields.image_3d')"
+                @click="openPlanningPhoto('3d')"
+              >
+                <img
+                  :src="drawerApt.planning_preview.image_3d"
+                  class="w-full h-28 object-contain bg-ym-sunken/40"
+                />
+              </button>
+              <div
+                v-else
+                class="h-28 rounded-sm bg-ym-sunken/40 flex items-center justify-center text-[11px] text-ym-subtle font-mono"
+              >
+                {{ t("references.plannings.fields.image_3d") }} — —
+              </div>
+            </div>
+          </div>
+
           <!-- Calculations -->
           <div>
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-[13px] font-semibold">
-                {{ t("objects.shaxmatka.calculations_title") }}
+                {{ t("objects.inventory.calculations_title") }}
               </h3>
               <button
                 v-if="canRecalc"
@@ -580,7 +679,7 @@ onMounted(load)
                 @click="doRecalc"
               >
                 <i class="pi pi-refresh text-[10px]" />
-                {{ t("objects.shaxmatka.recalc") }}
+                {{ t("objects.inventory.recalc") }}
               </button>
             </div>
             <div
@@ -593,16 +692,16 @@ onMounted(load)
               v-else-if="!drawerCalcs.length"
               class="text-[12px] text-ym-muted"
             >
-              {{ t("objects.shaxmatka.calculations_empty") }}
+              {{ t("objects.inventory.calculations_empty") }}
             </div>
             <table v-else class="tbl">
               <thead>
                 <tr>
-                  <th>{{ t("objects.shaxmatka.calc_percent") }}</th>
-                  <th>{{ t("objects.shaxmatka.calc_discount") }}</th>
-                  <th>{{ t("objects.shaxmatka.calc_price_sqm") }}</th>
-                  <th>{{ t("objects.shaxmatka.calc_total") }}</th>
-                  <th>{{ t("objects.shaxmatka.calc_initial") }}</th>
+                  <th>{{ t("objects.inventory.calc_percent") }}</th>
+                  <th>{{ t("objects.inventory.calc_discount") }}</th>
+                  <th>{{ t("objects.inventory.calc_price_sqm") }}</th>
+                  <th>{{ t("objects.inventory.calc_total") }}</th>
+                  <th>{{ t("objects.inventory.calc_initial") }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -620,10 +719,10 @@ onMounted(load)
           <!-- Status log -->
           <div>
             <h3 class="text-[13px] font-semibold mb-2">
-              {{ t("objects.shaxmatka.log_title") }}
+              {{ t("objects.inventory.log_title") }}
             </h3>
             <div v-if="!drawerLogs.length" class="text-[12px] text-ym-muted">
-              {{ t("objects.shaxmatka.log_empty") }}
+              {{ t("objects.inventory.log_empty") }}
             </div>
             <ul v-else class="space-y-1.5">
               <li
@@ -670,6 +769,14 @@ onMounted(load)
           >
             {{ t("objects.apartments.release") }}
           </button>
+          <button
+            v-if="drawerApt.status !== 'sold' && canCreateContract"
+            class="btn btn-soft btn-sm"
+            @click="goCreateContract"
+          >
+            <i class="pi pi-file-edit text-[11px]" />
+            {{ t("contracts.inventory_cta") }}
+          </button>
           <button class="btn btn-ghost btn-sm ml-auto" @click="closeDrawer">
             {{ t("common.close") }}
           </button>
@@ -679,7 +786,6 @@ onMounted(load)
         <div
           v-if="showBookSub"
           class="absolute inset-0 bg-black/40 flex items-center justify-center p-4"
-          @click.self="showBookSub = false"
         >
           <div class="card w-full max-w-md p-5 shadow-ym-modal">
             <h3 class="text-base font-semibold mb-3">
@@ -722,5 +828,11 @@ onMounted(load)
         </div>
       </div>
     </div>
+
+    <PhotoLightbox
+      v-model:open="lightboxOpen"
+      :photos="planningPhotos"
+      :start-index="lightboxIndex"
+    />
   </div>
 </template>

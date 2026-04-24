@@ -80,11 +80,16 @@ class Apartment(BaseModel):
     is_studio = models.BooleanField(_("Студия"), default=False)
     is_euro_planning = models.BooleanField(_("Европлан"), default=False)
 
-    planning_file = models.FileField(
-        _("Файл планировки"),
-        upload_to="objects/apartments/planning/",
+    # Reference to the shared planning catalog (references.Planning).
+    # One planning describes many apartments (sharing "вид сверху" +
+    # 3D-render). Cross-project mismatch is rejected in the serializer.
+    planning = models.ForeignKey(
+        "references.Planning",
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        related_name="apartments",
+        verbose_name=_("Планировка"),
     )
 
     # FK на справочники (references). Необязательны — данные могут отсутствовать.

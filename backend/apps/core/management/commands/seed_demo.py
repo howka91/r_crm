@@ -62,6 +62,7 @@ from apps.references.models import (
     OutputWindows,
     PaymentInPercent,
     PaymentMethod,
+    Planning,
     PremisesDecoration,
     Region,
     RoomType,
@@ -367,11 +368,42 @@ class Command(BaseCommand):
             (2, Decimal("58.20"), False, False),   # 2-комн
             (3, Decimal("85.00"), False, True),    # 3-комн euro
         ]
+
+        # Seed the planning catalog for this ЖК — one entry per recipe
+        # so the demo shaxmatka can show "вид сверху" straight away.
+        # Images are intentionally blank: the shipping bundle doesn't
+        # include real renders, and adding placeholder PNGs would bloat
+        # the image. Managers upload 2D/3D from the admin/UI.
+        plannings_recipe = [
+            ("ST-01", "Студия 32,5м²", 1, Decimal("32.50")),
+            ("1K-A", "1-комн. типовая", 1, Decimal("42.75")),
+            ("2K-A", "2-комн. типовая", 2, Decimal("58.20")),
+            ("3K-EU", "3-комн. евро", 3, Decimal("85.00")),
+        ]
+        plannings_by_recipe_idx: dict[int, Planning] = {}
+        for idx, (code, ru_name, rooms, area) in enumerate(plannings_recipe):
+            planning, _ = Planning.objects.get_or_create(
+                project=project,
+                code=code,
+                defaults={
+                    "name": _i18n(ru_name),
+                    "rooms_count": rooms,
+                    "area": area,
+                    "sort": idx,
+                },
+            )
+            plannings_by_recipe_idx[idx] = planning
+
         for floor in floors:
             for idx, (rooms, area, is_studio, is_euro) in enumerate(rooms_recipe, start=1):
                 number = f"{floor.number}0{idx}"  # 101, 102, ..., 504
                 existing = Apartment.objects.filter(floor=floor, number=number).first()
                 if existing is not None:
+                    # Backfill planning on re-seed so earlier demo rows get
+                    # linked to the new catalog without a full wipe.
+                    if existing.planning_id is None:
+                        existing.planning = plannings_by_recipe_idx[idx - 1]
+                        existing.save(update_fields=["planning", "modified_at"])
                     apartments.append(existing)
                     continue
                 total = (area * floor.price_per_sqm).quantize(Decimal("0.01"))
@@ -386,6 +418,7 @@ class Command(BaseCommand):
                         is_studio=is_studio,
                         is_euro_planning=is_euro,
                         decoration=decoration,
+                        planning=plannings_by_recipe_idx[idx - 1],
                         status=Apartment.Status.FREE,
                         sort=idx,
                     ),

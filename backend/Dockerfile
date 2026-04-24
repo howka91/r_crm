@@ -10,8 +10,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 #   - build-essential: wheels for some libs (reportlab etc.)
 #   - libjpeg/zlib/freetype: Pillow
 #   - libpango/cairo/gdk-pixbuf + shared-mime-info: WeasyPrint (HTML→PDF for
-#     contract docgen — replaced the separate libreoffice service in 5.3)
-#   - fonts-dejavu/fonts-noto: glyph coverage for Cyrillic + Latin + Uzbek
+#     contract docgen authored via Tiptap)
+#   - libreoffice-core/writer: .docx → PDF headless conversion for the
+#     parallel lawyer-authored template path (docxtpl + soffice)
+#   - fonts-dejavu/fonts-noto/fonts-liberation: glyph coverage for
+#     Cyrillic + Latin + Uzbek + Word-compatible metrics (Liberation
+#     Serif/Sans stand in for Times New Roman / Arial so .docx templates
+#     render with consistent spacing)
 #   - curl: healthchecks
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -24,8 +29,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2 \
     libgdk-pixbuf-2.0-0 \
     shared-mime-info \
+    libreoffice-core \
+    libreoffice-writer \
     fonts-dejavu \
     fonts-noto \
+    fonts-liberation \
     curl \
  && rm -rf /var/lib/apt/lists/*
 

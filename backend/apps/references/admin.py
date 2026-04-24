@@ -11,6 +11,7 @@ from apps.references.models import (
     LOOKUP_MODELS,
     Currency,
     Developer,
+    Planning,
     SalesOffice,
 )
 
@@ -54,6 +55,29 @@ class SalesOfficeAdmin(admin.ModelAdmin):
 
     @admin.display(description="Название (ru)")
     def _name_ru(self, obj: SalesOffice) -> str:
+        return (obj.name or {}).get("ru") or "—"
+
+
+@admin.register(Planning)
+class PlanningAdmin(admin.ModelAdmin):
+    list_display = (
+        "id", "code", "_name_ru", "project",
+        "rooms_count", "area", "sort", "is_active",
+    )
+    list_filter = ("project", "rooms_count", "is_active")
+    search_fields = ("code",)
+    list_editable = ("sort", "is_active")
+    list_select_related = ("project",)
+    readonly_fields = ("created_at", "modified_at")
+    fieldsets = (
+        (None, {"fields": ("project", "code", "name", "is_active", "sort")}),
+        ("Характеристики", {"fields": ("rooms_count", "area")}),
+        ("Изображения", {"fields": ("image_2d", "image_3d")}),
+        ("Метаданные", {"fields": ("created_at", "modified_at")}),
+    )
+
+    @admin.display(description="Название (ru)")
+    def _name_ru(self, obj: Planning) -> str:
         return (obj.name or {}).get("ru") or "—"
 
 

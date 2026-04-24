@@ -154,7 +154,7 @@ onMounted(load)
               <span
                 :class="r.is_active ? 'chip chip-success' : 'chip chip-ghost'"
               >
-                {{ r.is_active ? t("common.yes") : t("common.no") }}
+                {{ r.is_active ? t("common.active") : t("common.inactive") }}
               </span>
             </td>
             <td class="text-right whitespace-nowrap">
@@ -181,7 +181,6 @@ onMounted(load)
     <div
       v-if="showCreate"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-      @click.self="showCreate = false"
     >
       <div class="card w-full max-w-md p-6 shadow-ym-modal">
         <h2 class="text-lg font-semibold mb-4">{{ t("common.create") }}</h2>

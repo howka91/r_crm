@@ -14,13 +14,13 @@
 import { AxiosError } from "axios"
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
-import { useRouter } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 
 import MoneyInput from "@/components/MoneyInput.vue"
-import ShaxmatkaPicker from "@/components/ShaxmatkaPicker.vue"
+import InventoryPicker from "@/components/InventoryPicker.vue"
 import { contractTemplatesApi, contractsApi } from "@/api/contracts"
 import { clientContactsApi, clientsApi } from "@/api/clients"
-import { calculationsApi, projectsApi } from "@/api/objects"
+import { apartmentsApi, calculationsApi, projectsApi } from "@/api/objects"
 import { useToastStore } from "@/store/toast"
 import type {
   Apartment,
@@ -33,6 +33,7 @@ import type {
 } from "@/types/models"
 
 const { t, locale } = useI18n()
+const route = useRoute()
 const router = useRouter()
 const toastStore = useToastStore()
 
@@ -58,9 +59,32 @@ async function loadProjects() {
   projects.value = resp.results
 }
 
-watch(selectedProject, () => {
+/** Honour `?project=ID&apartment=ID` in the URL (the inventory grid's
+ *  "Оформить договор" CTA hands those in). Loads the apartment
+ *  out-of-band so step 1 opens with the pick already made — the user
+ *  lands on step 2. Fails silent on stale IDs; step 1 is still
+ *  reachable manually. */
+async function applyRouteSelection() {
+  const pid = Number(route.query.project)
+  const aid = Number(route.query.apartment)
+  if (!Number.isFinite(pid) || pid <= 0) return
+  selectedProject.value = pid
+  if (!Number.isFinite(aid) || aid <= 0) return
+  try {
+    const apt = await apartmentsApi.retrieve(aid)
+    selectedApartmentObj.value = apt
+    step.value = 2
+  } catch {
+    /* stale id — user will pick from the inventory grid. */
+  }
+}
+
+watch(selectedProject, (newId, oldId) => {
   // Clear the apartment when the project changes — its building lives
-  // in a different project tree.
+  // in a different project tree. Skip on first assignment from the
+  // route query (oldId=null → newId=X); otherwise the preselected
+  // apartment is wiped before we can show it on step 1.
+  if (oldId === null) return
   selectedApartmentObj.value = null
 })
 
@@ -309,7 +333,10 @@ const stepLabels = computed(() => [
   t("contracts.wizard.step_review"),
 ])
 
-void loadProjects()
+void (async () => {
+  await loadProjects()
+  await applyRouteSelection()
+})()
 </script>
 
 <template>
@@ -378,14 +405,14 @@ void loadProjects()
         <label class="block text-[12px] font-medium mb-1.5">
           {{ t("contracts.wizard.select_apartment") }}
         </label>
-        <!-- Either empty state with "open shaxmatka" CTA, or a card
+        <!-- Either empty state with "open inventory" CTA, or a card
              with the current pick + a "change" button. -->
         <div
           v-if="!selectedApartmentObj"
           class="border border-dashed border-ym-line rounded-md p-5 text-center"
         >
           <div class="text-ym-muted text-[13px] mb-3">
-            Выберите квартиру на шахматке ЖК
+            Выберите квартиру из каталога ЖК
           </div>
           <button
             type="button"
@@ -394,7 +421,7 @@ void loadProjects()
             @click="showPicker = true"
           >
             <i class="pi pi-th-large text-[11px]" />
-            Открыть шахматку
+            Открыть каталог квартир
           </button>
           <div
             v-if="selectedProject === null"
@@ -722,7 +749,7 @@ void loadProjects()
     <!-- Sibling to the stepper wrapper, outside the v-if/v-else-if chain
          so we don't break Vue's sequential matcher. Uses Teleport to
          body internally, so its placement in the template is cosmetic. -->
-    <ShaxmatkaPicker
+    <InventoryPicker
       v-model="showPicker"
       :project-id="selectedProject"
       :selected-id="selectedApartment"

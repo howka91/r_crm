@@ -13,7 +13,7 @@
     "group_references": "Ma'lumotnomalar",
     "group_sms_reports_admin": "SMS · Hisobotlar · Admin.",
     "dashboard": "Boshqaruv paneli",
-    "objects": "Obyektlar / Shaxmatka",
+    "objects": "Obyektlar",
     "clients": "Mijozlar",
     "contracts_unsigned": "Imzolanmaganlar",
     "contracts_signed": "Imzolanganlar",
@@ -27,6 +27,7 @@
     "references_currencies": "Valyutalar",
     "references_lookups": "Tasniflagichlar",
     "references_contract_templates": "Shartnoma shablonlari",
+    "references_plannings": "Kvartira rejalari",
     "sms": "SMS yuborish",
     "sms_templates": "SMS shablonlar",
     "sms_manual": "SMS yuborish",
@@ -78,25 +79,29 @@
     "eyebrow": "Avtorizatsiya",
     "welcome_back": "Xush kelibsiz",
     "enter_credentials": "Korporativ login va parolni kiriting.",
-    "forgot": "Unutdingizmi?",
     "language": "Til",
     "brand_eyebrow": "CRM · Ko'chmas mulk",
     "brand_heading_line1": "Turar-joy majmualari savdosini",
     "brand_heading_line2": "bitta oynada boshqaring.",
-    "brand_description": "Shaxmatka, mijozlar, shartnomalar, moliya, hisobotlar — birinchi liddan imzolangan DDU gacha, bitta tizimda.",
+    "brand_description": "Kvartiralar katalogi, mijozlar, shartnomalar, moliya, hisobotlar — birinchi liddan imzolangan DDU gacha, bitta tizimda.",
     "copyright": "© 2026 Yangi Mahalla"
   },
   "common": {
     "save": "Saqlash",
+    "saved": "Saqlandi",
     "cancel": "Bekor qilish",
     "delete": "O'chirish",
+    "deleted": "O'chirildi",
     "edit": "Tahrirlash",
     "create": "Yaratish",
+    "created": "Yaratildi",
     "search": "Qidirish",
     "loading": "Yuklanmoqda…",
     "no_data": "Ma'lumot yo'q",
     "yes": "Ha",
     "no": "Yo'q",
+    "active": "Faol",
+    "inactive": "Faol emas",
     "confirm": "Tasdiqlash",
     "back": "Orqaga",
     "retry": "Qayta urinish",
@@ -106,7 +111,11 @@
     "network": "Tarmoq xatosi. Ulanishni tekshiring.",
     "unknown": "Nimadir noto'g'ri bajarildi.",
     "forbidden": "Huquq yetarli emas",
-    "not_found": "Sahifa topilmadi"
+    "not_found": "Sahifa topilmadi",
+    "photo": {
+      "bad_mime": "Ruxsat etilgan formatlar: PNG, JPEG, WebP, GIF.",
+      "too_large": "Fayl 10 MB dan katta — kichraytiring va qayta urinib ko'ring."
+    }
   },
   "objects": {
     "title": "Obyektlar",
@@ -137,6 +146,8 @@
         "cadastral_number": "Kadastr raqami",
         "date_of_issue": "Foydalanishga topshirish sanasi"
       },
+      "photos_section": "Bino fotosuratlari",
+      "photos_save_first": "Fotosuratlarni yuklash uchun binoni avval saqlang.",
       "confirm_delete": "Binoni o'chirish"
     },
     "sections": {
@@ -191,8 +202,11 @@
         "surcharge": "Qo'shimcha",
         "is_duplex": "Dupleks",
         "is_studio": "Studiya",
-        "is_euro_planning": "Yevroplan"
+        "is_euro_planning": "Yevroplan",
+        "planning": "Reja"
       },
+      "planning_empty_hint": "Rejalarni katalogga qo'shing: Ma'lumotnomalar → Kvartira rejalari.",
+      "planning_section": "Reja",
       "confirm_delete": "Kvartirani o'chirish",
       "change_status": "Holatni o'zgartirish",
       "new_status": "Yangi holat",
@@ -229,10 +243,31 @@
     "tabs": {
       "structure": "Tuzilma",
       "pricing": "Narxlash",
-      "shaxmatka": "Shaxmatka"
+      "inventory": "Kvartiralar katalogi",
+      "overview": "Umumiy"
     },
-    "shaxmatka": {
-      "title": "Shaxmatka",
+    "overview": {
+      "title": "Umumiy",
+      "subtitle": "JK bo'yicha fotosuratlar, tavsif va umumiy ma'lumot",
+      "no_cover": "Muqova yuklanmagan",
+      "address": "Manzil",
+      "description": "Tavsif",
+      "buildings_count": "Binolar",
+      "photos_count": "Fotosuratlar",
+      "gallery": "Fotogalereya",
+      "gallery_hint": "Birinchi fotosurat — JK muqovasi. Kursorni olib keling, muqovani almashtiring."
+    },
+    "photos": {
+      "empty": "Hali birorta fotosurat yo'q.",
+      "add": "Fotosurat qo'shish",
+      "cover_badge": "Muqova",
+      "make_cover": "Muqova qilish",
+      "edit_caption": "Izohni tahrirlash",
+      "caption_placeholder": "Fotosurat izohi",
+      "confirm_delete": "Fotosuratni o'chirish"
+    },
+    "inventory": {
+      "title": "Kvartiralar katalogi",
       "subtitle": "JK fondining vizual xaritasi",
       "select_building": "Bino",
       "select_section": "Podyezd",
@@ -385,6 +420,36 @@
     "card_sales_offices_desc": "Mijozlar bilan uchrashuv nuqtalari, xaritada koordinatalar",
     "card_currencies_desc": "ISO 4217 kodlari va UZS ga kurslari",
     "card_lookups_desc": "Kvartira turlari, tamirlash, qurilish bosqichlari va boshqa tasniflagichlar",
+    "card_plannings_desc": "«Yuqoridan ko'rinish» va 3D-renderlar katalogi — bitta reja yuzlab bir xil kvartiralar uchun",
+    "plannings": {
+      "title": "Rejalar",
+      "subtitle": "JK doirasidagi kvartira rejalarining katalogi — 2D chizma + 3D render",
+      "hub_title": "Kvartira rejalari",
+      "hub_empty": "Avval JK yarating, so'ngra bu yerga rejalarni qo'shish mumkin bo'ladi.",
+      "new": "Reja qo'shish",
+      "edit": "Rejani tahrirlash",
+      "empty": "Bu JKda hali rejalar yo'q.",
+      "no_image": "Rasm yo'q",
+      "confirm_delete": "Rejani o'chirish",
+      "count_label": "{n} ta reja",
+      "columns": {
+        "preview": "Ko'rinish"
+      },
+      "fields": {
+        "code": "Kod",
+        "name": "Nomi",
+        "rooms_count": "Xonalar",
+        "area": "Maydon, m²",
+        "image_2d": "2D (yuqoridan ko'rinish)",
+        "image_3d": "3D-render",
+        "project": "JK",
+        "sort": "Tartib"
+      },
+      "errors": {
+        "bad_mime": "Ruxsat etilgan formatlar: PNG, JPG, WebP, GIF, SVG.",
+        "too_large": "Fayl 5 MB dan katta — kichraytiring va qayta urinib ko'ring."
+      }
+    },
     "columns": {
       "name": "Nomi",
       "director": "Direktor",
@@ -489,6 +554,7 @@
         "project": "JK",
         "project_any": "— Umumiy (barcha JK) —",
         "body": "Shablon matni",
+        "docx_file": ".docx fayli",
         "placeholders": "Placeholder-lar",
         "placeholder_key": "Kalit",
         "placeholder_path": "Kontekstdagi yo'l",
@@ -510,13 +576,33 @@
       "custom_empty": "Nostandart yo'l kerak bo'lsa — masalan, JSON obyektining maydoni — yozuv qo'shing.",
       "saved": "Shablon saqlandi",
       "global_forbidden": "Umumiy shablon yaratish yoki tahrirlash huquqi yo'q.",
-      "duplicate_key": "Kalit shablonda takrorlanmasligi kerak."
+      "duplicate_key": "Kalit shablonda takrorlanmasligi kerak.",
+      "source_label": "Shablon manbai",
+      "source_html": "Brauzerda tahrirlash",
+      "source_html_hint": "Tiptap WYSIWYG — kontent menejerlar uchun qulay.",
+      "source_docx": "Word fayli (.docx)",
+      "source_docx_hint": "Yurist Word'da tayyorlaydi, bu yerga yuklaydi.",
+      "source_locked_hint": "Turi yaratilgandan keyin o'zgartirilmaydi — yangi shablon yarating.",
+      "current_docx": "Joriy fayl",
+      "validating": "Fayldagi teglar tekshirilmoqda…",
+      "validation_ok": "{n} ta to'g'ri teg topildi.",
+      "validation_warn": "{n} ta noma'lum teg topildi — saqlashdan oldin to'g'irlang.",
+      "validation_unknown_hint": "Ruxsat etilgan yo'llar ildizlari: contract.*, client.*, signer.*, apartment.*, project.*, developer.*, calculation.*, now, today, qr.",
+      "catalog_hint_docx": "Bosilganda `{{ yo'l }}` buferga nusxalanadi — Word'da paste qiling.",
+      "docx_hint": "DOCX'da Jinja2 teglari: `{{ client.full_name }}`, shart `{% if contract.is_mortgage %}…{% endif %}`, tsikl `{% for row in contract.schedule %}…{% endfor %}`.",
+      "tag_copied": "Nusxalandi: {tag}",
+      "errors": {
+        "bad_docx": "Faqat .docx (Word 2007+) qabul qilinadi.",
+        "docx_required": "Saqlashdan oldin .docx faylni yuklang.",
+        "docx_unknown_tags": "Faylda noma'lum teglar bor — Word'da to'g'irlab, qayta yuklang."
+      }
     }
   },
   "contracts": {
     "title": "Shartnomalar",
     "subtitle": "Qoralamadan imzolashgacha bo'lgan hayot sikli",
     "new": "Yangi shartnoma",
+    "inventory_cta": "Shartnoma tuzish",
     "empty": "Shartnomalar hali yo'q.",
     "confirm_delete": "Shartnomani o'chirish",
     "tabs": {
@@ -600,7 +686,7 @@
       "select_apartment": "Kvartirani tanlang",
       "select_signer": "Imzolovchini tanlang",
       "pick_client_first": "Avval mijozni tanlang",
-      "no_calculations": "Kvartirada hali hisoblamalar yo'q — hisoblamasiz davom eting yoki shaxmatkada yarating.",
+      "no_calculations": "Kvartirada hali hisoblamalar yo'q — hisoblamasiz davom eting yoki katalogda yarating.",
       "next": "Keyingi",
       "prev": "Orqaga",
       "create": "Shartnoma yaratish"

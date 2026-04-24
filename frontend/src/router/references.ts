@@ -37,6 +37,19 @@ const routes: RouteRecordRaw[] = [
     meta: { permission: "references.lookups.view" },
   },
   {
+    path: "references/plannings",
+    name: "references-plannings-hub",
+    component: () => import("@/views/modules/References/plannings/hub.vue"),
+    meta: { permission: "references.plannings.view" },
+  },
+  {
+    path: "references/plannings/project/:id(\\d+)",
+    name: "references-plannings-project",
+    component: () => import("@/views/modules/References/plannings/project.vue"),
+    meta: { permission: "references.plannings.view" },
+    props: true,
+  },
+  {
     path: "references/contract-templates",
     name: "references-contract-templates",
     component: () =>

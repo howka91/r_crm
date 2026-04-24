@@ -3,8 +3,8 @@
  * Split-screen login — brand panel (2/3) + form (1/3).
  *
  * Reproduces `design_handoff_smart_rc/ds-screens.jsx#Login`:
- *  - Left (≥lg): deep-green gradient, two radial glows, rotated ghost shaxmatka
- *    overlay, logo with lime-accent tile, brand heading, footer.
+ *  - Left (≥lg): deep-green gradient, two radial glows, rotated ghost
+ *    inventory grid overlay, logo with lime-accent tile, brand heading, footer.
  *  - Right: eyebrow + H1 "С возвращением", email + password (with eye icon),
  *    remember-me, primary submit, language chips at the bottom.
  *
@@ -47,8 +47,8 @@ async function handleSubmit() {
 }
 
 /**
- * Ghost shaxmatka: 12×8 = 96 cells rotated behind the brand heading,
- * statuses cycle through free/booked/sold/action at 50% alpha.
+ * Ghost inventory grid: 12×8 = 96 cells rotated behind the brand
+ * heading, statuses cycle through free/booked/sold/action at 50% alpha.
  */
 const ghostCells = computed(() => {
   const statuses = ["free", "booked", "sold", "free", "action", "free", "sold", "booked"]
@@ -71,7 +71,7 @@ const ghostCells = computed(() => {
       <!-- Radial glow overlay -->
       <div class="absolute inset-0 bg-ym-login-glow" />
 
-      <!-- Ghost shaxmatka -->
+      <!-- Ghost inventory grid -->
       <div class="absolute inset-0 flex items-center justify-center opacity-30">
         <div
           class="grid grid-cols-8 gap-2 -rotate-[10deg] w-[90%]"
@@ -170,14 +170,9 @@ const ghostCells = computed(() => {
           </div>
 
           <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <label class="block text-[12px] font-medium">
-                {{ t("auth.password") }}
-              </label>
-              <a class="text-[12px] text-ym-primary hover:underline cursor-pointer">
-                {{ t("auth.forgot") }}
-              </a>
-            </div>
+            <label class="block text-[12px] font-medium mb-1.5">
+              {{ t("auth.password") }}
+            </label>
             <div class="relative">
               <input
                 v-model="password"

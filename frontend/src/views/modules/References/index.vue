@@ -43,6 +43,13 @@ const cards: Card[] = [
     permission: "references.currencies.view",
   },
   {
+    to: "/references/plannings",
+    titleKey: "nav.references_plannings",
+    descKey: "references.card_plannings_desc",
+    icon: "pi-image",
+    permission: "references.plannings.view",
+  },
+  {
     to: "/references/lookups",
     titleKey: "nav.references_lookups",
     descKey: "references.card_lookups_desc",

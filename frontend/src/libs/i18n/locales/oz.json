@@ -13,7 +13,7 @@
     "group_references": "Маълумотномалар",
     "group_sms_reports_admin": "СМС · Ҳисоботлар · Админ.",
     "dashboard": "Бошқарув панели",
-    "objects": "Обектлар / Шахматка",
+    "objects": "Обектлар",
     "clients": "Мижозлар",
     "contracts_unsigned": "Имзоланмаганлар",
     "contracts_signed": "Имзоланганлар",
@@ -27,6 +27,7 @@
     "references_currencies": "Валюталар",
     "references_lookups": "Таснифлагичлар",
     "references_contract_templates": "Шартнома шаблонлари",
+    "references_plannings": "Квартира режалари",
     "sms": "СМС юбориш",
     "sms_templates": "СМС шаблонлар",
     "sms_manual": "СМС юбориш",
@@ -78,25 +79,29 @@
     "eyebrow": "Авторизация",
     "welcome_back": "Хуш келибсиз",
     "enter_credentials": "Корпоратив логин ва паролни киритинг.",
-    "forgot": "Унутдингизми?",
     "language": "Тил",
     "brand_eyebrow": "CRM · Кўчмас мулк",
     "brand_heading_line1": "Турар-жой мажмуалари савдосини",
     "brand_heading_line2": "битта ойнада бошқаринг.",
-    "brand_description": "Шахматка, мижозлар, шартномалар, молия, ҳисоботлар — биринчи лиддан имзоланган ДДУ гача, битта тизимда.",
+    "brand_description": "Квартиралар каталоги, мижозлар, шартномалар, молия, ҳисоботлар — биринчи лиддан имзоланган ДДУ гача, битта тизимда.",
     "copyright": "© 2026 Yangi Mahalla"
   },
   "common": {
     "save": "Сақлаш",
+    "saved": "Сақланди",
     "cancel": "Бекор қилиш",
     "delete": "Ўчириш",
+    "deleted": "Ўчирилди",
     "edit": "Таҳрирлаш",
     "create": "Яратиш",
+    "created": "Яратилди",
     "search": "Қидириш",
     "loading": "Юкланмоқда…",
     "no_data": "Маълумот йўқ",
     "yes": "Ҳа",
     "no": "Йўқ",
+    "active": "Фаол",
+    "inactive": "Фаол эмас",
     "confirm": "Тасдиқлаш",
     "back": "Орқага",
     "retry": "Қайта уриниш",
@@ -106,7 +111,11 @@
     "network": "Тармоқ хатоси. Уланишни текширинг.",
     "unknown": "Нимадир нотўғри бажарилди.",
     "forbidden": "Ҳуқуқ етарли эмас",
-    "not_found": "Саҳифа топилмади"
+    "not_found": "Саҳифа топилмади",
+    "photo": {
+      "bad_mime": "Рухсат этилган форматлар: PNG, JPEG, WebP, GIF.",
+      "too_large": "Файл 10 МБ дан катта — кичрайтиринг ва қайта уриниб кўринг."
+    }
   },
   "objects": {
     "title": "Объектлар",
@@ -137,6 +146,8 @@
         "cadastral_number": "Кадастр рақами",
         "date_of_issue": "Фойдаланишга топшириш санаси"
       },
+      "photos_section": "Бино фотосуратлари",
+      "photos_save_first": "Фотосуратларни юклаш учун бинони аввал сақланг.",
       "confirm_delete": "Бинони ўчириш"
     },
     "sections": {
@@ -191,8 +202,11 @@
         "surcharge": "Қўшимча",
         "is_duplex": "Дуплекс",
         "is_studio": "Студия",
-        "is_euro_planning": "Европлан"
+        "is_euro_planning": "Европлан",
+        "planning": "Режа"
       },
+      "planning_empty_hint": "Режаларни каталогга қўшинг: Маълумотномалар → Квартира режалари.",
+      "planning_section": "Режа",
       "confirm_delete": "Квартирани ўчириш",
       "change_status": "Ҳолатни ўзгартириш",
       "new_status": "Янги ҳолат",
@@ -229,10 +243,31 @@
     "tabs": {
       "structure": "Тузилма",
       "pricing": "Нархлаш",
-      "shaxmatka": "Шахматка"
+      "inventory": "Квартиралар каталоги",
+      "overview": "Умумий"
     },
-    "shaxmatka": {
-      "title": "Шахматка",
+    "overview": {
+      "title": "Умумий",
+      "subtitle": "ТЖМ бўйича фотосуратлар, тавсиф ва умумий маълумот",
+      "no_cover": "Муқова юкланмаган",
+      "address": "Манзил",
+      "description": "Тавсиф",
+      "buildings_count": "Бинолар",
+      "photos_count": "Фотосуратлар",
+      "gallery": "Фотогалерея",
+      "gallery_hint": "Биринчи фотосурат — ТЖМ муқоваси. Курсорни олиб келинг, муқовани алмаштиринг."
+    },
+    "photos": {
+      "empty": "Ҳали биронта фотосурат йўқ.",
+      "add": "Фотосурат қўшиш",
+      "cover_badge": "Муқова",
+      "make_cover": "Муқова қилиш",
+      "edit_caption": "Изоҳни таҳрирлаш",
+      "caption_placeholder": "Фотосурат изоҳи",
+      "confirm_delete": "Фотосуратни ўчириш"
+    },
+    "inventory": {
+      "title": "Квартиралар каталоги",
       "subtitle": "ТЖМ фондининг визуал харитаси",
       "select_building": "Бино",
       "select_section": "Подъезд",
@@ -385,6 +420,36 @@
     "card_sales_offices_desc": "Мижозлар билан учрашув нуқталари, харитада координаталар",
     "card_currencies_desc": "ISO 4217 кодлари ва UZS га курслари",
     "card_lookups_desc": "Квартира турлари, таъмирлаш, қурилиш босқичлари ва бошқа таснифлагичлар",
+    "card_plannings_desc": "«Юқоридан кўриниш» ва 3D-рендерлар каталоги — битта режа юзлаб бир хил квартиралар учун",
+    "plannings": {
+      "title": "Режалар",
+      "subtitle": "ТЖМ доирасидаги квартира режаларининг каталоги — 2D чизма + 3D рендер",
+      "hub_title": "Квартира режалари",
+      "hub_empty": "Аввал ТЖМ яратинг, кейин бу ерга режаларни қўшиш мумкин бўлади.",
+      "new": "Режа қўшиш",
+      "edit": "Режани таҳрирлаш",
+      "empty": "Бу ТЖМда ҳали режалар йўқ.",
+      "no_image": "Расм йўқ",
+      "confirm_delete": "Режани ўчириш",
+      "count_label": "{n} та режа",
+      "columns": {
+        "preview": "Кўриниш"
+      },
+      "fields": {
+        "code": "Код",
+        "name": "Номи",
+        "rooms_count": "Хоналар",
+        "area": "Майдон, м²",
+        "image_2d": "2D (юқоридан кўриниш)",
+        "image_3d": "3D-рендер",
+        "project": "ТЖМ",
+        "sort": "Тартиб"
+      },
+      "errors": {
+        "bad_mime": "Рухсат этилган форматлар: PNG, JPG, WebP, GIF, SVG.",
+        "too_large": "Файл 5 МБ дан катта — кичрайтиринг ва қайта уриниб кўринг."
+      }
+    },
     "columns": {
       "name": "Номи",
       "director": "Директор",
@@ -489,6 +554,7 @@
         "project": "ЖК",
         "project_any": "— Умумий (барча ЖК) —",
         "body": "Шаблон матни",
+        "docx_file": ".docx файли",
         "placeholders": "Placeholder-лар",
         "placeholder_key": "Калит",
         "placeholder_path": "Контекстдаги йўл",
@@ -510,13 +576,33 @@
       "custom_empty": "Ностандарт йўл керак бўлса — масалан, JSON объектининг майдони — ёзув қўшинг.",
       "saved": "Шаблон сақланди",
       "global_forbidden": "Умумий шаблон яратиш ёки таҳрирлаш ҳуқуқи йўқ.",
-      "duplicate_key": "Калит шаблонда такрорланмаслиги керак."
+      "duplicate_key": "Калит шаблонда такрорланмаслиги керак.",
+      "source_label": "Шаблон манбаи",
+      "source_html": "Браузерда таҳрирлаш",
+      "source_html_hint": "Tiptap WYSIWYG — контент менежерлар учун қулай.",
+      "source_docx": "Word файли (.docx)",
+      "source_docx_hint": "Юрист Word'да тайёрлайди, бу ерга юклайди.",
+      "source_locked_hint": "Тури яратилгандан кейин ўзгартирилмайди — янги шаблон яратинг.",
+      "current_docx": "Жорий файл",
+      "validating": "Файлдаги теглар текширилмоқда…",
+      "validation_ok": "{n} та тўғри тег топилди.",
+      "validation_warn": "{n} та номаълум тег топилди — сақлашдан олдин тўғирланг.",
+      "validation_unknown_hint": "Рухсат этилган йўллар илдизлари: contract.*, client.*, signer.*, apartment.*, project.*, developer.*, calculation.*, now, today, qr.",
+      "catalog_hint_docx": "Босилганда `{{ йўл }}` буферга нусхаланади — Word'да paste қилинг.",
+      "docx_hint": "DOCX'да Jinja2 теглари: `{{ client.full_name }}`, шарт `{% if contract.is_mortgage %}…{% endif %}`, цикл `{% for row in contract.schedule %}…{% endfor %}`.",
+      "tag_copied": "Нусхаланди: {tag}",
+      "errors": {
+        "bad_docx": "Фақат .docx (Word 2007+) қабул қилинади.",
+        "docx_required": "Сақлашдан олдин .docx файлни юкланг.",
+        "docx_unknown_tags": "Файлда номаълум теглар бор — Word'да тўғирлаб, қайта юкланг."
+      }
     }
   },
   "contracts": {
     "title": "Шартномалар",
     "subtitle": "Қораламадан имзолашгача бўлган ҳаёт цикли",
     "new": "Янги шартнома",
+    "inventory_cta": "Шартнома тузиш",
     "empty": "Шартномалар ҳали йўқ.",
     "confirm_delete": "Шартномани ўчириш",
     "tabs": {
@@ -600,7 +686,7 @@
       "select_apartment": "Квартирани танланг",
       "select_signer": "Имзоловчини танланг",
       "pick_client_first": "Аввал мижозни танланг",
-      "no_calculations": "Квартирада ҳали ҳисобламалар йўқ — ҳисобламасиз давом этинг ёки шахматкада яратинг.",
+      "no_calculations": "Квартирада ҳали ҳисобламалар йўқ — ҳисобламасиз давом этинг ёки каталогда яратинг.",
       "next": "Кейинги",
       "prev": "Орқага",
       "create": "Шартнома яратиш"

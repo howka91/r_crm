@@ -709,7 +709,6 @@ async function saveNotes() {
     <div
       v-if="showEditClient"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      @click.self="showEditClient = false"
     >
       <div class="card w-full max-w-2xl p-6 shadow-ym-modal max-h-[90vh] overflow-auto art-scroll">
         <h2 class="text-lg font-semibold mb-4">{{ t("clients.edit") }}</h2>
@@ -874,7 +873,6 @@ async function saveNotes() {
     <div
       v-if="showContactModal"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      @click.self="showContactModal = false"
     >
       <div class="card w-full max-w-2xl p-6 shadow-ym-modal max-h-[90vh] overflow-auto art-scroll">
         <h2 class="text-lg font-semibold mb-4">
@@ -1009,7 +1007,6 @@ async function saveNotes() {
     <div
       v-if="showRequisiteModal"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      @click.self="showRequisiteModal = false"
     >
       <div class="card w-full max-w-xl p-6 shadow-ym-modal max-h-[90vh] overflow-auto art-scroll">
         <h2 class="text-lg font-semibold mb-4">

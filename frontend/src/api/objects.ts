@@ -15,6 +15,7 @@ import type {
   ApartmentStatusLog,
   ApartmentWrite,
   Building,
+  BuildingPhoto,
   BuildingWrite,
   Calculation,
   CalculationWrite,
@@ -26,12 +27,20 @@ import type {
   PaymentPlanWrite,
   PriceHistory,
   Project,
+  ProjectPhoto,
   ProjectWrite,
   Section,
   SectionWrite,
 } from "@/types/models"
 
 import type { Paginated } from "./references"
+
+export interface InventoryTree {
+  buildings: Building[]
+  sections: Section[]
+  floors: Floor[]
+  apartments: Apartment[]
+}
 
 export const projectsApi = {
   list: (params?: Record<string, unknown>) =>
@@ -43,6 +52,11 @@ export const projectsApi = {
   update: (id: number, payload: Partial<ProjectWrite>) =>
     http.patch<Project>(`/projects/${id}/`, payload).then((r) => r.data),
   destroy: (id: number) => http.delete(`/projects/${id}/`).then((r) => r.data),
+  /** Full tree of Buildings → Sections → Floors → Apartments for one
+   *  project in a single request. Replaces the 4-call fan-out used by
+   *  the inventory grid and the contract wizard's apartment picker. */
+  inventory: (id: number) =>
+    http.get<InventoryTree>(`/projects/${id}/inventory/`).then((r) => r.data),
 }
 
 export const buildingsApi = {
@@ -221,4 +235,46 @@ export const calculationsApi = {
 export const priceHistoryApi = {
   list: (params?: Record<string, unknown>) =>
     http.get<Paginated<PriceHistory>>("/price-history/", { params }).then((r) => r.data),
+}
+
+/** Photo galleries. Create/update go multipart (the `file` is a File
+ *  object); `updateJson` covers caption-only edits. `makeCover` calls
+ *  the backend action that promotes a photo to sort=0 and renumbers
+ *  siblings densely. */
+export const projectPhotosApi = {
+  list: (params?: Record<string, unknown>) =>
+    http.get<Paginated<ProjectPhoto>>("/project-photos/", { params }).then((r) => r.data),
+  upload: (form: FormData) =>
+    http
+      .post<ProjectPhoto>("/project-photos/", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data),
+  updateJson: (id: number, payload: Partial<Pick<ProjectPhoto, "caption" | "is_active">>) =>
+    http.patch<ProjectPhoto>(`/project-photos/${id}/`, payload).then((r) => r.data),
+  destroy: (id: number) =>
+    http.delete(`/project-photos/${id}/`).then((r) => r.data),
+  makeCover: (id: number) =>
+    http
+      .post<ProjectPhoto>(`/project-photos/${id}/make-cover/`)
+      .then((r) => r.data),
+}
+
+export const buildingPhotosApi = {
+  list: (params?: Record<string, unknown>) =>
+    http.get<Paginated<BuildingPhoto>>("/building-photos/", { params }).then((r) => r.data),
+  upload: (form: FormData) =>
+    http
+      .post<BuildingPhoto>("/building-photos/", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data),
+  updateJson: (id: number, payload: Partial<Pick<BuildingPhoto, "caption" | "is_active">>) =>
+    http.patch<BuildingPhoto>(`/building-photos/${id}/`, payload).then((r) => r.data),
+  destroy: (id: number) =>
+    http.delete(`/building-photos/${id}/`).then((r) => r.data),
+  makeCover: (id: number) =>
+    http
+      .post<BuildingPhoto>(`/building-photos/${id}/make-cover/`)
+      .then((r) => r.data),
 }

@@ -9,11 +9,13 @@ from factory.django import DjangoModelFactory
 from apps.objects.models import (
     Apartment,
     Building,
+    BuildingPhoto,
     Calculation,
     DiscountRule,
     Floor,
     PaymentPlan,
     Project,
+    ProjectPhoto,
     Section,
 )
 from apps.references.models import PaymentInPercent
@@ -109,3 +111,23 @@ class CalculationFactory(DjangoModelFactory):
     discount_percent = Decimal("0.00")
     new_price_per_sqm = Decimal("15000000.00")
     new_total_price = Decimal("750000000.00")
+
+
+class ProjectPhotoFactory(DjangoModelFactory):
+    class Meta:
+        model = ProjectPhoto
+
+    project = factory.SubFactory(ProjectFactory)
+    caption = ""
+    sort = factory.Sequence(lambda n: n)
+    # File left unset — tests that need actual bytes on disk pass
+    # `file=SimpleUploadedFile(...)` explicitly.
+
+
+class BuildingPhotoFactory(DjangoModelFactory):
+    class Meta:
+        model = BuildingPhoto
+
+    building = factory.SubFactory(BuildingFactory)
+    caption = ""
+    sort = factory.Sequence(lambda n: n)

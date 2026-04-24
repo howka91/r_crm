@@ -88,7 +88,11 @@ def duplicate_section(
                     is_duplex=a.is_duplex,
                     is_studio=a.is_studio,
                     is_euro_planning=a.is_euro_planning,
-                    planning_file=None,
+                    # `planning` intentionally not copied — if target_building
+                    # lives in a different ЖК, the reference would be
+                    # cross-project (rejected by ApartmentSerializer). Even
+                    # within the same ЖК, the manager re-picks the layout
+                    # after cloning so the catalog stays the source of truth.
                     decoration=a.decoration,
                     output_window=a.output_window,
                     occupied_by=a.occupied_by,

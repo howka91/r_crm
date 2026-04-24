@@ -11,6 +11,7 @@ import { AxiosError } from "axios"
 import { computed, onMounted, reactive, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
+import ToggleSwitch from "@/components/ToggleSwitch.vue"
 import { developersApi } from "@/api/references"
 import { useConfirmStore } from "@/store/confirm"
 import { usePermissionStore } from "@/store/permissions"
@@ -175,7 +176,7 @@ onMounted(load)
             <td class="font-mono text-[12.5px]">{{ i.inn || "—" }}</td>
             <td>
               <span :class="i.is_active ? 'chip chip-success' : 'chip chip-ghost'">
-                {{ i.is_active ? t("common.yes") : t("common.no") }}
+                {{ i.is_active ? t("common.active") : t("common.inactive") }}
               </span>
             </td>
             <td class="text-right whitespace-nowrap">
@@ -195,7 +196,6 @@ onMounted(load)
     <div
       v-if="showModal"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      @click.self="showModal = false"
     >
       <div class="card w-full max-w-2xl p-6 shadow-ym-modal max-h-[90vh] overflow-auto art-scroll">
         <h2 class="text-lg font-semibold mb-4">
@@ -282,10 +282,13 @@ onMounted(load)
           </div>
         </div>
 
-        <label class="flex items-center gap-2 text-sm mt-5">
-          <input v-model="form.is_active" type="checkbox" />
-          <span>{{ t("common.yes") }} / {{ t("common.no") }}</span>
-        </label>
+        <div class="mt-5">
+          <ToggleSwitch
+            v-model="form.is_active"
+            :active-label="t('common.active')"
+            :inactive-label="t('common.inactive')"
+          />
+        </div>
 
         <div v-if="saveError" class="mt-3 text-sm text-ym-danger break-all">
           {{ saveError }}

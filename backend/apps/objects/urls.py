@@ -14,12 +14,14 @@ from rest_framework.routers import DefaultRouter
 from apps.objects.views import (
     ApartmentStatusLogViewSet,
     ApartmentViewSet,
+    BuildingPhotoViewSet,
     BuildingViewSet,
     CalculationViewSet,
     DiscountRuleViewSet,
     FloorViewSet,
     PaymentPlanViewSet,
     PriceHistoryViewSet,
+    ProjectPhotoViewSet,
     ProjectViewSet,
     SectionViewSet,
 )
@@ -39,6 +41,8 @@ router.register("payment-plans", PaymentPlanViewSet, basename="payment-plan")
 router.register("discount-rules", DiscountRuleViewSet, basename="discount-rule")
 router.register("calculations", CalculationViewSet, basename="calculation")
 router.register("price-history", PriceHistoryViewSet, basename="price-history")
+router.register("project-photos", ProjectPhotoViewSet, basename="project-photo")
+router.register("building-photos", BuildingPhotoViewSet, basename="building-photo")
 
 urlpatterns = [
     path("", include(router.urls)),

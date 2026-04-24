@@ -10,14 +10,23 @@ and are built via the `make_lookup_viewset(model)` factory.
 from __future__ import annotations
 
 from rest_framework import viewsets
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 
+from apps.core.mixins import ProtectedDestroyMixin
 from apps.core.permissions import HasPermission
-from apps.references.models import LOOKUP_MODELS, Currency, Developer, SalesOffice
+from apps.references.models import (
+    LOOKUP_MODELS,
+    Currency,
+    Developer,
+    Planning,
+    SalesOffice,
+)
 from apps.references.serializers import (
     LOOKUP_SERIALIZERS,
     CurrencySerializer,
     DeveloperSerializer,
+    PlanningSerializer,
     SalesOfficeSerializer,
 )
 
@@ -44,9 +53,17 @@ def _permissions_for(base: str, action: str | None) -> list:
     return [IsAuthenticated(), HasPermission(f"{base}.{suffix}")]
 
 
+# Reference ViewSets use `.all_objects` (not the default `SoftDeleteManager`)
+# so the list screens show archived entries alongside active ones. Managers
+# flip `is_active` to keep a record hidden from pickers without losing it,
+# and the catalog list is the place to find it again. Business-facing
+# ViewSets (Apartments, Clients) keep the soft-delete filter so end users
+# don't see archived items in the primary workflow.
+
+
 class DeveloperViewSet(viewsets.ModelViewSet):
     schema_tags = ["Справочники"]
-    queryset = Developer.objects.all()
+    queryset = Developer.all_objects.all()
     serializer_class = DeveloperSerializer
     filterset_fields = ("is_active",)
     search_fields = ("inn", "director", "bank_account")
@@ -57,7 +74,7 @@ class DeveloperViewSet(viewsets.ModelViewSet):
 
 class SalesOfficeViewSet(viewsets.ModelViewSet):
     schema_tags = ["Справочники"]
-    queryset = SalesOffice.objects.all()
+    queryset = SalesOffice.all_objects.all()
     serializer_class = SalesOfficeSerializer
     filterset_fields = ("is_active",)
     search_fields = ("address",)
@@ -68,13 +85,32 @@ class SalesOfficeViewSet(viewsets.ModelViewSet):
 
 class CurrencyViewSet(viewsets.ModelViewSet):
     schema_tags = ["Справочники"]
-    queryset = Currency.objects.all()
+    queryset = Currency.all_objects.all()
     serializer_class = CurrencySerializer
     filterset_fields = ("is_active",)
     search_fields = ("code",)
 
     def get_permissions(self):
         return _permissions_for("references.currencies", self.action)
+
+
+class PlanningViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
+    """Planning catalog — apartment layouts scoped to a single Project.
+
+    Accepts multipart for create/update (to carry image_2d / image_3d
+    files) and JSON for lightweight PATCHes like `{"is_active": false}`.
+    """
+
+    schema_tags = ["Справочники"]
+    queryset = Planning.all_objects.select_related("project").all()
+    serializer_class = PlanningSerializer
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+    filterset_fields = ("is_active", "project", "rooms_count")
+    search_fields = ("code",)
+    ordering_fields = ("sort", "rooms_count", "area", "id")
+
+    def get_permissions(self):
+        return _permissions_for("references.plannings", self.action)
 
 
 # --- Lookup factory --------------------------------------------------------
@@ -95,7 +131,7 @@ def make_lookup_viewset(model_cls: type) -> type[viewsets.ModelViewSet]:
         f"{model_cls.__name__}ViewSet",
         (viewsets.ModelViewSet,),
         {
-            "queryset": model_cls.objects.all(),
+            "queryset": model_cls.all_objects.all(),
             "serializer_class": serializer_cls,
             "filterset_fields": ("is_active",),
             "get_permissions": get_permissions,

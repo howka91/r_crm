@@ -18,6 +18,7 @@ from rest_framework import status
 from apps.core.permission_tree import default_permissions
 from apps.objects.models import Building, Floor, Project, Section
 from apps.objects.tests.factories import (
+    ApartmentFactory,
     BuildingFactory,
     FloorFactory,
     ProjectFactory,
@@ -235,3 +236,99 @@ class TestFloorCRUD:
         }
         resp = api_client.post(self.url_list, payload, format="json")
         assert resp.status_code == status.HTTP_201_CREATED, resp.data
+
+
+# --- Inventory aggregated endpoint ---------------------------------------
+
+
+@pytest.mark.django_db
+class TestProjectInventory:
+    """`GET /projects/:id/inventory/` — single-shot tree for the contract
+    wizard's apartment picker and the inventory grid. Replaces the 4-call
+    fan-out that previously pulled all buildings/sections/floors/apartments
+    in the DB and filtered in-memory on the frontend.
+    """
+
+    def test_unauthenticated_rejected(self, api_client):
+        project = ProjectFactory()
+        url = reverse("project-inventory", args=[project.id])
+        resp = api_client.get(url)
+        assert resp.status_code in (
+            status.HTTP_401_UNAUTHORIZED,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+    def test_requires_apartments_view_permission(self, api_client):
+        """Gate is `objects.apartments.view` — someone who can see projects
+        but not apartments shouldn't be able to enumerate the whole tree."""
+        project = ProjectFactory()
+        role = RoleFactory(
+            code="proj-only",
+            permissions=_scoped_role("objects.projects"),  # no apartments.view
+        )
+        staff = StaffFactory(role=role, password="x12345678")
+        api_client.force_authenticate(staff)
+        url = reverse("project-inventory", args=[project.id])
+        resp = api_client.get(url)
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_returns_only_this_projects_subtree(self, api_client):
+        _superuser(api_client)
+        target = ProjectFactory()
+        other = ProjectFactory()
+        # Target tree: 2 buildings × 1 section × 1 floor × 2 apartments = 4 apts
+        for b_num in range(2):
+            b = BuildingFactory(project=target, number=f"T{b_num}")
+            s = SectionFactory(building=b, number=b_num + 1)
+            f = FloorFactory(section=s, number=1)
+            ApartmentFactory.create_batch(2, floor=f)
+        # Noise — another project's subtree must not appear.
+        other_b = BuildingFactory(project=other, number="OTHER")
+        other_s = SectionFactory(building=other_b, number=9)
+        other_f = FloorFactory(section=other_s, number=1)
+        ApartmentFactory.create_batch(3, floor=other_f)
+
+        url = reverse("project-inventory", args=[target.id])
+        resp = api_client.get(url)
+        assert resp.status_code == status.HTTP_200_OK
+        data = resp.data
+        assert set(data.keys()) == {"buildings", "sections", "floors", "apartments"}
+        assert len(data["buildings"]) == 2
+        assert len(data["sections"]) == 2
+        assert len(data["floors"]) == 2
+        assert len(data["apartments"]) == 4
+        assert all(b["project"] == target.id for b in data["buildings"])
+
+    def test_empty_project_returns_empty_collections(self, api_client):
+        """A project with no buildings still returns a 200 with four
+        empty arrays — the client uses `.length` checks, not try/catch."""
+        _superuser(api_client)
+        project = ProjectFactory()
+        url = reverse("project-inventory", args=[project.id])
+        resp = api_client.get(url)
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data == {
+            "buildings": [],
+            "sections": [],
+            "floors": [],
+            "apartments": [],
+        }
+
+    def test_apartments_carry_nested_status_and_chars(self, api_client):
+        """Payload uses the same ApartmentSerializer as /apartments/, so the
+        frontend does not need a reshape when swapping from the 4-call
+        fan-out to this endpoint."""
+        _superuser(api_client)
+        project = ProjectFactory()
+        b = BuildingFactory(project=project, number="A")
+        s = SectionFactory(building=b, number=1)
+        f = FloorFactory(section=s, number=3)
+        apt = ApartmentFactory(floor=f, number="12")
+        url = reverse("project-inventory", args=[project.id])
+        resp = api_client.get(url)
+        assert resp.status_code == status.HTTP_200_OK
+        (payload,) = resp.data["apartments"]
+        assert payload["id"] == apt.id
+        assert payload["floor"] == f.id
+        # status_display must be rendered — wizard uses it verbatim.
+        assert "status_display" in payload

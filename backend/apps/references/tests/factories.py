@@ -4,7 +4,7 @@ from decimal import Decimal
 import factory
 from factory.django import DjangoModelFactory
 
-from apps.references.models import Currency, Developer, SalesOffice
+from apps.references.models import Currency, Developer, Planning, SalesOffice
 
 
 class DeveloperFactory(DjangoModelFactory):
@@ -28,6 +28,22 @@ class SalesOfficeFactory(DjangoModelFactory):
     latitude = Decimal("41.3111")
     longitude = Decimal("69.2797")
     phone = "+998901234567"
+
+
+class PlanningFactory(DjangoModelFactory):
+    class Meta:
+        model = Planning
+
+    # `project` is required — pass it explicitly (no SubFactory default
+    # to avoid pulling in ProjectFactory at import time).
+    name = factory.LazyFunction(lambda: {
+        "ru": "Тест-планировка",
+        "uz": "Test reja",
+        "oz": "Тест режа",
+    })
+    code = factory.Sequence(lambda n: f"P-{n:03d}")
+    rooms_count = 2
+    area = Decimal("50.00")
 
 
 class CurrencyFactory(DjangoModelFactory):

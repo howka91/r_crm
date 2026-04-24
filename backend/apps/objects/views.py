@@ -14,6 +14,7 @@ from django.db import transaction
 from rest_framework import status as http_status
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -24,18 +25,21 @@ from apps.objects.models import (
     Apartment,
     ApartmentStatusLog,
     Building,
+    BuildingPhoto,
     Calculation,
     DiscountRule,
     Floor,
     PaymentPlan,
     PriceHistory,
     Project,
+    ProjectPhoto,
     Section,
 )
 from apps.objects.serializers import (
     ApartmentSerializer,
     ApartmentStatusLogSerializer,
     BookApartmentInputSerializer,
+    BuildingPhotoSerializer,
     BuildingSerializer,
     CalculationSerializer,
     ChangeFloorPriceInputSerializer,
@@ -45,6 +49,7 @@ from apps.objects.serializers import (
     FloorSerializer,
     PaymentPlanSerializer,
     PriceHistorySerializer,
+    ProjectPhotoSerializer,
     ProjectSerializer,
     ReleaseApartmentInputSerializer,
     SectionSerializer,
@@ -81,18 +86,85 @@ def _permissions_for(base: str, action: str | None) -> list:
 
 class ProjectViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
     schema_tags = ["Объекты"]
-    queryset = Project.objects.select_related("developer").all()
+    # `prefetch_related("photos")` lets ProjectSerializer.get_cover()
+    # pull the cover without an extra query per row — otherwise the
+    # hub card grid would do N+1 on 20 projects.
+    queryset = (
+        Project.objects
+        .select_related("developer")
+        .prefetch_related("photos")
+        .all()
+    )
     serializer_class = ProjectSerializer
     filterset_fields = ("is_active", "developer")
     search_fields = ("address",)
 
     def get_permissions(self):
+        if self.action == "inventory":
+            return [IsAuthenticated(), HasPermission("objects.apartments.view")]
         return _permissions_for("objects.projects", self.action)
+
+    @action(detail=True, methods=["get"], url_path="inventory")
+    def inventory(self, request: Request, pk: str | None = None) -> Response:
+        """Return the full Buildings → Sections → Floors → Apartments tree
+        for this project in one payload.
+
+        Shaped to match what the frontend inventory grid and the contract
+        wizard's ApartmentPicker already consume — four flat collections
+        rather than a nested tree, so the existing in-memory lookups
+        (by floor id, by section id) keep working without a reshape.
+
+        Beats the previous fan-out of four unbounded `/buildings/`,
+        `/sections/`, `/floors/`, `/apartments/` requests with in-memory
+        filtering — that is O(project) × O(all-apartments-in-db) and
+        breaks past ~5k apartments overall.
+        """
+        project: Project = self.get_object()
+        buildings_qs = (
+            Building.objects
+            .filter(project=project)
+            .prefetch_related("photos")  # so BuildingSerializer.cover hits no N+1
+            .order_by("sort", "id")
+        )
+        sections_qs = (
+            Section.objects
+            .filter(building__project=project)
+            .select_related("building")
+            .order_by("sort", "id")
+        )
+        floors_qs = (
+            Floor.objects
+            .filter(section__building__project=project)
+            .select_related("section")
+            .order_by("sort", "number")
+        )
+        apartments_qs = (
+            Apartment.objects
+            .filter(floor__section__building__project=project)
+            .select_related("floor", "floor__section", "floor__section__building")
+            .prefetch_related("characteristics")
+            .order_by("sort", "number")
+        )
+        ctx = {"request": request}
+        return Response(
+            {
+                "buildings": BuildingSerializer(buildings_qs, many=True, context=ctx).data,
+                "sections": SectionSerializer(sections_qs, many=True, context=ctx).data,
+                "floors": FloorSerializer(floors_qs, many=True, context=ctx).data,
+                "apartments": ApartmentSerializer(apartments_qs, many=True, context=ctx).data,
+            },
+            status=http_status.HTTP_200_OK,
+        )
 
 
 class BuildingViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
     schema_tags = ["Объекты"]
-    queryset = Building.objects.select_related("project").all()
+    queryset = (
+        Building.objects
+        .select_related("project")
+        .prefetch_related("photos")
+        .all()
+    )
     serializer_class = BuildingSerializer
     filterset_fields = ("is_active", "project")
     search_fields = ("number", "cadastral_number")
@@ -460,3 +532,90 @@ class PriceHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     def get_permissions(self):
         # Gated by floor-view: if you can see a floor, you can see its log.
         return _permissions_for("objects.floors", self.action)
+
+
+# --- Photo galleries ----------------------------------------------------
+#
+# Two nearly-identical ViewSets, one per parent model. Kept separate
+# (rather than a generic base) because permissions hang off different
+# permission-tree branches — objects.projects vs objects.buildings —
+# and the multipart payload uses different FK field names.
+
+
+class ProjectPhotoViewSet(viewsets.ModelViewSet):
+    schema_tags = ["Объекты"]
+    queryset = ProjectPhoto.objects.select_related("project").all()
+    serializer_class = ProjectPhotoSerializer
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+    filterset_fields = ("project", "is_active")
+    ordering_fields = ("sort", "id")
+
+    def get_permissions(self):
+        # Reuse the project's CRUD keys — if you can edit the ЖК,
+        # you can manage its photos.
+        return _permissions_for("objects.projects", self.action)
+
+    @action(detail=True, methods=["post"], url_path="make-cover")
+    def make_cover(self, request: Request, pk: str | None = None) -> Response:
+        """Promote this photo to sort=0 and push everyone else down by 1.
+
+        Keeps the ordering dense (0, 1, 2, …) after the rewrite so the
+        "first photo = cover" invariant remains trivially readable.
+        Wrapped in a transaction so a concurrent upload can't slip in
+        between the push and the promote.
+        """
+        photo: ProjectPhoto = self.get_object()
+        with transaction.atomic():
+            siblings = (
+                ProjectPhoto.objects
+                .select_for_update()
+                .filter(project_id=photo.project_id)
+                .exclude(pk=photo.pk)
+                .order_by("sort", "id")
+            )
+            for idx, s in enumerate(siblings, start=1):
+                if s.sort != idx:
+                    s.sort = idx
+                    s.save(update_fields=["sort", "modified_at"])
+            if photo.sort != 0:
+                photo.sort = 0
+                photo.save(update_fields=["sort", "modified_at"])
+        return Response(
+            ProjectPhotoSerializer(photo, context={"request": request}).data,
+            status=http_status.HTTP_200_OK,
+        )
+
+
+class BuildingPhotoViewSet(viewsets.ModelViewSet):
+    schema_tags = ["Объекты"]
+    queryset = BuildingPhoto.objects.select_related("building").all()
+    serializer_class = BuildingPhotoSerializer
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+    filterset_fields = ("building", "is_active")
+    ordering_fields = ("sort", "id")
+
+    def get_permissions(self):
+        return _permissions_for("objects.buildings", self.action)
+
+    @action(detail=True, methods=["post"], url_path="make-cover")
+    def make_cover(self, request: Request, pk: str | None = None) -> Response:
+        photo: BuildingPhoto = self.get_object()
+        with transaction.atomic():
+            siblings = (
+                BuildingPhoto.objects
+                .select_for_update()
+                .filter(building_id=photo.building_id)
+                .exclude(pk=photo.pk)
+                .order_by("sort", "id")
+            )
+            for idx, s in enumerate(siblings, start=1):
+                if s.sort != idx:
+                    s.sort = idx
+                    s.save(update_fields=["sort", "modified_at"])
+            if photo.sort != 0:
+                photo.sort = 0
+                photo.save(update_fields=["sort", "modified_at"])
+        return Response(
+            BuildingPhotoSerializer(photo, context={"request": request}).data,
+            status=http_status.HTTP_200_OK,
+        )

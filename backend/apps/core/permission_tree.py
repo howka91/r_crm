@@ -231,6 +231,11 @@ PERMISSION_TREE: list[PermissionNode] = [
                     },
                 ],
             },
+            {
+                "key": "references.plannings",
+                "label": _label("Планировки квартир", "Kvartira rejalari", "Квартира режалари"),
+                "children": _crud("references.plannings", "планировку", "Reja", "Режа"),
+            },
             # NB: 13 simple lookups (ApartmentType, RoomType, ConstructionStage,
             # Decoration, PremisesDecoration, HomeMaterial, OutputWindows,
             # OccupiedBy, Badge, PaymentMethod, PaymentInPercent, Region,

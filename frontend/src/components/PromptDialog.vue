@@ -68,7 +68,6 @@ function onKey(e: KeyboardEvent) {
       <div
         v-if="store.isOpen && store.options"
         class="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center p-4"
-        @click.self="cancel"
         @keydown="onKey"
       >
         <div class="card w-full max-w-md p-6 shadow-ym-modal">

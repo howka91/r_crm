@@ -14,6 +14,7 @@ import type {
   ContractTemplate,
   ContractTemplateWrite,
   ContractWrite,
+  DocxValidationResult,
   Payment,
   PaymentSchedule,
   PaymentScheduleWrite,
@@ -81,6 +82,8 @@ export const contractTemplatesApi = {
       .then((r) => r.data),
   retrieve: (id: number) =>
     http.get<ContractTemplate>(`/contract-templates/${id}/`).then((r) => r.data),
+
+  /** JSON create/update — used for source=html templates. */
   create: (payload: ContractTemplateWrite) =>
     http
       .post<ContractTemplate>("/contract-templates/", payload)
@@ -89,6 +92,23 @@ export const contractTemplatesApi = {
     http
       .patch<ContractTemplate>(`/contract-templates/${id}/`, payload)
       .then((r) => r.data),
+
+  /** Multipart variants for source=docx templates — the .docx file is
+   *  attached alongside scalar fields. Backend accepts both multipart
+   *  and JSON on the same route. */
+  createMultipart: (payload: FormData) =>
+    http
+      .post<ContractTemplate>("/contract-templates/", payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data),
+  updateMultipart: (id: number, payload: FormData) =>
+    http
+      .patch<ContractTemplate>(`/contract-templates/${id}/`, payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data),
+
   destroy: (id: number) =>
     http.delete(`/contract-templates/${id}/`).then((r) => r.data),
 
@@ -97,6 +117,19 @@ export const contractTemplatesApi = {
     fd.append("file", file)
     return http
       .post<UploadedImage>("/contract-templates/upload-image/", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data)
+  },
+
+  /** Validate an uploaded .docx — returns the list of Jinja2 tags the
+   *  template references, split by known/unknown root. Called on file
+   *  pick, before the author confirms saving. */
+  validateDocx: (file: File) => {
+    const fd = new FormData()
+    fd.append("file", file)
+    return http
+      .post<DocxValidationResult>("/contract-templates/validate-docx/", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       })
       .then((r) => r.data)

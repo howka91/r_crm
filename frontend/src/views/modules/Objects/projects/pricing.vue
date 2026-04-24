@@ -23,6 +23,7 @@ import {
   paymentPlansApi,
   projectsApi,
 } from "@/api/objects"
+import ToggleSwitch from "@/components/ToggleSwitch.vue"
 import { lookupsApi } from "@/api/references"
 import { useConfirmStore } from "@/store/confirm"
 import { usePermissionStore } from "@/store/permissions"
@@ -301,9 +302,15 @@ onMounted(load)
     <div class="flex gap-1 mb-5 border-b border-ym-line-soft">
       <button
         class="px-3 py-2 text-[13px] border-b-2 border-transparent text-ym-muted hover:text-ym-text"
-        @click="router.push(`/objects/projects/${projectId}`)"
+        @click="router.push(`/objects/projects/${projectId}/inventory`)"
       >
-        {{ t("objects.tabs.structure") }}
+        {{ t("objects.tabs.inventory") }}
+      </button>
+      <button
+        class="px-3 py-2 text-[13px] border-b-2 border-transparent text-ym-muted hover:text-ym-text"
+        @click="router.push(`/objects/projects/${projectId}/overview`)"
+      >
+        {{ t("objects.tabs.overview") }}
       </button>
       <button
         class="px-3 py-2 text-[13px] border-b-2 border-ym-primary text-ym-primary font-medium"
@@ -312,9 +319,9 @@ onMounted(load)
       </button>
       <button
         class="px-3 py-2 text-[13px] border-b-2 border-transparent text-ym-muted hover:text-ym-text"
-        @click="router.push(`/objects/projects/${projectId}/shaxmatka`)"
+        @click="router.push(`/objects/projects/${projectId}/structure`)"
       >
-        {{ t("objects.tabs.shaxmatka") }}
+        {{ t("objects.tabs.structure") }}
       </button>
     </div>
 
@@ -421,7 +428,6 @@ onMounted(load)
     <div
       v-if="showModal && modalState"
       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      @click.self="showModal = false"
     >
       <div class="card w-full max-w-2xl p-6 shadow-ym-modal max-h-[90vh] overflow-auto art-scroll">
         <h2 class="text-lg font-semibold mb-4">
@@ -502,15 +508,20 @@ onMounted(load)
           </label>
         </template>
 
-        <label class="flex items-center gap-2 text-sm mt-5">
-          <input
+        <div class="mt-5">
+          <ToggleSwitch
             v-if="modalState.kind === 'plan'"
             v-model="planForm.is_active"
-            type="checkbox"
+            :active-label="t('common.active')"
+            :inactive-label="t('common.inactive')"
           />
-          <input v-else v-model="ruleForm.is_active" type="checkbox" />
-          <span>{{ t("common.yes") }} / {{ t("common.no") }}</span>
-        </label>
+          <ToggleSwitch
+            v-else
+            v-model="ruleForm.is_active"
+            :active-label="t('common.active')"
+            :inactive-label="t('common.inactive')"
+          />
+        </div>
 
         <div v-if="saveError" class="mt-3 text-sm text-ym-danger break-all">
           {{ saveError }}

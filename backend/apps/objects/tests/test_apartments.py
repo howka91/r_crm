@@ -23,7 +23,14 @@ from apps.objects.services.apartments import (
     can_transition,
     change_status,
 )
-from apps.objects.tests.factories import FloorFactory, SectionFactory
+from apps.objects.tests.factories import (
+    ApartmentFactory,
+    BuildingFactory,
+    FloorFactory,
+    ProjectFactory,
+    SectionFactory,
+)
+from apps.references.tests.factories import PlanningFactory
 from apps.users.tests.factories import RoleFactory, StaffFactory
 
 
@@ -278,3 +285,61 @@ class TestStatusLogReadOnly:
         resp = api_client.post(self.url_list, payload, format="json")
         # Read-only viewset → no POST allowed.
         assert resp.status_code in (status.HTTP_405_METHOD_NOT_ALLOWED, status.HTTP_403_FORBIDDEN)
+
+
+# --- Planning cross-project validation -----------------------------------
+
+
+@pytest.mark.django_db
+class TestApartmentPlanning:
+    """Apartments may only reference a `Planning` that belongs to the same
+    ЖК — enforced by `ApartmentSerializer.validate`. The rejected payload
+    returns 400 with `code=planning_cross_project` so the UI can surface a
+    specific error instead of a generic 400."""
+
+    def test_can_assign_planning_from_same_project(self, api_client):
+        _superuser(api_client)
+        project = ProjectFactory()
+        building = BuildingFactory(project=project)
+        section = SectionFactory(building=building)
+        floor = FloorFactory(section=section)
+        apt = ApartmentFactory(floor=floor)
+        planning = PlanningFactory(project=project)
+
+        url = reverse("apartment-detail", args=[apt.id])
+        resp = api_client.patch(url, {"planning": planning.id}, format="json")
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        apt.refresh_from_db()
+        assert apt.planning_id == planning.id
+
+    def test_cannot_assign_planning_from_other_project(self, api_client):
+        _superuser(api_client)
+        project_a = ProjectFactory()
+        project_b = ProjectFactory()
+        floor_a = FloorFactory(section__building__project=project_a)
+        apt = ApartmentFactory(floor=floor_a)
+        foreign_planning = PlanningFactory(project=project_b)
+
+        url = reverse("apartment-detail", args=[apt.id])
+        resp = api_client.patch(
+            url, {"planning": foreign_planning.id}, format="json",
+        )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        # DRF emits the field-level error keyed by `planning`.
+        assert "planning" in resp.data
+
+    def test_planning_preview_embedded_in_response(self, api_client):
+        _superuser(api_client)
+        project = ProjectFactory()
+        floor = FloorFactory(section__building__project=project)
+        planning = PlanningFactory(
+            project=project, code="3K-A", rooms_count=3, area=Decimal("72.50"),
+        )
+        apt = ApartmentFactory(floor=floor, planning=planning)
+        resp = api_client.get(reverse("apartment-detail", args=[apt.id]))
+        assert resp.status_code == status.HTTP_200_OK
+        preview = resp.data["planning_preview"]
+        assert preview is not None
+        assert preview["id"] == planning.id
+        assert preview["code"] == "3K-A"
+        assert preview["rooms_count"] == 3

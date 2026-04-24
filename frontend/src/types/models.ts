@@ -112,6 +112,26 @@ export interface Currency extends TimeStamped {
 
 export type CurrencyWrite = Omit<Currency, "id" | "created_at" | "modified_at">
 
+export interface Planning extends TimeStamped {
+  id: number
+  /** FK id → objects.Project. Strict — a planning belongs to one ЖК. */
+  project: number
+  /** Inlined ЖК title from the serializer (read-only convenience). */
+  project_title: I18nText | null
+  /** Short manager-facing label, e.g. "3К-А". Unique within project
+   *  when non-empty. Empty string is allowed and not unique. */
+  code: string
+  name: I18nText
+  rooms_count: number | null
+  /** Decimal string. */
+  area: string | null
+  /** Absolute URL to the stored PNG/JPEG/… */
+  image_2d: string | null
+  image_3d: string | null
+  sort: number
+  is_active: boolean
+}
+
 /** Shared shape for every LookupModel subclass (13 backend tables). */
 export interface LookupItem extends TimeStamped {
   id: number
@@ -136,6 +156,15 @@ export interface PaymentInPercentItem extends LookupItem {
 // Mirrors backend models in apps.objects.models.
 // Hierarchy: Project → Building → Section → Floor (→ Apartment in phase 3.2).
 
+/** Inlined cover preview — whatever photo happens to sit at sort=0
+ *  for the parent. `null` when the entity has no photos. Serialized
+ *  read-only by ProjectSerializer / BuildingSerializer. */
+export interface CoverPreview {
+  id: number
+  url: string | null
+  caption: string
+}
+
 export interface Project extends TimeStamped {
   id: number
   developer: number
@@ -150,6 +179,8 @@ export interface Project extends TimeStamped {
   is_active: boolean
   /** Read-only — count of child buildings. */
   buildings_count: number
+  /** Read-only — first photo of the project (cover). */
+  cover: CoverPreview | null
 }
 
 export type ProjectWrite = Omit<
@@ -160,6 +191,7 @@ export type ProjectWrite = Omit<
   | "developer_name"
   | "buildings_count"
   | "contract_number_index"
+  | "cover"
 >
 
 export interface Building extends TimeStamped {
@@ -173,12 +205,33 @@ export interface Building extends TimeStamped {
   sort: number
   is_active: boolean
   sections_count: number
+  /** Read-only — first photo of the building (cover). */
+  cover: CoverPreview | null
 }
 
 export type BuildingWrite = Omit<
   Building,
-  "id" | "created_at" | "modified_at" | "sections_count" | "planning_file"
+  "id" | "created_at" | "modified_at" | "sections_count" | "planning_file" | "cover"
 >
+
+/** Full photo row returned by /project-photos/ + /building-photos/. */
+export interface ProjectPhoto extends TimeStamped {
+  id: number
+  project: number
+  file: string
+  caption: string
+  sort: number
+  is_active: boolean
+}
+
+export interface BuildingPhoto extends TimeStamped {
+  id: number
+  building: number
+  file: string
+  caption: string
+  sort: number
+  is_active: boolean
+}
 
 export interface Section extends TimeStamped {
   id: number
@@ -234,7 +287,20 @@ export interface Apartment extends TimeStamped {
   is_duplex: boolean
   is_studio: boolean
   is_euro_planning: boolean
-  planning_file: string | null
+  /** FK id → references.Planning. */
+  planning: number | null
+  /** Inlined snapshot of the chosen planning — present when `planning`
+   *  is set. Lets the shaxmatka drawer show 2D/3D previews without a
+   *  second request. `null` when no planning is assigned. */
+  planning_preview: {
+    id: number
+    code: string
+    name: I18nText
+    rooms_count: number | null
+    area: string | null
+    image_2d: string | null
+    image_3d: string | null
+  } | null
   decoration: number | null
   output_window: number | null
   occupied_by: number | null
@@ -255,7 +321,7 @@ export type ApartmentWrite = Omit<
   | "modified_at"
   | "status_display"
   | "booking_expires_at"
-  | "planning_file"
+  | "planning_preview"
 >
 
 export interface ApartmentStatusLog {
@@ -458,11 +524,18 @@ export interface TemplatePlaceholder {
   label?: string
 }
 
+/** Authoring flow — HTML via Tiptap editor, or DOCX uploaded from Word. */
+export type ContractTemplateSource = "html" | "docx"
+
 export interface ContractTemplate extends TimeStamped {
   id: number
   title: string
-  /** HTML body saved by Tiptap — placeholders as `{{key}}`. */
+  source: ContractTemplateSource
+  /** HTML body saved by Tiptap — placeholders as `{{key}}`. Empty for
+   *  DOCX templates. */
   body: string
+  /** Absolute URL of the uploaded .docx (only for source=docx). */
+  file: string | null
   placeholders: TemplatePlaceholder[]
   /** FK Project.id, or null for a global template. */
   project: number | null
@@ -475,8 +548,17 @@ export interface ContractTemplate extends TimeStamped {
 
 export type ContractTemplateWrite = Omit<
   ContractTemplate,
-  "id" | "created_at" | "modified_at" | "project_title" | "is_global"
+  "id" | "created_at" | "modified_at" | "project_title" | "is_global" | "file"
 >
+
+/** Response from POST /contract-templates/validate-docx/ — the UI uses
+ *  `known` / `unknown` to colour-code tags in the sidebar catalog. */
+export interface DocxValidationResult {
+  all: string[]
+  known: string[]
+  unknown: string[]
+  is_valid: boolean
+}
 
 /** Stable string enum mirroring `Contract.Action.values`. */
 export type ContractAction =

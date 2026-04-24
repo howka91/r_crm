@@ -1,32 +1,30 @@
-"""ContractTemplate — HTML template for PDF contract generation.
+"""ContractTemplate — template for PDF contract generation.
 
-Design decision (Phase 5.3): we store templates as HTML (not .docx) because:
+Two parallel authoring flows, both producing PDF:
 
-  * The admin UI is a Tiptap WYSIWYG editor — producing HTML natively
-    with inline styles (fonts, sizes, bold/italic/underline, alignment).
-  * HTML → PDF via WeasyPrint runs in-process in the backend, no
-    separate LibreOffice container. That drops ~500 MB from compose and
-    cuts conversion latency.
-  * Previews are trivial — render the same template to HTML in the
-    browser.
+  * **HTML** (Phase 5.3 default) — ``source="html"``. Admin edits via the
+    Tiptap WYSIWYG editor; ``body`` holds the HTML; render path is
+    WeasyPrint (in-process, no subprocess).
+  * **DOCX** — ``source="docx"``. Lawyer authors the contract in MS Word
+    with Jinja-style ``{{ dotted.path }}`` tags, uploads the file; render
+    path is `docxtpl` (fill tags) → `soffice --headless --convert-to pdf`
+    (LibreOffice, bundled in the backend image).
+
+Each template picks exactly one flow — no cross-conversion. The wizard
+UI shows both options side by side so managers without Word skills can
+still produce templates through the HTML editor.
 
 Placeholders
 ------------
 
-The body uses `{{key}}` markers. Valid keys are declared per-template by
-the admin in ``placeholders``::
-
-    [
-      {"key": "contract_number", "path": "contract.contract_number",  "label": "Номер договора"},
-      {"key": "client_name",     "path": "client.full_name",          "label": "ФИО клиента"},
-      {"key": "apartment_no",    "path": "apartment.number",          "label": "Номер квартиры"},
-      ...
-    ]
-
-`key` is what the admin writes inside `{{…}}`. `path` is a dotted path
-that the docgen service resolves against the contract tree at render
-time (via Django's template `Variable` machinery). `label` is shown in
-the placeholder picker UI.
+* HTML flow: body uses ``{{key}}``; valid keys declared per-template in
+  ``placeholders`` as ``[{key, path, label}]``. Strict — unknown keys
+  are rejected at render time.
+* DOCX flow: body uses Jinja2 ``{{ contract.contract_number }}`` —
+  direct dotted paths resolved against the same ``build_context`` tree.
+  ``placeholders`` in this mode stores the *catalog* of tags found in
+  the uploaded file (populated by the validator), so the picker UI can
+  show what the template already uses.
 
 Scope: global vs per-project
 ----------------------------
@@ -51,14 +49,40 @@ from apps.core.models import BaseModel
 
 
 class ContractTemplate(BaseModel):
+    class Source(models.TextChoices):
+        HTML = "html", _("HTML (встроенный редактор)")
+        DOCX = "docx", _("DOCX (Word-файл)")
+
     title = models.CharField(_("Название"), max_length=255, db_index=True)
+    source = models.CharField(
+        _("Источник"),
+        max_length=8,
+        choices=Source.choices,
+        default=Source.HTML,
+        db_index=True,
+        help_text=_(
+            "html — шаблон редактируется в Tiptap в браузере; "
+            "docx — юрист загружает .docx, из которого рендерится PDF."
+        ),
+    )
     body = models.TextField(
         _("HTML-шаблон"),
         blank=True,
         default="",
         help_text=_(
-            "HTML, сохранённый Tiptap-редактором. Плейсхолдеры — {{key}}; "
-            "соответствия key → path задаются ниже в placeholders."
+            "HTML, сохранённый Tiptap-редактором. Используется только "
+            "для source=html. Плейсхолдеры — {{key}}."
+        ),
+    )
+    # Authored .docx file for source=docx flow. Blank for HTML templates.
+    file = models.FileField(
+        _("DOCX-файл"),
+        upload_to="contract_templates/docx/%Y/%m/",
+        null=True,
+        blank=True,
+        help_text=_(
+            "Word-файл с тегами Jinja2 вида {{ contract.contract_number }}. "
+            "Рендерится в PDF через docxtpl + LibreOffice."
         ),
     )
     placeholders = models.JSONField(
@@ -66,8 +90,9 @@ class ContractTemplate(BaseModel):
         default=list,
         blank=True,
         help_text=_(
-            "Список объектов [{\"key\": \"...\", \"path\": \"...\", \"label\": \"...\"}]. "
-            "key используется в {{…}}, path — дотточный путь в контексте контракта."
+            "Для html-шаблонов — список [{\"key\": \"...\", \"path\": \"...\", "
+            "\"label\": \"...\"}]. Для docx — автоматически собранный список "
+            "тегов, найденных в файле (для отображения в каталоге плейсхолдеров)."
         ),
     )
     project = models.ForeignKey(

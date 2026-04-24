@@ -152,7 +152,7 @@ onMounted(load)
               <span
                 :class="i.is_active ? 'chip chip-success' : 'chip chip-ghost'"
               >
-                {{ i.is_active ? t("common.yes") : t("common.no") }}
+                {{ i.is_active ? t("common.active") : t("common.inactive") }}
               </span>
             </td>
             <td class="text-right whitespace-nowrap">
