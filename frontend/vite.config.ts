@@ -24,16 +24,15 @@ export default defineConfig({
     // browser reaches Vite via `localhost:5173` or a LAN IP like
     // `192.168.1.121:5173` — the hardcoded host goes away.
     proxy: {
+      // Keep the original Host header (no changeOrigin) so Django's
+      // request.build_absolute_uri() returns SPA-reachable URLs like
+      // http://localhost:5173/media/... instead of http://backend:8000/...
+      // which the browser cannot resolve.
       "/api": {
         target: "http://backend:8000",
-        changeOrigin: true,
       },
-      // Django serves uploaded files (template logos, contract PDFs,
-      // QR assets) under /media/. Without this proxy the SPA's
-      // <img src="/media/..."> would hit the Vite dev server and 404.
       "/media": {
         target: "http://backend:8000",
-        changeOrigin: true,
       },
     },
   },
