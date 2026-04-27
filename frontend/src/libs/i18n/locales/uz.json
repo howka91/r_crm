@@ -643,10 +643,20 @@
       "project": "JK",
       "apartment": "Kvartira",
       "client": "Mijoz",
+      "client_phone": "Telefon",
+      "client_status": "Mijoz statusi",
+      "client_note": "Izoh",
       "signer": "Imzolovchi",
       "date": "Sana",
+      "area": "Maydoni, m²",
+      "price_per_sqm": "m² narxi",
       "total": "Summa",
       "down": "Birinchi to'lov",
+      "down_payment": "Birinchi to'lov",
+      "monthly_payment": "Oylik to'lov",
+      "monthly_debt": "Oylik qarz",
+      "remaining_debt": "Qoldiq qarz",
+      "payment_types": "To'lov turlari",
       "status": "Status",
       "author": "Muallif",
       "actions": "Amallar"
@@ -656,7 +666,9 @@
       "project_all": "Barcha JK",
       "mortgage_all": "Hammasi",
       "mortgage_yes": "Ipoteka",
-      "mortgage_no": "Ipotekasiz"
+      "mortgage_no": "Ipotekasiz",
+      "status_all": "Barcha mijoz statuslari",
+      "payment_type_all": "Barcha to'lov turlari"
     },
     "number_draft": "(qoralama)",
     "fields": {
@@ -670,6 +682,7 @@
       "date": "Shartnoma sanasi",
       "send_date": "Jo'natilgan sana",
       "description": "Ta'rif",
+      "client_note": "Mijozga oid izoh",
       "related_person": "Qo'shimcha imzolovchi (erkin matn)",
       "total_amount": "Shartnoma summasi",
       "down_payment": "Birinchi to'lov",
@@ -721,6 +734,21 @@
       "payments_empty": "Bu shartnoma bo'yicha to'lovlar hali yo'q.",
       "signed_immutable": "Shartnoma imzolangan — biznes tahrirlash bloklangan.",
       "transition_forbidden": "Joriy statusdan o'tish mumkin emas."
+    },
+    "payments": {
+      "add": "To'lov qo'shish",
+      "channel": "Kanal",
+      "description": "Tavsif",
+      "recorded_by": "Kim",
+      "receipt": "PKO №",
+      "schedule": "Jadval banti",
+      "amount": "Summa",
+      "paid_at": "To'lov sanasi",
+      "barter_hint": "Nima almashtirildi (barter uchun majburiy)",
+      "error_schedule_required": "Jadval bandi tanlang.",
+      "error_amount_required": "Summa noldan katta bo'lishi kerak.",
+      "error_barter_comment": "Bartda tavsif majburiy.",
+      "created": "To'lov qo'shildi"
     }
   }
 }

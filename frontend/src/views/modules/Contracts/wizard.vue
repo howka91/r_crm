@@ -298,6 +298,7 @@ async function submit() {
       send_date: null,
       related_person: "",
       description: description.value,
+      client_note: "",
       total_amount: totalAmount.value || "0",
       down_payment: downPayment.value || "0",
       payment_methods: [],

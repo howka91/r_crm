@@ -13,10 +13,17 @@ import { computed, onMounted, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
+import { clientStatusesApi } from "@/api/clients"
 import { contractsApi } from "@/api/contracts"
 import { projectsApi } from "@/api/objects"
 import { usePermissionStore } from "@/store/permissions"
-import type { Contract, ContractAction, Project } from "@/types/models"
+import type {
+  ClientStatus,
+  Contract,
+  ContractAction,
+  PaymentChannel,
+  Project,
+} from "@/types/models"
 
 type Scope = "unsigned" | "signed" | "edit_requests"
 
@@ -29,11 +36,20 @@ const scope = computed<Scope>(() => (route.meta.scope as Scope) || "unsigned")
 
 const items = ref<Contract[]>([])
 const projects = ref<Project[]>([])
+const statuses = ref<ClientStatus[]>([])
 const loading = ref(false)
 
 const search = ref("")
 const projectFilter = ref<number | "">("")
 const mortgageFilter = ref<"" | "yes" | "no">("")
+const statusFilter = ref<number | "">("")
+const paymentTypeFilter = ref<"" | PaymentChannel>("")
+
+const PAYMENT_TYPE_META: Record<PaymentChannel, { icon: string; tone: string }> = {
+  cash: { icon: "pi-wallet", tone: "chip-success" },
+  bank: { icon: "pi-building-columns", tone: "chip-info" },
+  barter: { icon: "pi-arrows-h", tone: "chip-warn" },
+}
 
 const canCreate = computed(() => permissions.check("contracts.unsigned.create"))
 
@@ -64,17 +80,46 @@ function actionChipClass(a: ContractAction): string {
   }
 }
 
-function formatMoney(value: string): string {
+function formatMoney(value: string | null): string {
+  if (value === null || value === undefined || value === "") return "—"
   const n = Number(value)
-  if (!Number.isFinite(n)) return value
+  if (!Number.isFinite(n)) return String(value)
   return new Intl.NumberFormat("ru-RU", {
     maximumFractionDigits: 0,
   }).format(n)
 }
 
+function formatArea(value: string | null): string {
+  if (!value) return "—"
+  const n = Number(value)
+  if (!Number.isFinite(n)) return value
+  return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(n)
+}
+
+function statusLabel(s: ClientStatus): string {
+  return s.name[locale.value as "ru" | "uz" | "oz"] || `#${s.id}`
+}
+
+function clientStatusName(item: Contract): string {
+  if (!item.client_status_name) return ""
+  return (
+    item.client_status_name[locale.value as "ru" | "uz" | "oz"] || ""
+  )
+}
+
+function truncate(s: string | null, n = 30): string {
+  if (!s) return ""
+  return s.length > n ? `${s.slice(0, n)}…` : s
+}
+
 async function loadProjects() {
   const resp = await projectsApi.list({ limit: 200 })
   projects.value = resp.results
+}
+
+async function loadStatuses() {
+  const resp = await clientStatusesApi.list({ limit: 200 })
+  statuses.value = resp.results
 }
 
 async function load() {
@@ -89,6 +134,8 @@ async function load() {
     if (search.value.trim()) params.search = search.value.trim()
     if (mortgageFilter.value === "yes") params.is_mortgage = "true"
     else if (mortgageFilter.value === "no") params.is_mortgage = "false"
+    if (statusFilter.value !== "") params.signer__client__status = statusFilter.value
+    if (paymentTypeFilter.value !== "") params.payment_type = paymentTypeFilter.value
 
     const data = await contractsApi.list(params)
     items.value = data.results
@@ -110,11 +157,14 @@ watch(search, () => {
   if (searchTimer) clearTimeout(searchTimer)
   searchTimer = setTimeout(load, 300)
 })
-watch([projectFilter, mortgageFilter], () => void load())
+watch(
+  [projectFilter, mortgageFilter, statusFilter, paymentTypeFilter],
+  () => void load(),
+)
 watch(scope, () => void load())
 
 onMounted(async () => {
-  await loadProjects()
+  await Promise.all([loadProjects(), loadStatuses()])
   await load()
 })
 </script>
@@ -168,6 +218,18 @@ onMounted(async () => {
         <option value="yes">{{ t("contracts.filters.mortgage_yes") }}</option>
         <option value="no">{{ t("contracts.filters.mortgage_no") }}</option>
       </select>
+      <select v-model="statusFilter" class="inp w-[200px]">
+        <option value="">{{ t("contracts.filters.status_all") }}</option>
+        <option v-for="s in statuses" :key="s.id" :value="s.id">
+          {{ statusLabel(s) }}
+        </option>
+      </select>
+      <select v-model="paymentTypeFilter" class="inp w-[180px]">
+        <option value="">{{ t("contracts.filters.payment_type_all") }}</option>
+        <option value="cash">{{ t("contracts.payment_type.cash") }}</option>
+        <option value="bank">{{ t("contracts.payment_type.bank") }}</option>
+        <option value="barter">{{ t("contracts.payment_type.barter") }}</option>
+      </select>
     </div>
 
     <div v-if="loading" class="text-ym-muted">{{ t("common.loading") }}</div>
@@ -179,16 +241,26 @@ onMounted(async () => {
       {{ t("contracts.empty") }}
     </div>
 
-    <div v-else class="card overflow-hidden">
-      <table class="tbl">
+    <div v-else class="card overflow-x-auto">
+      <table class="tbl min-w-[1600px]">
         <thead>
           <tr>
             <th>{{ t("contracts.columns.number") }}</th>
+            <th>{{ t("contracts.columns.client") }}</th>
+            <th>{{ t("contracts.columns.client_phone") }}</th>
+            <th>{{ t("contracts.columns.client_status") }}</th>
             <th>{{ t("contracts.columns.project") }}</th>
             <th>{{ t("contracts.columns.apartment") }}</th>
-            <th>{{ t("contracts.columns.client") }}</th>
+            <th class="text-right">{{ t("contracts.columns.area") }}</th>
+            <th class="text-right">{{ t("contracts.columns.price_per_sqm") }}</th>
             <th>{{ t("contracts.columns.date") }}</th>
             <th class="text-right">{{ t("contracts.columns.total") }}</th>
+            <th class="text-right">{{ t("contracts.columns.down_payment") }}</th>
+            <th class="text-right">{{ t("contracts.columns.monthly_payment") }}</th>
+            <th class="text-right">{{ t("contracts.columns.monthly_debt") }}</th>
+            <th class="text-right">{{ t("contracts.columns.remaining_debt") }}</th>
+            <th>{{ t("contracts.columns.payment_types") }}</th>
+            <th>{{ t("contracts.columns.client_note") }}</th>
             <th>{{ t("contracts.columns.status") }}</th>
             <th></th>
           </tr>
@@ -206,12 +278,85 @@ onMounted(async () => {
                 t("contracts.number_draft")
               }}</span>
             </td>
+            <td class="whitespace-nowrap">
+              {{ i.client_name || i.signer_name || "—" }}
+            </td>
+            <td class="font-mono text-[12.5px] whitespace-nowrap">
+              {{ i.client_phone || "—" }}
+            </td>
+            <td>
+              <span
+                v-if="i.client_status_id && i.client_status_name"
+                class="chip"
+                :style="{
+                  backgroundColor: (i.client_status_color || '#94a3b8') + '22',
+                  color: i.client_status_color || undefined,
+                  borderColor: (i.client_status_color || '#94a3b8') + '55',
+                }"
+              >
+                {{ clientStatusName(i) }}
+              </span>
+              <span v-else class="text-ym-subtle">—</span>
+            </td>
             <td>{{ projectTitleById(i.project) }}</td>
-            <td class="font-mono text-[12.5px]">{{ i.apartment_number || "—" }}</td>
-            <td>{{ i.client_name || i.signer_name || "—" }}</td>
-            <td class="text-ym-muted">{{ i.date }}</td>
+            <td class="font-mono text-[12.5px]">
+              {{ i.apartment_number || "—" }}
+            </td>
+            <td class="text-right font-mono text-[12.5px]">
+              {{ formatArea(i.apartment_area) }}
+            </td>
+            <td class="text-right font-mono text-[12.5px]">
+              {{ formatMoney(i.apartment_price_per_sqm) }}
+            </td>
+            <td class="text-ym-muted whitespace-nowrap">{{ i.date }}</td>
             <td class="text-right font-mono text-[12.5px]">
               {{ formatMoney(i.total_amount) }}
+            </td>
+            <td class="text-right font-mono text-[12.5px]">
+              {{ formatMoney(i.down_payment) }}
+            </td>
+            <td class="text-right font-mono text-[12.5px]">
+              {{ formatMoney(i.monthly_payment) }}
+            </td>
+            <td
+              class="text-right font-mono text-[12.5px]"
+              :class="Number(i.monthly_debt) > 0 ? 'text-red-600 font-semibold' : ''"
+            >
+              {{ formatMoney(i.monthly_debt) }}
+            </td>
+            <td
+              class="text-right font-mono text-[12.5px]"
+              :class="Number(i.remaining_debt) > 0 ? 'text-orange-600' : ''"
+            >
+              {{ formatMoney(i.remaining_debt) }}
+            </td>
+            <td>
+              <div class="flex gap-1 flex-wrap">
+                <span
+                  v-for="pt in i.payment_types_used"
+                  :key="pt"
+                  class="chip"
+                  :class="PAYMENT_TYPE_META[pt].tone"
+                  :title="t(`contracts.payment_type.${pt}`)"
+                >
+                  <i :class="['pi', PAYMENT_TYPE_META[pt].icon, 'text-[10px]']" />
+                  {{ t(`contracts.payment_type.${pt}`) }}
+                </span>
+                <span
+                  v-if="i.payment_types_used.length === 0"
+                  class="text-ym-subtle"
+                  >—</span
+                >
+              </div>
+            </td>
+            <td
+              class="max-w-[200px]"
+              :title="i.client_note || ''"
+            >
+              <span v-if="i.client_note" class="text-[12.5px]">{{
+                truncate(i.client_note, 30)
+              }}</span>
+              <span v-else class="text-ym-subtle">—</span>
             </td>
             <td>
               <span :class="actionChipClass(i.action)">

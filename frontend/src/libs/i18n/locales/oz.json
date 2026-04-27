@@ -643,10 +643,20 @@
       "project": "ЖК",
       "apartment": "Квартира",
       "client": "Мижоз",
+      "client_phone": "Телефон",
+      "client_status": "Мижоз ҳолати",
+      "client_note": "Изоҳ",
       "signer": "Имзоловчи",
       "date": "Сана",
+      "area": "Майдони, м²",
+      "price_per_sqm": "м² нархи",
       "total": "Сумма",
       "down": "Биринчи тўлов",
+      "down_payment": "Биринчи тўлов",
+      "monthly_payment": "Ойлик тўлов",
+      "monthly_debt": "Ойлик қарз",
+      "remaining_debt": "Қолдиқ қарз",
+      "payment_types": "Тўлов турлари",
       "status": "Статус",
       "author": "Муаллиф",
       "actions": "Амаллар"
@@ -656,7 +666,9 @@
       "project_all": "Барча ЖК",
       "mortgage_all": "Ҳаммаси",
       "mortgage_yes": "Ипотека",
-      "mortgage_no": "Ипотекасиз"
+      "mortgage_no": "Ипотекасиз",
+      "status_all": "Барча мижоз ҳолатлари",
+      "payment_type_all": "Барча тўлов турлари"
     },
     "number_draft": "(қоралама)",
     "fields": {
@@ -670,6 +682,7 @@
       "date": "Шартнома санаси",
       "send_date": "Жўнатилган сана",
       "description": "Таъриф",
+      "client_note": "Мижозга оид изоҳ",
       "related_person": "Қўшимча имзоловчи (эркин матн)",
       "total_amount": "Шартнома суммаси",
       "down_payment": "Биринчи тўлов",
@@ -721,6 +734,21 @@
       "payments_empty": "Бу шартнома бўйича тўловлар ҳали йўқ.",
       "signed_immutable": "Шартнома имзоланган — бизнес таҳрирлаш блокланган.",
       "transition_forbidden": "Жорий статусдан ўтиш мумкин эмас."
+    },
+    "payments": {
+      "add": "Тўлов қўшиш",
+      "channel": "Канал",
+      "description": "Таъриф",
+      "recorded_by": "Ким",
+      "receipt": "ПКО №",
+      "schedule": "Жадвал банди",
+      "amount": "Сумма",
+      "paid_at": "Тўлов санаси",
+      "barter_hint": "Нима алмаштирилди (бартер учун мажбурий)",
+      "error_schedule_required": "Жадвал банди танланг.",
+      "error_amount_required": "Сумма нолдан катта бўлиши керак.",
+      "error_barter_comment": "Бартда таъриф мажбурий.",
+      "created": "Тўлов қўшилди"
     }
   }
 }

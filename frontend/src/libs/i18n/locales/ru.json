@@ -644,10 +644,20 @@
       "project": "ЖК",
       "apartment": "Квартира",
       "client": "Клиент",
+      "client_phone": "Телефон",
+      "client_status": "Статус клиента",
+      "client_note": "Комментарий",
       "signer": "Подписант",
       "date": "Дата",
+      "area": "Площадь, м²",
+      "price_per_sqm": "Цена за м²",
       "total": "Сумма",
       "down": "Первый взнос",
+      "down_payment": "Первый взнос",
+      "monthly_payment": "Ежемесячный",
+      "monthly_debt": "Долг за месяц",
+      "remaining_debt": "Остаток долга",
+      "payment_types": "Виды оплат",
       "status": "Статус",
       "author": "Автор",
       "actions": "Действия"
@@ -657,7 +667,9 @@
       "project_all": "Все ЖК",
       "mortgage_all": "Все",
       "mortgage_yes": "Ипотека",
-      "mortgage_no": "Без ипотеки"
+      "mortgage_no": "Без ипотеки",
+      "status_all": "Все статусы клиента",
+      "payment_type_all": "Все виды оплат"
     },
     "number_draft": "(черновик)",
     "fields": {
@@ -671,6 +683,7 @@
       "date": "Дата договора",
       "send_date": "Дата отправки",
       "description": "Описание",
+      "client_note": "Комментарий к клиенту",
       "related_person": "Доп. подписант (свободный текст)",
       "total_amount": "Сумма договора",
       "down_payment": "Первый взнос",
@@ -722,6 +735,21 @@
       "payments_empty": "Платежей по этому договору ещё не было.",
       "signed_immutable": "Договор подписан — бизнес-редактирование заблокировано.",
       "transition_forbidden": "Переход запрещён из текущего статуса."
+    },
+    "payments": {
+      "add": "Добавить платёж",
+      "channel": "Канал",
+      "description": "Описание",
+      "recorded_by": "Кто",
+      "receipt": "№ ПКО",
+      "schedule": "Пункт графика",
+      "amount": "Сумма",
+      "paid_at": "Дата платежа",
+      "barter_hint": "Что обменяли (обязательно для бартера)",
+      "error_schedule_required": "Выберите пункт графика.",
+      "error_amount_required": "Сумма должна быть больше нуля.",
+      "error_barter_comment": "Описание обязательно при бартере.",
+      "created": "Платёж добавлен"
     }
   }
 }

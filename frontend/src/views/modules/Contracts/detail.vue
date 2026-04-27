@@ -15,6 +15,7 @@ import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
 import MoneyInput from "@/components/MoneyInput.vue"
+import { clientStatusesApi, clientsApi } from "@/api/clients"
 import {
   contractTemplatesApi,
   contractsApi,
@@ -27,11 +28,13 @@ import { usePromptStore } from "@/store/prompt"
 import { usePermissionStore } from "@/store/permissions"
 import { useToastStore } from "@/store/toast"
 import type {
+  ClientStatus,
   Contract,
   ContractAction,
   ContractTemplate,
   ContractWrite,
   Payment,
+  PaymentChannel,
   PaymentSchedule,
   PaymentScheduleStatus,
   Project,
@@ -54,6 +57,7 @@ const schedules = ref<PaymentSchedule[]>([])
 const payments = ref<Payment[]>([])
 const templates = ref<ContractTemplate[]>([])
 const projects = ref<Project[]>([])
+const clientStatuses = ref<ClientStatus[]>([])
 const activeTab = ref<Tab>("overview")
 const busy = ref(false)
 
@@ -64,6 +68,7 @@ const busy = ref(false)
 const totalAmountDraft = ref("")
 const downPaymentDraft = ref("")
 const descriptionDraft = ref("")
+const clientNoteDraft = ref("")
 
 watch(
   contract,
@@ -72,6 +77,7 @@ watch(
     totalAmountDraft.value = c.total_amount || ""
     downPaymentDraft.value = c.down_payment || ""
     descriptionDraft.value = c.description || ""
+    clientNoteDraft.value = c.client_note || ""
   },
   { immediate: true },
 )
@@ -95,6 +101,7 @@ const canGenSchedule = computed(() =>
 const canGenPdf = computed(() =>
   permissions.check("contracts.unsigned.generate_pdf"),
 )
+const canEditClient = computed(() => permissions.check("clients.edit"))
 
 // --- Workflow gating (mirrors backend _ALLOWED in services/transitions) --
 
@@ -195,12 +202,24 @@ async function loadPayments() {
 }
 
 async function loadSidecars() {
-  const [tplResp, projResp] = await Promise.all([
+  const [tplResp, projResp, statusResp] = await Promise.all([
     contractTemplatesApi.list({ limit: 200, is_active: "true" }),
     projectsApi.list({ limit: 200 }),
+    clientStatusesApi.list({ limit: 200 }),
   ])
   templates.value = tplResp.results
   projects.value = projResp.results
+  clientStatuses.value = statusResp.results
+}
+
+function clientStatusLabel(s: ClientStatus): string {
+  return s.name[locale.value as "ru" | "uz" | "oz"] || `#${s.id}`
+}
+
+function currentClientStatusName(): string {
+  const c = contract.value
+  if (!c?.client_status_name) return "—"
+  return c.client_status_name[locale.value as "ru" | "uz" | "oz"] || "—"
 }
 
 async function reloadAll() {
@@ -385,6 +404,113 @@ function onDownPaymentBlur() {
 function onDescriptionBlur() {
   if (!contract.value) return
   commitField("description", descriptionDraft.value)
+}
+
+function onClientNoteBlur() {
+  if (!contract.value) return
+  commitField("client_note", clientNoteDraft.value)
+}
+
+async function onClientStatusChange(value: string) {
+  // Status lives on Client, not Contract — PATCH the client and refetch the
+  // contract so its denormalised `client_status_*` fields stay in sync.
+  const c = contract.value
+  if (!c || !c.client_id) return
+  const newId = value === "" ? null : Number(value)
+  try {
+    await clientsApi.update(c.client_id, { status: newId })
+    await loadContract()
+  } catch (e) {
+    toastStore.error(
+      e instanceof AxiosError && e.response?.data
+        ? JSON.stringify(e.response.data)
+        : t("errors.unknown"),
+    )
+  }
+}
+
+// --- Add-payment modal ---------------------------------------------------
+
+const paymentDialogOpen = ref(false)
+const paymentForm = ref<{
+  schedule: number | "" | null
+  amount: string
+  payment_type: PaymentChannel
+  paid_at: string
+  comment: string
+  receipt_number: string
+}>({
+  schedule: "",
+  amount: "",
+  payment_type: "cash",
+  paid_at: new Date().toISOString().slice(0, 10),
+  comment: "",
+  receipt_number: "",
+})
+const paymentFormError = ref("")
+
+function openPaymentDialog() {
+  paymentForm.value = {
+    schedule: schedules.value[0]?.id ?? "",
+    amount: "",
+    payment_type: "cash",
+    paid_at: new Date().toISOString().slice(0, 10),
+    comment: "",
+    receipt_number: "",
+  }
+  paymentFormError.value = ""
+  paymentDialogOpen.value = true
+}
+
+function closePaymentDialog() {
+  paymentDialogOpen.value = false
+}
+
+async function submitPayment() {
+  paymentFormError.value = ""
+  const f = paymentForm.value
+  if (!f.schedule) {
+    paymentFormError.value = t("contracts.payments.error_schedule_required")
+    return
+  }
+  if (!f.amount || Number(f.amount) <= 0) {
+    paymentFormError.value = t("contracts.payments.error_amount_required")
+    return
+  }
+  if (f.payment_type === "barter" && !f.comment.trim()) {
+    paymentFormError.value = t("contracts.payments.error_barter_comment")
+    return
+  }
+  busy.value = true
+  try {
+    await paymentsApi.create({
+      schedule: Number(f.schedule),
+      amount: f.amount,
+      payment_type: f.payment_type,
+      paid_at: f.paid_at,
+      comment: f.comment,
+      receipt_number: f.receipt_number,
+      recorded_by: null,
+      is_active: true,
+    })
+    closePaymentDialog()
+    toastStore.success(t("contracts.payments.created"))
+    await loadContract()
+    await loadSchedules()
+    await loadPayments()
+  } catch (e) {
+    if (e instanceof AxiosError && e.response?.data) {
+      const data = e.response.data as Record<string, unknown>
+      paymentFormError.value =
+        (data.comment as string[] | string | undefined)?.toString() ||
+        (data.detail as string | undefined) ||
+        JSON.stringify(data)
+    } else {
+      paymentFormError.value = t("errors.unknown")
+    }
+  } finally {
+    busy.value = false
+  }
 }
 
 // --- Template assignment -------------------------------------------------
@@ -641,6 +767,56 @@ onMounted(async () => {
             <dd class="mt-0.5">{{ contract.signer_name || "—" }}</dd>
           </div>
           <div>
+            <dt class="text-ym-muted">
+              {{ t("contracts.columns.client_phone") }}
+            </dt>
+            <dd class="mt-0.5 font-mono text-[12.5px]">
+              {{ contract.client_phone || "—" }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-ym-muted">
+              {{ t("contracts.columns.client_status") }}
+            </dt>
+            <dd class="mt-0.5">
+              <select
+                v-if="canEditClient && contract.client_id"
+                class="inp inp-sm"
+                :value="
+                  contract.client_status_id === null
+                    ? ''
+                    : contract.client_status_id
+                "
+                @change="
+                  onClientStatusChange(
+                    ($event.target as HTMLSelectElement).value,
+                  )
+                "
+              >
+                <option value="">—</option>
+                <option
+                  v-for="s in clientStatuses"
+                  :key="s.id"
+                  :value="s.id"
+                >
+                  {{ clientStatusLabel(s) }}
+                </option>
+              </select>
+              <span
+                v-else-if="contract.client_status_id"
+                class="chip"
+                :style="{
+                  backgroundColor:
+                    (contract.client_status_color || '#94a3b8') + '22',
+                  color: contract.client_status_color || undefined,
+                }"
+              >
+                {{ currentClientStatusName() }}
+              </span>
+              <span v-else class="text-ym-subtle">—</span>
+            </dd>
+          </div>
+          <div>
             <dt class="text-ym-muted">{{ t("contracts.fields.date") }}</dt>
             <dd class="mt-0.5 font-mono">
               <input
@@ -705,6 +881,29 @@ onMounted(async () => {
           {{ contract.description }}
         </p>
       </div>
+
+      <!-- Client note (internal — not printed to PDF) -->
+      <div
+        v-if="contract.client_note || editable"
+        class="col-span-12 card p-5"
+      >
+        <div
+          class="text-[11px] uppercase tracking-wider font-mono text-ym-subtle mb-2"
+        >
+          {{ t("contracts.fields.client_note") }}
+        </div>
+        <textarea
+          v-if="editable"
+          v-model="clientNoteDraft"
+          class="inp"
+          rows="3"
+          :placeholder="t('contracts.fields.client_note')"
+          @blur="onClientNoteBlur"
+        />
+        <p v-else class="text-[13px] whitespace-pre-line">
+          {{ contract.client_note }}
+        </p>
+      </div>
     </section>
 
     <!-- Schedule -->
@@ -753,6 +952,16 @@ onMounted(async () => {
 
     <!-- Payments -->
     <section v-else-if="activeTab === 'payments'">
+      <div class="flex justify-end mb-3">
+        <button
+          v-if="canEdit && schedules.length > 0"
+          class="btn btn-primary"
+          @click="openPaymentDialog"
+        >
+          <i class="pi pi-plus text-[11px]" />
+          {{ t("contracts.payments.add") }}
+        </button>
+      </div>
       <div
         v-if="payments.length === 0"
         class="card p-8 text-center text-ym-muted"
@@ -765,9 +974,10 @@ onMounted(async () => {
             <tr>
               <th>{{ t("contracts.columns.date") }}</th>
               <th class="text-right">{{ t("contracts.columns.total") }}</th>
-              <th>Канал</th>
-              <th>Кто</th>
-              <th>№ ПКО</th>
+              <th>{{ t("contracts.payments.channel") }}</th>
+              <th>{{ t("contracts.payments.description") }}</th>
+              <th>{{ t("contracts.payments.recorded_by") }}</th>
+              <th>{{ t("contracts.payments.receipt") }}</th>
             </tr>
           </thead>
           <tbody>
@@ -780,6 +990,10 @@ onMounted(async () => {
                 <span class="chip chip-ghost">{{
                   t(`contracts.payment_type.${p.payment_type}`)
                 }}</span>
+              </td>
+              <td class="max-w-[280px] text-[12.5px]">
+                <span v-if="p.comment">{{ p.comment }}</span>
+                <span v-else class="text-ym-subtle">—</span>
               </td>
               <td>{{ p.recorded_by_name || "—" }}</td>
               <td class="font-mono text-[12.5px]">
@@ -832,5 +1046,101 @@ onMounted(async () => {
         {{ t("contracts.detail.action_generate_pdf") }}
       </button>
     </section>
+
+    <!-- Add-payment modal -->
+    <div
+      v-if="paymentDialogOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      @click.self="closePaymentDialog"
+    >
+      <div class="card w-full max-w-md p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-[16px] font-semibold">
+            {{ t("contracts.payments.add") }}
+          </h3>
+          <button class="btn btn-ghost btn-sm" @click="closePaymentDialog">
+            <i class="pi pi-times text-[11px]" />
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 gap-3 text-[13px]">
+          <label class="block">
+            <span class="text-ym-muted">{{ t("contracts.payments.schedule") }}</span>
+            <select v-model="paymentForm.schedule" class="inp mt-1">
+              <option v-for="s in schedules" :key="s.id" :value="s.id">
+                {{ s.due_date }} · {{ formatMoney(s.amount) }}
+              </option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="text-ym-muted">{{ t("contracts.payments.amount") }}</span>
+            <input
+              v-model="paymentForm.amount"
+              type="number"
+              step="0.01"
+              min="0"
+              class="inp mt-1 font-mono"
+            />
+          </label>
+          <label class="block">
+            <span class="text-ym-muted">{{ t("contracts.payments.paid_at") }}</span>
+            <input
+              v-model="paymentForm.paid_at"
+              type="date"
+              class="inp mt-1 font-mono"
+            />
+          </label>
+          <label class="block">
+            <span class="text-ym-muted">{{ t("contracts.payments.channel") }}</span>
+            <select v-model="paymentForm.payment_type" class="inp mt-1">
+              <option value="cash">{{ t("contracts.payment_type.cash") }}</option>
+              <option value="bank">{{ t("contracts.payment_type.bank") }}</option>
+              <option value="barter">{{ t("contracts.payment_type.barter") }}</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="text-ym-muted">
+              {{ t("contracts.payments.description") }}
+              <span
+                v-if="paymentForm.payment_type === 'barter'"
+                class="text-red-600"
+                >*</span
+              >
+            </span>
+            <textarea
+              v-model="paymentForm.comment"
+              class="inp mt-1"
+              rows="3"
+              :placeholder="
+                paymentForm.payment_type === 'barter'
+                  ? t('contracts.payments.barter_hint')
+                  : ''
+              "
+            />
+          </label>
+          <label class="block">
+            <span class="text-ym-muted">{{ t("contracts.payments.receipt") }}</span>
+            <input v-model="paymentForm.receipt_number" class="inp mt-1 font-mono" />
+          </label>
+        </div>
+
+        <div
+          v-if="paymentFormError"
+          class="mt-3 text-[12px] text-red-600 whitespace-pre-line"
+        >
+          {{ paymentFormError }}
+        </div>
+
+        <div class="flex justify-end gap-2 mt-5">
+          <button class="btn btn-ghost" @click="closePaymentDialog">
+            {{ t("common.cancel") }}
+          </button>
+          <button class="btn btn-primary" :disabled="busy" @click="submitPayment">
+            <i class="pi pi-check text-[11px]" />
+            {{ t("common.save") }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

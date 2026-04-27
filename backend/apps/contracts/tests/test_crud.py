@@ -206,6 +206,98 @@ class TestContractCRUD:
         resp = api_client.get(f"{self.url_list}?search=Искандер")
         assert len(resp.data["results"]) == 1
 
+    def test_list_includes_aggregate_fields(self, api_client):
+        from apps.contracts.tests.factories import (
+            PaymentFactory,
+            PaymentScheduleFactory,
+        )
+
+        _superuser(api_client)
+        contract = ContractFactory()
+        sch = PaymentScheduleFactory(
+            contract=contract,
+            amount=Decimal("100.00"),
+            paid_amount=Decimal("30.00"),
+        )
+        PaymentFactory(schedule=sch, payment_type="cash", amount=Decimal("30.00"))
+
+        resp = api_client.get(f"{self.url_list}?id={contract.id}")
+        assert resp.status_code == status.HTTP_200_OK
+        rows = [r for r in resp.data["results"] if r["id"] == contract.id]
+        assert rows, "contract not in results"
+        row = rows[0]
+        assert row["payment_types_used"] == ["cash"]
+        assert Decimal(str(row["remaining_debt"])) == Decimal("70.00")
+        assert "monthly_debt" in row
+        assert "client_phone" in row
+        assert "apartment_area" in row
+
+    def test_filter_by_client_status(self, api_client):
+        from apps.clients.models import ClientStatus
+        from apps.clients.tests.factories import ClientContactFactory
+
+        _superuser(api_client)
+        st_a = ClientStatus.objects.create(name={"ru": "A"}, color="#fff")
+        st_b = ClientStatus.objects.create(name={"ru": "B"}, color="#000")
+        c_a = ClientContactFactory()
+        c_a.client.status = st_a
+        c_a.client.save(update_fields=["status"])
+        c_b = ClientContactFactory()
+        c_b.client.status = st_b
+        c_b.client.save(update_fields=["status"])
+        ContractFactory(signer=c_a)
+        ContractFactory(signer=c_b)
+
+        resp = api_client.get(
+            f"{self.url_list}?signer__client__status={st_a.id}",
+        )
+        assert resp.status_code == status.HTTP_200_OK
+        ids = [r["client_status_id"] for r in resp.data["results"]]
+        assert all(cid == st_a.id for cid in ids)
+        assert len(ids) == 1
+
+    def test_filter_by_payment_type(self, api_client):
+        from apps.contracts.tests.factories import (
+            PaymentFactory,
+            PaymentScheduleFactory,
+        )
+
+        _superuser(api_client)
+        cash_only = ContractFactory()
+        bank_only = ContractFactory()
+        s1 = PaymentScheduleFactory(contract=cash_only)
+        s2 = PaymentScheduleFactory(contract=bank_only)
+        PaymentFactory(schedule=s1, payment_type="cash")
+        PaymentFactory(schedule=s2, payment_type="bank")
+
+        resp = api_client.get(f"{self.url_list}?payment_type=cash")
+        ids = {r["id"] for r in resp.data["results"]}
+        assert cash_only.id in ids
+        assert bank_only.id not in ids
+
+    def test_client_note_round_trip(self, api_client):
+        _superuser(api_client)
+        project = ProjectFactory()
+        apt = ApartmentFactory(floor__section__building__project=project)
+        signer = ClientContactFactory()
+        payload = {
+            "project": project.id,
+            "apartment": apt.id,
+            "signer": signer.id,
+            "total_amount": "1000.00",
+            "down_payment": "0.00",
+            "client_note": "Звонить по утрам",
+        }
+        resp = api_client.post(self.url_list, payload, format="json")
+        assert resp.status_code == status.HTTP_201_CREATED, resp.data
+        assert resp.data["client_note"] == "Звонить по утрам"
+
+        # PATCH update.
+        url = reverse("contract-detail", args=[resp.data["id"]])
+        resp2 = api_client.patch(url, {"client_note": "Уехал в Дубай"}, format="json")
+        assert resp2.status_code == status.HTTP_200_OK
+        assert resp2.data["client_note"] == "Уехал в Дубай"
+
     def test_payment_methods_m2m(self, api_client):
         from apps.references.models import PaymentMethod
 

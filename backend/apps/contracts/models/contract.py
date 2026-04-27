@@ -109,6 +109,7 @@ class Contract(BaseModel):
         help_text=_("Свободный текст; используется, если подписант не заведён как контакт."),
     )
     description = models.TextField(_("Описание"), blank=True)
+    client_note = models.TextField(_("Заметки по клиенту"), blank=True)
 
     # --- Money snapshot ---
     total_amount = MoneyField(

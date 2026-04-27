@@ -598,10 +598,28 @@ export interface Contract extends TimeStamped {
   send_date: string | null
   related_person: string
   description: string
+  /** Internal manager-side notes per client — does NOT print to PDF. */
+  client_note: string
+
+  // Client-side denorm (read-only).
+  client_phone: string
+  client_status_id: number | null
+  client_status_name: I18nText | null
+  client_status_color: string | null
+
+  // Apartment denorm (read-only).
+  apartment_area: string | null
+  apartment_price_per_sqm: string | null
 
   // Money (Decimal strings from DRF).
   total_amount: string
   down_payment: string
+
+  // Aggregates over the contract's PaymentSchedules + Payments (read-only).
+  monthly_payment: string | null
+  monthly_debt: string
+  remaining_debt: string
+  payment_types_used: PaymentChannel[]
 
   // Array of PaymentMethod IDs.
   payment_methods: number[]
@@ -629,10 +647,20 @@ export type ContractWrite = Omit<
   | "modified_at"
   | "project_title"
   | "apartment_number"
+  | "apartment_area"
+  | "apartment_price_per_sqm"
   | "signer_name"
   | "client_id"
   | "client_name"
+  | "client_phone"
+  | "client_status_id"
+  | "client_status_name"
+  | "client_status_color"
   | "author_name"
+  | "monthly_payment"
+  | "monthly_debt"
+  | "remaining_debt"
+  | "payment_types_used"
   | "action"
   | "is_signed"
   | "is_paid"

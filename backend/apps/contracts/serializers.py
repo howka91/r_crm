@@ -23,6 +23,7 @@ from apps.contracts.models import (
     Payment,
     PaymentSchedule,
 )
+from apps.contracts.services import aggregates
 
 
 # --- ContractTemplate -----------------------------------------------------
@@ -127,7 +128,26 @@ class ContractSerializer(serializers.ModelSerializer):
     client_name = serializers.CharField(
         source="signer.client.full_name", read_only=True,
     )
+    client_phone = serializers.SerializerMethodField()
+    client_status_id = serializers.IntegerField(
+        source="signer.client.status_id", read_only=True,
+    )
+    client_status_name = serializers.SerializerMethodField()
+    client_status_color = serializers.SerializerMethodField()
     author_name = serializers.SerializerMethodField()
+
+    # Apartment / pricing snapshot used by the report table.
+    apartment_area = serializers.DecimalField(
+        source="apartment.area",
+        max_digits=8, decimal_places=2, read_only=True,
+    )
+    apartment_price_per_sqm = serializers.SerializerMethodField()
+
+    # Aggregates over the contract's payment schedules (see services.aggregates).
+    payment_types_used = serializers.SerializerMethodField()
+    monthly_payment = serializers.SerializerMethodField()
+    monthly_debt = serializers.SerializerMethodField()
+    remaining_debt = serializers.SerializerMethodField()
 
     # Drafts may be created without an assigned contract_number; DRF's
     # default introspection pegs CharField+blank+no-default as required, so
@@ -139,6 +159,7 @@ class ContractSerializer(serializers.ModelSerializer):
         max_length=255, required=False, allow_blank=True,
     )
     description = serializers.CharField(required=False, allow_blank=True)
+    client_note = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Contract
@@ -149,6 +170,8 @@ class ContractSerializer(serializers.ModelSerializer):
             "apartment", "apartment_number",
             "calculation",
             "signer", "signer_name", "client_id", "client_name",
+            "client_phone",
+            "client_status_id", "client_status_name", "client_status_color",
             "author", "author_name",
             "template",
             # core data
@@ -157,11 +180,20 @@ class ContractSerializer(serializers.ModelSerializer):
             "send_date",
             "related_person",
             "description",
+            "client_note",
+            # apartment denorm
+            "apartment_area",
+            "apartment_price_per_sqm",
             # money
             "total_amount",
             "down_payment",
-            # payment channels
+            "monthly_payment",
+            "monthly_debt",
+            "remaining_debt",
+            # payment channels (declared methods)
             "payment_methods",
+            # actual channels used (aggregate from Payment rows)
+            "payment_types_used",
             # workflow
             "action",
             "is_signed",
@@ -182,10 +214,20 @@ class ContractSerializer(serializers.ModelSerializer):
             "id",
             "project_title",
             "apartment_number",
+            "apartment_area",
+            "apartment_price_per_sqm",
             "signer_name",
             "client_id",
             "client_name",
+            "client_phone",
+            "client_status_id",
+            "client_status_name",
+            "client_status_color",
             "author_name",
+            "payment_types_used",
+            "monthly_payment",
+            "monthly_debt",
+            "remaining_debt",
             # Workflow transitions go through dedicated endpoints in 5.2.
             "action",
             "is_signed",
@@ -212,6 +254,47 @@ class ContractSerializer(serializers.ModelSerializer):
 
     def get_author_name(self, obj: Contract) -> str | None:
         return obj.author.full_name if obj.author_id and obj.author else None
+
+    def get_client_phone(self, obj: Contract) -> str:
+        client = getattr(obj.signer, "client", None) if obj.signer_id else None
+        phones = getattr(client, "phones", None) or []
+        return phones[0] if phones else ""
+
+    def _client_status(self, obj: Contract):
+        client = getattr(obj.signer, "client", None) if obj.signer_id else None
+        return getattr(client, "status", None) if client else None
+
+    def get_client_status_name(self, obj: Contract):
+        status = self._client_status(obj)
+        # `name` is an I18nField (JSON {ru, uz, oz}); return the dict so the
+        # frontend chooses the locale.
+        return status.name if status else None
+
+    def get_client_status_color(self, obj: Contract) -> str | None:
+        status = self._client_status(obj)
+        return status.color if status else None
+
+    def get_apartment_price_per_sqm(self, obj: Contract):
+        # Prefer the calculation snapshot (matches `total_amount` after
+        # discounts); fall back to the floor's posted price.
+        if obj.calculation_id and obj.calculation:
+            return obj.calculation.new_price_per_sqm
+        apartment = obj.apartment
+        if apartment and apartment.floor_id:
+            return apartment.floor.price_per_sqm
+        return None
+
+    def get_payment_types_used(self, obj: Contract) -> list[str]:
+        return aggregates.payment_types_used(obj)
+
+    def get_monthly_payment(self, obj: Contract):
+        return aggregates.monthly_payment(obj)
+
+    def get_monthly_debt(self, obj: Contract):
+        return aggregates.monthly_debt(obj)
+
+    def get_remaining_debt(self, obj: Contract):
+        return aggregates.remaining_debt(obj)
 
     def validate(self, attrs: dict) -> dict:
         # Total amount must be >= down payment (matches UI expectation).
@@ -298,3 +381,22 @@ class PaymentSerializer(serializers.ModelSerializer):
             "id", "contract_id", "recorded_by_name",
             "created_at", "modified_at",
         )
+
+    def validate(self, attrs: dict) -> dict:
+        """`comment` is required for barter — bartered goods can't be
+        identified from the cash amount alone, the description carries the
+        actual exchanged item."""
+        payment_type = attrs.get("payment_type")
+        if payment_type is None and self.instance is not None:
+            payment_type = self.instance.payment_type
+        if "comment" in attrs:
+            comment = attrs["comment"]
+        elif self.instance is not None:
+            comment = self.instance.comment
+        else:
+            comment = ""
+        if payment_type == Payment.Type.BARTER and not (comment or "").strip():
+            raise serializers.ValidationError(
+                {"comment": "Описание обязательно при бартере."},
+            )
+        return attrs

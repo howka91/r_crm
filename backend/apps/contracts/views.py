@@ -44,6 +44,7 @@ from apps.contracts.models import (
     Payment,
     PaymentSchedule,
 )
+from apps.contracts.filters import ContractFilterSet
 from apps.contracts.serializers import (
     ContractSerializer,
     ContractTemplateSerializer,
@@ -101,22 +102,20 @@ class ContractViewSet(ProtectedDestroyMixin, viewsets.ModelViewSet):
             "calculation",
             "signer",
             "signer__client",
+            "signer__client__status",
             "author",
         )
-        .prefetch_related("payment_methods")
+        .prefetch_related(
+            "payment_methods",
+            # Aggregates in ContractSerializer iterate schedules + payments;
+            # without these prefetches the list endpoint would do N×M queries.
+            "schedules",
+            "schedules__payments",
+        )
         .all()
     )
     serializer_class = ContractSerializer
-    filterset_fields = (
-        "is_active",
-        "project",
-        "apartment",
-        "signer",
-        "action",
-        "is_signed",
-        "is_paid",
-        "is_mortgage",
-    )
+    filterset_class = ContractFilterSet
     search_fields = (
         "contract_number",
         "related_person",
